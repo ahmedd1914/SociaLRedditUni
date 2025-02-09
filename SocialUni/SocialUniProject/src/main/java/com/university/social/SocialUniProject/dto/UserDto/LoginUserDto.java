@@ -1,11 +1,12 @@
 package com.university.social.SocialUniProject.dto.UserDto;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 public class LoginUserDto {
-    private String email;
+    private String email;  // Change from username to email
     private String password;
 
     public String getEmail() {

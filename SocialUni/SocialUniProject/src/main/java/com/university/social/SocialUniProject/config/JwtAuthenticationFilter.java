@@ -1,6 +1,7 @@
 package com.university.social.SocialUniProject.config;
 
 import com.university.social.SocialUniProject.services.UserServices.JwtService;
+import com.university.social.SocialUniProject.services.UserServices.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,17 +22,16 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final HandlerExceptionResolver handlerExceptionResolver;
-
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final UserService userService;
 
     public JwtAuthenticationFilter(
             JwtService jwtService,
             UserDetailsService userDetailsService,
-            HandlerExceptionResolver handlerExceptionResolver
+            HandlerExceptionResolver handlerExceptionResolver, UserService userService
     ) {
         this.jwtService = jwtService;
-        this.userDetailsService = userDetailsService;
+        this.userService = userService;
         this.handlerExceptionResolver = handlerExceptionResolver;
     }
 
@@ -41,21 +41,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+
+        System.out.println("🔍 JWT Filter processing request: " + request.getRequestURI());
+
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("❌ No valid Authorization header found.");
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             final String jwt = authHeader.substring(7);
-            final String userEmail = jwtService.extractUsername(jwt);
+            System.out.println("✅ Extracted JWT: " + jwt);
 
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            final String userId  = jwtService.extractUserId(jwt);
+            System.out.println("🔍 Extracted UserId: " + userId);
 
-            if (userEmail != null && authentication == null) {
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
+
+            if (userId != null && existingAuth == null) {
+                UserDetails userDetails = this.userService.loadUserById(Long.parseLong(userId));
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -66,12 +73,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    System.out.println("✅ User authenticated: " + userDetails.getUsername());
+                } else {
+                    System.out.println("❌ JWT is invalid for user: " + userId);
                 }
             }
 
-            filterChain.doFilter(request, response);
         } catch (Exception exception) {
+            System.out.println("❌ JWT Authentication Failed: " + exception.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, exception);
         }
+
+        filterChain.doFilter(request, response);
     }
 }

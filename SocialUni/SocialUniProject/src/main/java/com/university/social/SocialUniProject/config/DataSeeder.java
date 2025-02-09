@@ -21,16 +21,16 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // ✅ Check if an admin already exists
-        if (userRepository.findByEmail("admin@example.com").isEmpty()) {
+        if (userRepository.findByEmail("admin@gmail.com").isEmpty()) {
             User admin = new User();
-            admin.setEmail("admin@example.com");
-            admin.setPassword(passwordEncoder.encode("Admin123!")); // ✅ Hash password
-            admin.setUsername("Admin");
+            admin.setEmail("admin@gmail.com");
+            admin.setPassword(passwordEncoder.encode("admin")); // ✅ Hash password
+            admin.setUsername("admin");
             admin.setEnabled(true);
             admin.setRole(Role.ADMIN);
 
             userRepository.save(admin);
-            System.out.println("✅ Admin user seeded: admin@example.com / Admin123!");
+            System.out.println("✅ Admin user seeded");
         } else {
             System.out.println("✅ Admin already exists.");
         }

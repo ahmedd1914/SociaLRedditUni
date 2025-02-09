@@ -10,6 +10,7 @@ import com.university.social.SocialUniProject.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -24,36 +25,42 @@ public class PostService {
     private UserRepository userRepository;
 
     public PostResponseDto createPost(CreatePostDto postDto, Long userId) {
-        System.out.println("Received Post Request: " + postDto.getTitle());
-        System.out.println("User ID: " + userId);
+        System.out.println("✅ Received Post Request: " + postDto.getTitle());
+        System.out.println("🔹 User ID: " + userId);
 
+        // 1️⃣ Retrieve User
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("❌ User not found"));
 
+        // 2️⃣ Validate Category ID
         if (postDto.getCategoryId() == null || postDto.getCategoryId() < 0 || postDto.getCategoryId() >= Category.values().length) {
-            throw new RuntimeException("Invalid category ID: " + postDto.getCategoryId());
+            throw new RuntimeException("❌ Invalid category ID: " + postDto.getCategoryId());
         }
+        System.out.println("✅ Category ID is valid: " + postDto.getCategoryId());
 
-        System.out.println("Category ID is valid.");
-
+        // 3️⃣ Create Post Object
         Post post = new Post();
         post.setTitle(postDto.getTitle());
         post.setContent(postDto.getContent());
         post.setUser(user);
         post.setVisibility(postDto.getVisibility());
+        post.setCreatedAt(LocalDateTime.now()); // Ensure createdAt is set
 
+        // 4️⃣ Assign Category
         Category category = Category.values()[postDto.getCategoryId().intValue()];
         post.setCategories(Set.of(category));
 
-        System.out.println("Saving post...");
+        // 5️⃣ Save Post to Database
+        System.out.println("💾 Saving post...");
         Post savedPost = postRepository.save(post);
 
-        if (savedPost == null) {
-            throw new RuntimeException("Failed to save post");
+        if (savedPost.getId() == null) {
+            throw new RuntimeException("❌ Failed to save post");
         }
 
-        System.out.println("Post saved successfully: " + savedPost.getId());
+        System.out.println("✅ Post saved successfully: " + savedPost.getId());
 
+        // 6️⃣ Convert and Return Response DTO
         return convertToDto(savedPost);
     }
 

@@ -42,7 +42,7 @@ public class Post {
 
     // Many-to-One with User (author)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = true)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private User user;
@@ -84,8 +84,7 @@ public class Post {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Post() {
-    }
+
 
     // If using a no-arg constructor, you can set createdAt in it
     @PrePersist
