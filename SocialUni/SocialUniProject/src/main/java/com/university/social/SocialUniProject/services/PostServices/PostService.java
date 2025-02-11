@@ -4,14 +4,18 @@ import com.university.social.SocialUniProject.dto.PostDto.CreatePostDto;
 import com.university.social.SocialUniProject.dto.PostDto.PostResponseDto;
 import com.university.social.SocialUniProject.models.*;
 import com.university.social.SocialUniProject.models.Enums.Category;
+import com.university.social.SocialUniProject.models.Enums.ReactionType;
 import com.university.social.SocialUniProject.models.Enums.Visibility;
 import com.university.social.SocialUniProject.repositories.PostRepository;
+import com.university.social.SocialUniProject.repositories.ReactionRepository;
 import com.university.social.SocialUniProject.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -23,6 +27,9 @@ public class PostService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ReactionRepository reactionRepository;
 
     public PostResponseDto createPost(CreatePostDto postDto, Long userId) {
         System.out.println("✅ Received Post Request: " + postDto.getTitle());
@@ -71,27 +78,70 @@ public class PostService {
     }
 
     public PostResponseDto updatePost(Long postId, CreatePostDto postDto, Long userId) {
-        Post post = postRepository.findByIdAndUserId(postId, userId)
-                .orElseThrow(() -> new RuntimeException("Unauthorized or Post not found"));
+        // 1️⃣ Retrieve the existing post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post not found"));
 
+        // 2️⃣ Ensure the authenticated user is the owner
+        if (!post.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized: You can only edit your own posts.");
+        }
+
+        // 3️⃣ Update the post fields
         post.setTitle(postDto.getTitle());
         post.setContent(postDto.getContent());
         post.setVisibility(postDto.getVisibility());
-        postRepository.save(post);
 
-        return convertToDto(post);
+        // 4️⃣ Save the updated post
+        Post updatedPost = postRepository.save(post);
+        System.out.println("Post updated successfully: " + updatedPost.getId());
+
+        // 5️⃣ Return the updated post as DTO
+        return convertToDto(updatedPost);
     }
 
     public void deletePost(Long postId, Long userId) {
-        Post post = postRepository.findByIdAndUserId(postId, userId)
-                .orElseThrow(() -> new RuntimeException("Unauthorized or Post not found"));
+        // 1️⃣ Retrieve the existing post
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("❌ Post not found"));
 
+        // 2️⃣ Ensure the authenticated user is the owner
+        if (!post.getUser().getId().equals(userId)) {
+            throw new RuntimeException("❌ Unauthorized: You can only delete your own posts.");
+        }
+
+        // 3️⃣ Delete the post
         postRepository.delete(post);
+        System.out.println("✅ Post deleted successfully: " + postId);
     }
 
     private PostResponseDto convertToDto(Post post) {
-        return new PostResponseDto(post.getId(), post.getTitle(), post.getContent(),
-                post.getCategories().toString(), post.getUser().getUsername(),
-                post.getCreatedAt());
+        // Fetch reaction data
+        List<Object[]> reactionResults = reactionRepository.findReactionTypeCountsByPost(post.getId());
+        
+        // Convert List<Object[]> to Map<String, Integer>
+        Map<String, Integer> reactionTypes = reactionResults.stream()
+                .collect(Collectors.toMap(
+                        row -> ((ReactionType) row[0]).name(), // Convert Enum to String
+                        row -> ((Long) row[1]).intValue()
+                ));
+
+
+        int totalReactions = reactionTypes.values().stream().mapToInt(Integer::intValue).sum();
+
+        return new PostResponseDto(
+                post.getId(),
+                post.getTitle(),
+                post.getContent(),
+                post.getCategories().toString(),
+                post.getUser().getUsername(),
+                post.getCreatedAt(),
+                totalReactions,
+                reactionTypes
+        );
     }
+
+
+
+
 }

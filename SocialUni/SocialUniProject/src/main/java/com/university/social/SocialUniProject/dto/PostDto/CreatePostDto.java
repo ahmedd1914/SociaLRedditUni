@@ -11,13 +11,15 @@ public class CreatePostDto {
     private String content;
     private Long categoryId;
     private Visibility visibility;
+    private Long groupId;
 
 
-    public CreatePostDto(String title, String content, Long categoryId, Visibility visibility) {
+    public CreatePostDto(String title, String content, Long categoryId, Visibility visibility, Long groupId) {
         this.title = title;
         this.content = content;
         this.categoryId = categoryId;
         this.visibility = visibility;
+        this.groupId = groupId;
     }
 
     public String getTitle() {
@@ -50,5 +52,13 @@ public class CreatePostDto {
 
     public void setVisibility(Visibility visibility) {
         this.visibility = visibility;
+    }
+
+    public Long getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(Long groupId) {
+        this.groupId = groupId;
     }
 }

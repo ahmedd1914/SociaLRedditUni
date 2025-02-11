@@ -70,23 +70,42 @@ public class PostController {
     // ✅ Edit a post (only by the post owner)
     @PutMapping("/{postId}")
     public ResponseEntity<PostResponseDto> updatePost(
-            @AuthenticationPrincipal User user, @PathVariable Long postId,
-            @RequestBody CreatePostDto postDto) {
-        if (user == null) {
-            return ResponseEntity.status(401).build(); // Unauthorized
+            @PathVariable Long postId, @RequestBody CreatePostDto postDto) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Unauthorized
         }
+
+        String userId = authentication.getName(); // Extract userId
+        User user = userService.getUserById(Long.parseLong(userId));
+
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // User not found
+        }
+
         PostResponseDto response = postService.updatePost(postId, postDto, user.getId());
         return ResponseEntity.ok(response);
     }
 
     // ✅ Delete a post (only by the post owner)
     @DeleteMapping("/{postId}")
-    public ResponseEntity<?> deletePost(@AuthenticationPrincipal User user,
-                                        @PathVariable Long postId) {
-        if (user == null) {
-            return ResponseEntity.status(401).build(); // Unauthorized
+    public ResponseEntity<?> deletePost(@PathVariable Long postId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build(); // Unauthorized
         }
-        postService.deletePost(postId, user.getId());
-        return ResponseEntity.ok().build();
+
+        String userId = authentication.getName(); // Extract userId
+
+        try {
+            postService.deletePost(postId, Long.parseLong(userId));
+            System.out.println("✅ Post deleted successfully: " + postId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            System.out.println("❌ Error deleting post: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 }

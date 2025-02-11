@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 
 @Getter
@@ -15,14 +17,18 @@ public class PostResponseDto {
     private String categoryName;
     private String username;
     private LocalDateTime createdAt;
+    private int reactionCount;
+    private Map<String, Integer> reactionTypes;
 
-    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt) {
+    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.categoryName = categoryName;
         this.username = username;
         this.createdAt = createdAt;
+        this.reactionCount = reactionCount;
+        this.reactionTypes = reactionTypes != null ? reactionTypes : new HashMap<>();
     }
 
     public void setId(Long id) {
@@ -71,5 +77,21 @@ public class PostResponseDto {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public int getReactionCount() {
+        return reactionCount;
+    }
+
+    public void setReactionCount(int reactionCount) {
+        this.reactionCount = reactionCount;
+    }
+
+    public Map<String, Integer> getReactionTypes() {
+        return reactionTypes;
+    }
+
+    public void setReactionTypes(Map<String, Integer> reactionTypes) {
+        this.reactionTypes = reactionTypes;
     }
 }

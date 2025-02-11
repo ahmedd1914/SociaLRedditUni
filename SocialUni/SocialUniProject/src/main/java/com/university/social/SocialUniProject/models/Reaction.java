@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.models;
 
+import com.university.social.SocialUniProject.models.Enums.ReactionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,30 +26,24 @@ public class Reaction {
     @EqualsAndHashCode.Include
     private Long id;
 
-    // If you want various reaction types, store them here (e.g. "LIKE", "LOVE")
-    private String type;
+    @Enumerated(EnumType.STRING) // ✅ Store as String in DB
+    @Column(nullable = false)
+    private ReactionType type;
 
     private LocalDateTime reactedAt;
 
-    // Many-to-One with User
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User user;
 
-    // Many-to-One with Post
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Post post;
 
-    public Reaction(String type, User user, Post post) {
+    public Reaction(ReactionType type, User user, Post post) {
         this.type = type;
         this.user = user;
         this.post = post;
-
     }
 
     @PrePersist

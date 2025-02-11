@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.models;
 
+import com.university.social.SocialUniProject.models.Enums.Category;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -53,9 +54,15 @@ public class Group {
     @EqualsAndHashCode.Exclude
     private Set<Post> posts = new HashSet<>();
 
-    public Group(String name, String description, boolean isPrivate) {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Category category;
+
+
+    public Group(String name, String description, boolean isPrivate, Category category) {
         this.name = name;
         this.description = description;
         this.isPrivate = isPrivate;
+        this.category = category;
     }
 }
