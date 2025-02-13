@@ -3,8 +3,14 @@ package com.university.social.SocialUniProject.controllers;
 
 import com.university.social.SocialUniProject.dto.CommentDto.CreateCommentDto;
 import com.university.social.SocialUniProject.dto.CommentDto.UpdateCommentDto;
+import com.university.social.SocialUniProject.dto.CreateNotificationDto;
+import com.university.social.SocialUniProject.models.Enums.NotificationType;
+import com.university.social.SocialUniProject.models.Post;
+import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
+import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.services.PostServices.CommentService;
+import com.university.social.SocialUniProject.services.PostServices.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -20,6 +26,12 @@ public class CommentController {
     @Autowired
     private CommentService commentService;
 
+    @Autowired
+    private PostService postService;
+
+    @Autowired
+    private NotificationService notificationService;
+
     @PostMapping("/create")
     public ResponseEntity<CommentResponseDto> createComment(@RequestBody CreateCommentDto commentDto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -29,8 +41,25 @@ public class CommentController {
 
         Long userId = Long.parseLong(authentication.getName());
         CommentResponseDto response = commentService.createComment(userId, commentDto);
+
+        // Fetch the post owner
+        Post post = postService.getPostById(commentDto.getPostId());
+        User postOwner = post.getUser();
+
+        //  Send notification if user is commenting on someone else's post
+        if (!postOwner.getId().equals(userId)) {
+            notificationService.createNotification(new CreateNotificationDto(
+                    "Someone commented on your post",
+                    NotificationType.COMMENT,
+                    postOwner.getId(),
+                    commentDto.getPostId(),
+                    response.getId()
+            ));
+        }
+
         return ResponseEntity.ok(response);
     }
+
 
     @PutMapping("/{commentId}/edit")
     public ResponseEntity<CommentResponseDto> updateComment(

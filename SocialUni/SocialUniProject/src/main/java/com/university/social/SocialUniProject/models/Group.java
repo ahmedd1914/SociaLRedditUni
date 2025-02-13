@@ -19,7 +19,6 @@ import java.util.Set;
 @ToString
 public class Group {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @EqualsAndHashCode.Include
@@ -34,10 +33,8 @@ public class Group {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // Example: if you want to track private groups or membership approval
     private boolean isPrivate = false;
 
-    // Many-to-Many with User
     @ManyToMany
     @JoinTable(
             name = "group_users",
@@ -46,9 +43,24 @@ public class Group {
     )
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private Set<User> members = new HashSet<>();
+    private Set<User> members = new HashSet<>(); // ✅ Always initialized
 
-    // If posts belong to a group
+    @ManyToMany
+    @JoinTable(
+            name = "group_admins",
+            joinColumns = @JoinColumn(name = "group_id"),
+            inverseJoinColumns = @JoinColumn(name = "admin_id")
+    )
+    private Set<User> admins = new HashSet<>(); // ✅ Always initialized
+
+    @ManyToMany
+    @JoinTable(
+            name = "group_join_requests",
+            joinColumns = @JoinColumn(name = "group_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private Set<User> joinRequests = new HashSet<>(); // ✅ Always initialized
+
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
@@ -58,11 +70,14 @@ public class Group {
     @Column(nullable = false)
     private Category category;
 
-
     public Group(String name, String description, boolean isPrivate, Category category) {
         this.name = name;
         this.description = description;
         this.isPrivate = isPrivate;
         this.category = category;
+        this.members = new HashSet<>();
+        this.admins = new HashSet<>();
+        this.joinRequests = new HashSet<>();
+        this.posts = new HashSet<>();
     }
 }

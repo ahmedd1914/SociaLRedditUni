@@ -5,5 +5,8 @@ public enum NotificationType {
     NEW_POST,
     REACTION,
     FRIEND_REQUEST,
-    GROUP_INVITE
+    GROUP_INVITE,
+    GROUP_JOIN,
+    GROUP_LEAVE,
+    GROUP_JOIN_REQUEST
 }

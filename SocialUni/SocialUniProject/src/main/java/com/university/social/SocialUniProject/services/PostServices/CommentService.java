@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +34,15 @@ public class CommentService {
 
     @Autowired
     private ReactionRepository reactionRepository;
+
+    public CommentService(CommentRepository commentRepository) {
+        this.commentRepository = commentRepository;
+    }
+
+    public Comment getCommentById(Long commentId) {
+        Optional<Comment> comment = commentRepository.findById(commentId);
+        return comment.orElseThrow(() -> new RuntimeException("Comment not found"));
+    }
 
     public CommentResponseDto createComment(Long userId, CreateCommentDto commentDto) {
         User user = userRepository.findById(userId)

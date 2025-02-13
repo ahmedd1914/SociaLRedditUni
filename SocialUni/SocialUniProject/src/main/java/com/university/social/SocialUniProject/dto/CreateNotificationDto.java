@@ -13,6 +13,14 @@ public class CreateNotificationDto {
     private Long relatedPostId;
     private Long relatedCommentId;
 
+    public CreateNotificationDto(String message, NotificationType notificationType, Long id, Long postId, Long commentId) {
+        this.message = message;
+        this.notificationType = notificationType;
+        this.recipientId = id;
+        this.relatedPostId = postId;
+        this.relatedCommentId = commentId;
+    }
+
 
     public String getMessage() {
         return message;
