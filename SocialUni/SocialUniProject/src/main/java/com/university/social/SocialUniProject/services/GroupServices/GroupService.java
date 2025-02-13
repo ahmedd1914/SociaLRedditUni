@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.services.GroupServices;
 
 import com.university.social.SocialUniProject.dto.GroupDto.CreateGroupDto;
-import com.university.social.SocialUniProject.dto.GroupDto.GroupResponseDto;
+import com.university.social.SocialUniProject.responses.GroupResponseDto;
 import com.university.social.SocialUniProject.models.Enums.Category;
 import com.university.social.SocialUniProject.models.Group;
 import com.university.social.SocialUniProject.models.User;
@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service

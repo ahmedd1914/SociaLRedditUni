@@ -1,7 +1,9 @@
 package com.university.social.SocialUniProject.services.PostServices;
 
 import com.university.social.SocialUniProject.dto.PostDto.CreatePostDto;
-import com.university.social.SocialUniProject.dto.PostDto.PostResponseDto;
+import com.university.social.SocialUniProject.repositories.CommentRepository;
+import com.university.social.SocialUniProject.responses.CommentResponseDto;
+import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.models.*;
 import com.university.social.SocialUniProject.models.Enums.Category;
 import com.university.social.SocialUniProject.models.Enums.ReactionType;
@@ -13,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,21 +32,18 @@ public class PostService {
     @Autowired
     private ReactionRepository reactionRepository;
 
+    @Autowired
+    private CommentRepository commentRepository;
+
     public PostResponseDto createPost(CreatePostDto postDto, Long userId) {
-        System.out.println("✅ Received Post Request: " + postDto.getTitle());
-        System.out.println("🔹 User ID: " + userId);
-
-        // 1️⃣ Retrieve User
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("❌ User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 2️⃣ Validate Category ID
+
         if (postDto.getCategoryId() == null || postDto.getCategoryId() < 0 || postDto.getCategoryId() >= Category.values().length) {
-            throw new RuntimeException("❌ Invalid category ID: " + postDto.getCategoryId());
+            throw new RuntimeException("Invalid category ID: " + postDto.getCategoryId());
         }
-        System.out.println("✅ Category ID is valid: " + postDto.getCategoryId());
 
-        // 3️⃣ Create Post Object
         Post post = new Post();
         post.setTitle(postDto.getTitle());
         post.setContent(postDto.getContent());
@@ -53,21 +51,16 @@ public class PostService {
         post.setVisibility(postDto.getVisibility());
         post.setCreatedAt(LocalDateTime.now()); // Ensure createdAt is set
 
-        // 4️⃣ Assign Category
         Category category = Category.values()[postDto.getCategoryId().intValue()];
         post.setCategories(Set.of(category));
 
-        // 5️⃣ Save Post to Database
-        System.out.println("💾 Saving post...");
+
         Post savedPost = postRepository.save(post);
 
         if (savedPost.getId() == null) {
-            throw new RuntimeException("❌ Failed to save post");
+            throw new RuntimeException("Failed to save post");
         }
 
-        System.out.println("✅ Post saved successfully: " + savedPost.getId());
-
-        // 6️⃣ Convert and Return Response DTO
         return convertToDto(savedPost);
     }
 
@@ -78,70 +71,92 @@ public class PostService {
     }
 
     public PostResponseDto updatePost(Long postId, CreatePostDto postDto, Long userId) {
-        // 1️⃣ Retrieve the existing post
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // 2️⃣ Ensure the authenticated user is the owner
         if (!post.getUser().getId().equals(userId)) {
             throw new RuntimeException("Unauthorized: You can only edit your own posts.");
         }
 
-        // 3️⃣ Update the post fields
         post.setTitle(postDto.getTitle());
         post.setContent(postDto.getContent());
         post.setVisibility(postDto.getVisibility());
 
-        // 4️⃣ Save the updated post
         Post updatedPost = postRepository.save(post);
         System.out.println("Post updated successfully: " + updatedPost.getId());
 
-        // 5️⃣ Return the updated post as DTO
         return convertToDto(updatedPost);
     }
 
     public void deletePost(Long postId, Long userId) {
-        // 1️⃣ Retrieve the existing post
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("❌ Post not found"));
+                .orElseThrow(() -> new RuntimeException("Post not found"));
 
-        // 2️⃣ Ensure the authenticated user is the owner
         if (!post.getUser().getId().equals(userId)) {
-            throw new RuntimeException("❌ Unauthorized: You can only delete your own posts.");
+            throw new RuntimeException("Unauthorized: You can only delete your own posts.");
         }
 
-        // 3️⃣ Delete the post
         postRepository.delete(post);
-        System.out.println("✅ Post deleted successfully: " + postId);
+        System.out.println("Post deleted successfully: " + postId);
     }
 
     private PostResponseDto convertToDto(Post post) {
-        // Fetch reaction data
         List<Object[]> reactionResults = reactionRepository.findReactionTypeCountsByPost(post.getId());
-        
-        // Convert List<Object[]> to Map<String, Integer>
+
         Map<String, Integer> reactionTypes = reactionResults.stream()
                 .collect(Collectors.toMap(
                         row -> ((ReactionType) row[0]).name(), // Convert Enum to String
                         row -> ((Long) row[1]).intValue()
                 ));
 
-
         int totalReactions = reactionTypes.values().stream().mapToInt(Integer::intValue).sum();
+
+        String categoryNames = post.getCategories() != null && !post.getCategories().isEmpty()
+                ? post.getCategories().stream().map(Enum::name).collect(Collectors.joining(", "))
+                : "Uncategorized";
+
+        List<CommentResponseDto> comments = commentRepository.findByPostIdAndParentCommentIsNull(post.getId())
+                .stream()
+                .map(this::mapToCommentResponse)
+                .collect(Collectors.toList());
 
         return new PostResponseDto(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
-                post.getCategories().toString(),
+                categoryNames,
                 post.getUser().getUsername(),
                 post.getCreatedAt(),
                 totalReactions,
-                reactionTypes
+                reactionTypes,
+                comments
         );
     }
 
+    private CommentResponseDto mapToCommentResponse(Comment comment) {
 
+        List<CommentResponseDto> replies = commentRepository.findByParentCommentId(comment.getId())
+                .stream()
+                .map(this::mapToCommentResponse)
+                .collect(Collectors.toList());
 
+        // Convert reaction types
+        Map<String, Integer> reactionTypes = comment.getReactions().stream()
+                .collect(Collectors.groupingBy(reaction -> reaction.getType().name(), Collectors.summingInt(r -> 1)));
+
+        return new CommentResponseDto(
+                comment.getId(),
+                comment.getContent(),
+                comment.getUser().getUsername(),
+                comment.getMediaUrl(),
+                comment.getVisibility(),
+                comment.getCreatedAt(),
+                comment.getReactions().size(),
+                reactionTypes,
+                comment.getParentComment() != null ? comment.getParentComment().getId() : null,
+                comment.isDeleted(),
+                replies
+        );
+    }
 
 }

@@ -42,11 +42,11 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(authorize -> authorize
-                        // Public endpoints
+
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
 
-                        // Swagger documentation
+                       
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
@@ -56,7 +56,7 @@ public class SecurityConfig {
                                 "/webjars/**"
                         ).permitAll()
 
-                        // Fallback rule: all other requests require authentication
+
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)

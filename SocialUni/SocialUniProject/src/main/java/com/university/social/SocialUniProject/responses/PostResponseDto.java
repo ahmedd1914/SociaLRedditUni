@@ -1,10 +1,12 @@
-package com.university.social.SocialUniProject.dto.PostDto;
+package com.university.social.SocialUniProject.responses;
 
+import com.university.social.SocialUniProject.models.Reaction;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -19,8 +21,9 @@ public class PostResponseDto {
     private LocalDateTime createdAt;
     private int reactionCount;
     private Map<String, Integer> reactionTypes;
+    private List<CommentResponseDto> commments;
 
-    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes) {
+    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> commments) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -29,6 +32,7 @@ public class PostResponseDto {
         this.createdAt = createdAt;
         this.reactionCount = reactionCount;
         this.reactionTypes = reactionTypes != null ? reactionTypes : new HashMap<>();
+        this.commments = commments;
     }
 
     public void setId(Long id) {
@@ -93,5 +97,13 @@ public class PostResponseDto {
 
     public void setReactionTypes(Map<String, Integer> reactionTypes) {
         this.reactionTypes = reactionTypes;
+    }
+
+    public List<CommentResponseDto> getCommments() {
+        return commments;
+    }
+
+    public void setCommments(List<CommentResponseDto> commments) {
+        this.commments = commments;
     }
 }

@@ -3,7 +3,6 @@ package com.university.social.SocialUniProject.controllers;
 import com.university.social.SocialUniProject.dto.UserDto.LoginUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.RegisterUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.VerifyUserDto;
-import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.responses.LoginResponse;
 import com.university.social.SocialUniProject.services.UserServices.AuthenticationService;
 import com.university.social.SocialUniProject.services.UserServices.JwtService;

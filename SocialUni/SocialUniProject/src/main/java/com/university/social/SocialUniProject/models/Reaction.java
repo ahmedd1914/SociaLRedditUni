@@ -7,12 +7,11 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(
-        name = "reactions",
+@Table(name = "reactions",
         uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"user_id", "post_id"})
-        }
-)
+                @UniqueConstraint(columnNames = {"user_id", "post_id"}),  // ✅ Unique reaction per post
+                @UniqueConstraint(columnNames = {"user_id", "comment_id"}) // ✅ Unique reaction per comment
+        })
 @Getter
 @Setter
 @NoArgsConstructor
@@ -37,13 +36,24 @@ public class Reaction {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "post_id", nullable = false)
+    @JoinColumn(name = "post_id", nullable = true)
     private Post post;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "comment_id", nullable = true)
+    private Comment comment;
+
+
 
     public Reaction(ReactionType type, User user, Post post) {
         this.type = type;
         this.user = user;
         this.post = post;
+    }
+    public Reaction(ReactionType type, User user, Comment comment) {
+        this.type = type;
+        this.user = user;
+        this.comment = comment;
     }
 
     @PrePersist

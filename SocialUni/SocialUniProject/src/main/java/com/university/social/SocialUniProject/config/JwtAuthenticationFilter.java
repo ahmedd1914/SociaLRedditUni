@@ -42,22 +42,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        System.out.println("🔍 JWT Filter processing request: " + request.getRequestURI());
+        System.out.println("JWT Filter processing request: " + request.getRequestURI());
 
         final String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("❌ No valid Authorization header found.");
+            System.out.println("No valid Authorization header found.");
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
             final String jwt = authHeader.substring(7);
-            System.out.println("✅ Extracted JWT: " + jwt);
+            System.out.println("Extracted JWT: " + jwt);
 
             final String userId  = jwtService.extractUserId(jwt);
-            System.out.println("🔍 Extracted UserId: " + userId);
+            System.out.println("Extracted UserId: " + userId);
 
             Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -73,14 +73,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    System.out.println("✅ User authenticated: " + userDetails.getUsername());
+                    System.out.println("User authenticated: " + userDetails.getUsername());
                 } else {
-                    System.out.println("❌ JWT is invalid for user: " + userId);
+                    System.out.println("JWT is invalid for user: " + userId);
                 }
             }
 
         } catch (Exception exception) {
-            System.out.println("❌ JWT Authentication Failed: " + exception.getMessage());
+            System.out.println("JWT Authentication Failed: " + exception.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, exception);
         }
 

@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.dto.GroupDto;
+package com.university.social.SocialUniProject.responses;
 
 import com.university.social.SocialUniProject.models.Enums.Category;
 import lombok.Getter;

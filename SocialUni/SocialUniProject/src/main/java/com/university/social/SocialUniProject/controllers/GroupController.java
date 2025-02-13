@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.controllers;
 
 import com.university.social.SocialUniProject.dto.GroupDto.CreateGroupDto;
-import com.university.social.SocialUniProject.dto.GroupDto.GroupResponseDto;
+import com.university.social.SocialUniProject.responses.GroupResponseDto;
 import com.university.social.SocialUniProject.models.Enums.Category;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
