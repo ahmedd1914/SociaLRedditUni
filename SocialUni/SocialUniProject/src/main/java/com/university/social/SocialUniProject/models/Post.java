@@ -15,7 +15,7 @@ import java.util.Set;
 @Table(name = "posts")
 @Getter
 @Setter
-@NoArgsConstructor
+
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
@@ -84,7 +84,8 @@ public class Post {
         this.createdAt = LocalDateTime.now();
     }
 
-
+    public Post() {
+    }
 
     // If using a no-arg constructor, you can set createdAt in it
     @PrePersist
@@ -173,4 +174,5 @@ public class Post {
     public void setReactions(Set<Reaction> reactions) {
         this.reactions = reactions;
     }
+
 }

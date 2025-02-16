@@ -13,7 +13,6 @@ import java.util.Set;
 @Table(name = "comments")
 @Getter
 @Setter
-@NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
@@ -85,6 +84,9 @@ public class Comment {
         this.visibility = visibility;
         this.mediaUrl = mediaUrl;
         this.createdAt = LocalDateTime.now();
+    }
+
+    public Comment() {
     }
 
     @PrePersist
@@ -172,5 +174,13 @@ public class Comment {
 
     public void setDeleted(boolean deleted) {
         isDeleted = deleted;
+    }
+
+    public Set<Reaction> getReactions() {
+        return reactions;
+    }
+
+    public void setReactions(Set<Reaction> reactions) {
+        this.reactions = reactions;
     }
 }
