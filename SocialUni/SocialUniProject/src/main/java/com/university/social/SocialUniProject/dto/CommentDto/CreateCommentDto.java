@@ -23,43 +23,43 @@ public class CreateCommentDto {
     private Visibility visibility = Visibility.PUBLIC;
 
 
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public Long getPostId() {
-        return postId;
-    }
-
-    public void setPostId(Long postId) {
-        this.postId = postId;
-    }
-
-    public Long getParentCommentId() {
-        return parentCommentId;
-    }
-
-    public void setParentCommentId(Long parentCommentId) {
-        this.parentCommentId = parentCommentId;
-    }
-
-    public Visibility getVisibility() {
-        return visibility;
-    }
-
-    public void setVisibility(Visibility visibility) {
-        this.visibility = visibility;
-    }
+//    public String getContent() {
+//        return content;
+//    }
+//
+//    public void setContent(String content) {
+//        this.content = content;
+//    }
+//
+//    public String getMediaUrl() {
+//        return mediaUrl;
+//    }
+//
+//    public void setMediaUrl(String mediaUrl) {
+//        this.mediaUrl = mediaUrl;
+//    }
+//
+//    public Long getPostId() {
+//        return postId;
+//    }
+//
+//    public void setPostId(Long postId) {
+//        this.postId = postId;
+//    }
+//
+//    public Long getParentCommentId() {
+//        return parentCommentId;
+//    }
+//
+//    public void setParentCommentId(Long parentCommentId) {
+//        this.parentCommentId = parentCommentId;
+//    }
+//
+//    public Visibility getVisibility() {
+//        return visibility;
+//    }
+//
+//    public void setVisibility(Visibility visibility) {
+//        this.visibility = visibility;
+//    }
 }

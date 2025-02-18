@@ -18,19 +18,19 @@ public class UpdateCommentDto {
         this.mediaUrl = mediaUrl;
     }
 
-    public @NotBlank(message = "Comment content cannot be empty") String getContent() {
-        return content;
-    }
-
-    public void setContent(@NotBlank(message = "Comment content cannot be empty") String content) {
-        this.content = content;
-    }
-
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
+//    public @NotBlank(message = "Comment content cannot be empty") String getContent() {
+//        return content;
+//    }
+//
+//    public void setContent(@NotBlank(message = "Comment content cannot be empty") String content) {
+//        this.content = content;
+//    }
+//
+//    public String getMediaUrl() {
+//        return mediaUrl;
+//    }
+//
+//    public void setMediaUrl(String mediaUrl) {
+//        this.mediaUrl = mediaUrl;
+//    }
 }
