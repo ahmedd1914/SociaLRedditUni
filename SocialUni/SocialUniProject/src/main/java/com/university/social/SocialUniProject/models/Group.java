@@ -10,7 +10,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(name = "groups")
+@Table(name = "social_group")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -81,78 +81,78 @@ public class Group {
         this.posts = new HashSet<>();
     }
 
-    public Group() {
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public @NotBlank @Size(max = 100) String getName() {
-        return name;
-    }
-
-    public void setName(@NotBlank @Size(max = 100) String name) {
-        this.name = name;
-    }
-
-    public @Size(max = 500) String getDescription() {
-        return description;
-    }
-
-    public void setDescription(@Size(max = 500) String description) {
-        this.description = description;
-    }
-
-    public boolean isPrivate() {
-        return isPrivate;
-    }
-
-    public void setPrivate(boolean aPrivate) {
-        isPrivate = aPrivate;
-    }
-
-    public Set<User> getMembers() {
-        return members;
-    }
-
-    public void setMembers(Set<User> members) {
-        this.members = members;
-    }
-
-    public Set<User> getAdmins() {
-        return admins;
-    }
-
-    public void setAdmins(Set<User> admins) {
-        this.admins = admins;
-    }
-
-    public Set<User> getJoinRequests() {
-        return joinRequests;
-    }
-
-    public void setJoinRequests(Set<User> joinRequests) {
-        this.joinRequests = joinRequests;
-    }
-
-    public Set<Post> getPosts() {
-        return posts;
-    }
-
-    public void setPosts(Set<Post> posts) {
-        this.posts = posts;
-    }
-
-    public Category getCategory() {
-        return category;
-    }
-
-    public void setCategory(Category category) {
-        this.category = category;
-    }
+//    public Group() {
+//    }
+//
+//    public Long getId() {
+//        return id;
+//    }
+//
+//    public void setId(Long id) {
+//        this.id = id;
+//    }
+//
+//    public @NotBlank @Size(max = 100) String getName() {
+//        return name;
+//    }
+//
+//    public void setName(@NotBlank @Size(max = 100) String name) {
+//        this.name = name;
+//    }
+//
+//    public @Size(max = 500) String getDescription() {
+//        return description;
+//    }
+//
+//    public void setDescription(@Size(max = 500) String description) {
+//        this.description = description;
+//    }
+//
+//    public boolean isPrivate() {
+//        return isPrivate;
+//    }
+//
+//    public void setPrivate(boolean aPrivate) {
+//        isPrivate = aPrivate;
+//    }
+//
+//    public Set<User> getMembers() {
+//        return members;
+//    }
+//
+//    public void setMembers(Set<User> members) {
+//        this.members = members;
+//    }
+//
+//    public Set<User> getAdmins() {
+//        return admins;
+//    }
+//
+//    public void setAdmins(Set<User> admins) {
+//        this.admins = admins;
+//    }
+//
+//    public Set<User> getJoinRequests() {
+//        return joinRequests;
+//    }
+//
+//    public void setJoinRequests(Set<User> joinRequests) {
+//        this.joinRequests = joinRequests;
+//    }
+//
+//    public Set<Post> getPosts() {
+//        return posts;
+//    }
+//
+//    public void setPosts(Set<Post> posts) {
+//        this.posts = posts;
+//    }
+//
+//    public Category getCategory() {
+//        return category;
+//    }
+//
+//    public void setCategory(Category category) {
+//        this.category = category;
+//    }
 }

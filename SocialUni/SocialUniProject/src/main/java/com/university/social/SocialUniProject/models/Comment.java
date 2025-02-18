@@ -13,6 +13,7 @@ import java.util.Set;
 @Table(name = "comments")
 @Getter
 @Setter
+@NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
@@ -86,8 +87,8 @@ public class Comment {
         this.createdAt = LocalDateTime.now();
     }
 
-    public Comment() {
-    }
+//    public Comment() {
+//    }
 
     @PrePersist
     protected void onCreate() {
@@ -96,91 +97,91 @@ public class Comment {
         }
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
-
-    public String getMediaUrl() {
-        return mediaUrl;
-    }
-
-    public void setMediaUrl(String mediaUrl) {
-        this.mediaUrl = mediaUrl;
-    }
-
-    public Visibility getVisibility() {
-        return visibility;
-    }
-
-    public void setVisibility(Visibility visibility) {
-        this.visibility = visibility;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public Post getPost() {
-        return post;
-    }
-
-    public void setPost(Post post) {
-        this.post = post;
-    }
-
-    public Comment getParentComment() {
-        return parentComment;
-    }
-
-    public void setParentComment(Comment parentComment) {
-        this.parentComment = parentComment;
-    }
-
-    public Set<User> getReactedUsers() {
-        return reactedUsers;
-    }
-
-    public void setReactedUsers(Set<User> reactedUsers) {
-        this.reactedUsers = reactedUsers;
-    }
-
-    public boolean isDeleted() {
-        return isDeleted;
-    }
-
-    public void setDeleted(boolean deleted) {
-        isDeleted = deleted;
-    }
-
-    public Set<Reaction> getReactions() {
-        return reactions;
-    }
-
-    public void setReactions(Set<Reaction> reactions) {
-        this.reactions = reactions;
-    }
+//    public Long getId() {
+//        return id;
+//    }
+//
+//    public void setId(Long id) {
+//        this.id = id;
+//    }
+//
+//    public String getContent() {
+//        return content;
+//    }
+//
+//    public void setContent(String content) {
+//        this.content = content;
+//    }
+//
+//    public String getMediaUrl() {
+//        return mediaUrl;
+//    }
+//
+//    public void setMediaUrl(String mediaUrl) {
+//        this.mediaUrl = mediaUrl;
+//    }
+//
+//    public Visibility getVisibility() {
+//        return visibility;
+//    }
+//
+//    public void setVisibility(Visibility visibility) {
+//        this.visibility = visibility;
+//    }
+//
+//    public LocalDateTime getCreatedAt() {
+//        return createdAt;
+//    }
+//
+//    public void setCreatedAt(LocalDateTime createdAt) {
+//        this.createdAt = createdAt;
+//    }
+//
+//    public User getUser() {
+//        return user;
+//    }
+//
+//    public void setUser(User user) {
+//        this.user = user;
+//    }
+//
+//    public Post getPost() {
+//        return post;
+//    }
+//
+//    public void setPost(Post post) {
+//        this.post = post;
+//    }
+//
+//    public Comment getParentComment() {
+//        return parentComment;
+//    }
+//
+//    public void setParentComment(Comment parentComment) {
+//        this.parentComment = parentComment;
+//    }
+//
+//    public Set<User> getReactedUsers() {
+//        return reactedUsers;
+//    }
+//
+//    public void setReactedUsers(Set<User> reactedUsers) {
+//        this.reactedUsers = reactedUsers;
+//    }
+//
+//    public boolean isDeleted() {
+//        return isDeleted;
+//    }
+//
+//    public void setDeleted(boolean deleted) {
+//        isDeleted = deleted;
+//    }
+//
+//    public Set<Reaction> getReactions() {
+//        return reactions;
+//    }
+//
+//    public void setReactions(Set<Reaction> reactions) {
+//        this.reactions = reactions;
+//    }
 }
