@@ -29,14 +29,12 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User sender;
 
     // The user who receives the message
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receiver_id", nullable = false)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User receiver;
 
     @Column(columnDefinition = "TEXT")

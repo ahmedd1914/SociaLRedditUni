@@ -42,7 +42,6 @@ public class Group {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<User> members = new HashSet<>(); // ✅ Always initialized
 
     @ManyToMany
@@ -63,7 +62,6 @@ public class Group {
 
     @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<Post> posts = new HashSet<>();
 
     @Enumerated(EnumType.STRING)

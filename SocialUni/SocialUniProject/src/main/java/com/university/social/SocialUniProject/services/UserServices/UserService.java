@@ -32,19 +32,25 @@ public class UserService implements UserDetailsService {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
     }
-
-    public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
+    public User loadUserById(Long userId) throws UsernameNotFoundException {
         System.out.println("🔍 Searching for user by ID: " + userId);
 
-        User user = userRepository.findById(userId)
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
-
-        return new org.springframework.security.core.userdetails.User(
-                String.valueOf(user.getId()), // Ensure userId is used as username
-                user.getPassword(),
-                new ArrayList<>() // Add roles/authorities if needed
-        );
     }
+
+//    public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
+//        System.out.println("🔍 Searching for user by ID: " + userId);
+//
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
+//
+//        return new org.springframework.security.core.userdetails.User(
+//                String.valueOf(user.getId()), // Ensure userId is used as username
+//                user.getPassword(),
+//                new ArrayList<>() // Add roles/authorities if needed
+//        );
+//    }
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElse(null); // Return null if user is not found

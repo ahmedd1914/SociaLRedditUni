@@ -42,7 +42,6 @@ public class Notification {
     @JoinColumn(name = "recipient_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_notification_recipient"))
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User recipient;
 
     // Optional references to related items

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="JavaScriptLibraryMappings">
+    <excludedPredefinedLibrary name="SocialUni/SocialUniProjectFE/node_modules" />
+    <excludedPredefinedLibrary name="SocialUni/SocialUniProjectFE/target/node/node_modules" />
+  </component>
+</project>

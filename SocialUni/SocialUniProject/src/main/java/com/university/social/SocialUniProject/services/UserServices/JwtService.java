@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.services.UserServices;
 
+import com.university.social.SocialUniProject.models.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -59,11 +61,21 @@ public class JwtService {
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String userId = extractUserId(token);
-        return (userId.equals(userDetails.getUsername()) || userId.equals(String.valueOf(userDetails))) && !isTokenExpired(token);
+        final String extractedUserId = extractUserId(token);
+        final String expectedUserId = String.valueOf(((User) userDetails).getId());
+
+        System.out.println("🔍 Token Validation - Extracted UserId: " + extractedUserId);
+        System.out.println("🔍 Token Validation - Expected UserId: " + expectedUserId);
+        System.out.println("🔍 Token Expiry: " + extractExpiration(token));
+
+        return (extractedUserId.equals(expectedUserId)) && !isTokenExpired(token);
     }
+//    public boolean isTokenValid(String token, UserDetails userDetails) {
+//
+//        final String userId = extractUserId(token);
+//        return (userId.equals(userDetails.getUsername()) || userId.equals(String.valueOf(userDetails))) && !isTokenExpired(token);
+//    }
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
@@ -80,7 +92,6 @@ public class JwtService {
 
         return parser.parseSignedClaims(token).getPayload();
     }
-
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
         return Keys.hmacShaKeyFor(keyBytes);

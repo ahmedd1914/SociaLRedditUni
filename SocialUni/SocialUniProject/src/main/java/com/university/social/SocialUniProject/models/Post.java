@@ -44,14 +44,12 @@ public class Post {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User user;
 
     // If post belongs to a group
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Group group;
 
     // Example of storing categories as an Enum set
@@ -60,19 +58,16 @@ public class Post {
     @Enumerated(EnumType.STRING)
     @Column(name = "category")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<Category> categories = new HashSet<>();
 
     // One-to-Many with Comment
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<Comment> comments = new HashSet<>();
 
     // One-to-Many with Reaction
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<Reaction> reactions = new HashSet<>();
 
     // Convenience constructor

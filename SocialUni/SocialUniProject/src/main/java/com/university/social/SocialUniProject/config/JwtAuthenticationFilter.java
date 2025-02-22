@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.config;
 
+import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.UserServices.JwtService;
 import com.university.social.SocialUniProject.services.UserServices.UserService;
 import jakarta.servlet.FilterChain;
@@ -62,22 +63,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
 
             if (userId != null && existingAuth == null) {
-                UserDetails userDetails = this.userService.loadUserById(Long.parseLong(userId));
+                User user = userService.loadUserById(Long.parseLong(userId));
 
-                if (jwtService.isTokenValid(jwt, userDetails)) {
+                System.out.println("🔍 Comparing JWT UserId vs Database UserId:");
+                System.out.println("🔍 JWT UserId: " + userId);
+                System.out.println("🔍 Database UserId: " + user.getId());
+
+                if (jwtService.isTokenValid(jwt, user)) {
+                    System.out.println("✅ JWT is valid for user: " + user.getUsername());
+
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
+                            user,
                             null,
-                            userDetails.getAuthorities()
+                            user.getAuthorities()
                     );
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    System.out.println("User authenticated: " + userDetails.getUsername());
                 } else {
-                    System.out.println("JWT is invalid for user: " + userId);
+                    System.out.println("❌ JWT is invalid for user: " + userId);
                 }
             }
+
+//            if (userId != null && existingAuth == null) {
+//                UserDetails userDetails = this.userService.loadUserById(Long.parseLong(userId));
+//
+//                if (jwtService.isTokenValid(jwt, userDetails)) {
+//                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+//                            userDetails,
+//                            null,
+//                            userDetails.getAuthorities()
+//                    );
+//
+//                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+//                    SecurityContextHolder.getContext().setAuthentication(authToken);
+//                    System.out.println("User authenticated: " + userDetails.getUsername());
+//                } else {
+//                    System.out.println("JWT is invalid for user: " + userId);
+//                }
+//            }
 
         } catch (Exception exception) {
             System.out.println("JWT Authentication Failed: " + exception.getMessage());

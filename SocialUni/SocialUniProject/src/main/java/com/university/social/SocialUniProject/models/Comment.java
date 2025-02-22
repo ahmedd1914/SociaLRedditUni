@@ -42,21 +42,18 @@ public class Comment {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private User user;
 
     // Many-to-One with Post (If comment is on a post)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "post_id", nullable = false)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Post post;
 
     // Optional: For Nested Replies
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_comment_id")
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Comment parentComment;
 
     // Many-to-Many with User for Reactions
@@ -67,13 +64,16 @@ public class Comment {
             inverseJoinColumns = @JoinColumn(name = "user_id")
     )
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<User> reactedUsers = new HashSet<>();
 
     @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     private Set<Reaction> reactions = new HashSet<>();
+
+    @ManyToOne
+    @JoinColumn(name = "event_id")
+    private Event event;
+
     // Admin can mark comments as deleted instead of fully removing them
     private boolean isDeleted = false;
 

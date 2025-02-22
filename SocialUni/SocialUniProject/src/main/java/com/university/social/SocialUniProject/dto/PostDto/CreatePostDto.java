@@ -2,10 +2,12 @@ package com.university.social.SocialUniProject.dto.PostDto;
 
 import com.university.social.SocialUniProject.models.Enums.Visibility;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class CreatePostDto {
     private String title;
     private String content;
