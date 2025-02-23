@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.dto.UserDto;
+package com.university.social.SocialUniProject.dto.AdminDBDto;
 
 import com.university.social.SocialUniProject.models.Enums.Role;
 import lombok.AllArgsConstructor;

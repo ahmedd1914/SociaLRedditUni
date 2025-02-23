@@ -1,6 +1,7 @@
 package com.university.social.SocialUniProject.models;
 
 import com.university.social.SocialUniProject.models.Enums.Category;
+import com.university.social.SocialUniProject.models.Enums.Visibility;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -33,8 +34,11 @@ public class Group {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    private boolean isPrivate = false;
-
+    @Enumerated(EnumType.STRING)
+    private Visibility visibility;
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false) // This maps the owner to a User
+    private User owner;
     @ManyToMany
     @JoinTable(
             name = "group_users",
@@ -68,16 +72,16 @@ public class Group {
     @Column(nullable = false)
     private Category category;
 
-    public Group(String name, String description, boolean isPrivate, Category category) {
-        this.name = name;
-        this.description = description;
-        this.isPrivate = isPrivate;
-        this.category = category;
-        this.members = new HashSet<>();
-        this.admins = new HashSet<>();
-        this.joinRequests = new HashSet<>();
-        this.posts = new HashSet<>();
-    }
+//    public Group(String name, String description, Visibility visibility, Category category) {
+//        this.name = name;
+//        this.description = description;
+//        this.visibility = visibility;
+//        this.category = category;
+//        this.members = new HashSet<>();
+//        this.admins = new HashSet<>();
+//        this.joinRequests = new HashSet<>();
+//        this.posts = new HashSet<>();
+//    }
 
 //    public Group() {
 //    }

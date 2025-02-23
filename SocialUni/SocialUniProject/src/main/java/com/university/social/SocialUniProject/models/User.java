@@ -23,26 +23,28 @@ public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    @Getter
+
     @Column(unique = true, nullable = false)
     private String username;
-    @Getter
+
     @Column(unique = true, nullable = false)
     private String email;
-    @Getter
+
     @Column(nullable = false)
     private String password;
     @Enumerated(EnumType.STRING)
     private Role role;
-    @Setter
-    @Getter
+    private boolean isBanned;
+    private LocalDateTime createdAt;
+
+
     @Column(name = "verification_code")
     private String verificationCode;
-    @Setter
-    @Getter
+
+    private LocalDateTime lastLogin;
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
-    @Setter
+
     private boolean enabled;
     // A user can join many groups
     @ManyToMany(mappedBy = "members")
@@ -82,6 +84,8 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() {
         return UserDetails.super.isCredentialsNonExpired();
     }
+
+
 
 
 //    //default constructor

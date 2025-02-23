@@ -116,6 +116,28 @@ public class CommentService {
         return replies.stream().map(this::convertToDto).collect(Collectors.toList());
     }
 
+    // Returns all comments as DTOs (for admin review)
+    public List<CommentResponseDto> getAllComments() {
+        List<Comment> comments = commentRepository.findAll();
+        return comments.stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    // Allows an admin to update any comment (bypassing the ownership check)
+    public CommentResponseDto updateCommentAsAdmin(Long commentId, UpdateCommentDto updateDto) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        comment.setContent(updateDto.getContent());
+        comment.setMediaUrl(updateDto.getMediaUrl());
+        commentRepository.save(comment);
+        return convertToDto(comment);
+    }
+
+    // Returns a CommentResponseDto for the given commentId (for admin viewing)
+    public CommentResponseDto getCommentResponseById(Long commentId) {
+        Comment comment = getCommentById(commentId);
+        return convertToDto(comment);
+    }
+
     private CommentResponseDto convertToDto(Comment comment) {
         // Fetch reaction data for the comment
         List<Object[]> reactionResults = reactionRepository.findReactionTypeCountsByComment(comment.getId());

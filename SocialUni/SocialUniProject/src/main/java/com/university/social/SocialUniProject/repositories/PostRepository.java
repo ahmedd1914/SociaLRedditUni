@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.repositories;
 
+import com.university.social.SocialUniProject.models.Enums.Category;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.Enums.Visibility;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,5 +14,9 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByVisibility(Visibility visibility);
 
-    Optional<Post> findByIdAndUserId(Long id, Long userId);
+    // For searching posts by keyword in title or content
+    List<Post> findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(String titleKeyword, String contentKeyword);
+
+    // For filtering posts by category (assuming categories is a collection)
+    List<Post> findByCategoriesContaining(Category category);
 }
