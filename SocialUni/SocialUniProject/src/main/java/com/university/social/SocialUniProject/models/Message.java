@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -31,11 +33,18 @@ public class Message {
     @ToString.Exclude
     private User sender;
 
-    // The user who receives the message
+    // For direct messages, the receiver is a User.
+    // For group chats, receiver can be null and group is set.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiver_id", nullable = false)
+    @JoinColumn(name = "receiver_id", nullable = true)
     @ToString.Exclude
     private User receiver;
+
+    // For group chat messages, this field is set.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", nullable = true)
+    @ToString.Exclude
+    private Group group;
 
     @Column(columnDefinition = "TEXT")
     private String content;
@@ -44,6 +53,15 @@ public class Message {
     private boolean isRead = false;
 
     private LocalDateTime sentAt;
+
+    // When true, the message is deleted for everyone (hard deletion)
+    private boolean deletedForAll = false;
+
+    // Stores the IDs of users for whom this message has been soft-deleted.
+    @ElementCollection
+    @CollectionTable(name = "message_deleted_for", joinColumns = @JoinColumn(name = "message_id"))
+    @Column(name = "user_id")
+    private Set<Long> deletedFor = new HashSet<>();
 
     public Message(User sender, User receiver, String content) {
         this.sender = sender;

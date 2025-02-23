@@ -20,9 +20,7 @@ public class UserService implements UserDetailsService {
     }
 
     public List<User> allUsers() {
-        List<User> users = new ArrayList<>();
-        userRepository.findAll().forEach(users::add);
-        return users;
+        return userRepository.findAll();
     }
 
 
@@ -39,18 +37,6 @@ public class UserService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
     }
 
-//    public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
-//        System.out.println("🔍 Searching for user by ID: " + userId);
-//
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new UsernameNotFoundException("User not found with ID: " + userId));
-//
-//        return new org.springframework.security.core.userdetails.User(
-//                String.valueOf(user.getId()), // Ensure userId is used as username
-//                user.getPassword(),
-//                new ArrayList<>() // Add roles/authorities if needed
-//        );
-//    }
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElse(null); // Return null if user is not found

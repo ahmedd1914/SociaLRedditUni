@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
 import com.university.social.SocialUniProject.dto.AdminDBDto.AdminActionDto;
-import com.university.social.SocialUniProject.dto.AdminDBDto.UserResponseDto;
+import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.models.Enums.Role;
 import com.university.social.SocialUniProject.services.AdminService;
 import jakarta.validation.Valid;

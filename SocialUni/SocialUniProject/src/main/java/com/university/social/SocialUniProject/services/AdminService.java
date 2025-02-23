@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.services;
 
-import com.university.social.SocialUniProject.dto.AdminDBDto.UserResponseDto;
+import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.models.Enums.Role;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.UserRepository;
