@@ -1,13 +1,13 @@
 package com.university.social.SocialUniProject.services.PostServices;
 
-import com.university.social.SocialUniProject.dto.PostDto.CreatePostDto;
+import com.university.social.SocialUniProject.dto.CreatePostDto;
 import com.university.social.SocialUniProject.repositories.CommentRepository;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.models.*;
-import com.university.social.SocialUniProject.models.Enums.Category;
-import com.university.social.SocialUniProject.models.Enums.ReactionType;
-import com.university.social.SocialUniProject.models.Enums.Visibility;
+import com.university.social.SocialUniProject.enums.Category;
+import com.university.social.SocialUniProject.enums.ReactionType;
+import com.university.social.SocialUniProject.enums.Visibility;
 import com.university.social.SocialUniProject.repositories.PostRepository;
 import com.university.social.SocialUniProject.repositories.ReactionRepository;
 import com.university.social.SocialUniProject.repositories.UserRepository;

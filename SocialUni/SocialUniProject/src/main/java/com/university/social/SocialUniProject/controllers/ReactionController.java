@@ -1,16 +1,15 @@
 package com.university.social.SocialUniProject.controllers;
 
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-import com.university.social.SocialUniProject.dto.PostDto.ReactionDto;
+import com.university.social.SocialUniProject.dto.ReactionDto;
 import com.university.social.SocialUniProject.models.Comment;
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.services.PostServices.CommentService;
 import com.university.social.SocialUniProject.services.PostServices.PostService;
 import com.university.social.SocialUniProject.services.PostServices.ReactionService;
-import com.university.social.SocialUniProject.services.UserServices.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

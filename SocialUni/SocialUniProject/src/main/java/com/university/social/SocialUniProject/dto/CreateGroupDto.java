@@ -1,7 +1,7 @@
-package com.university.social.SocialUniProject.dto.GroupDto;
+package com.university.social.SocialUniProject.dto;
 
-import com.university.social.SocialUniProject.models.Enums.Category;
-import com.university.social.SocialUniProject.models.Enums.Visibility;
+import com.university.social.SocialUniProject.enums.Category;
+import com.university.social.SocialUniProject.enums.Visibility;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;

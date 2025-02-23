@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.controllers;
 
-import com.university.social.SocialUniProject.dto.PostDto.CreatePostDto;
+import com.university.social.SocialUniProject.dto.CreatePostDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.PostServices.PostService;

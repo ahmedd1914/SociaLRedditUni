@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.responses;
 
-import com.university.social.SocialUniProject.models.Enums.Visibility;
+import com.university.social.SocialUniProject.enums.Visibility;
 import lombok.Getter;
 import lombok.Setter;
 

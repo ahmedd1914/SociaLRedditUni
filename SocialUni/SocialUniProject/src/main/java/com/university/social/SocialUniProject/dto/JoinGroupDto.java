@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.dto.GroupDto;
+package com.university.social.SocialUniProject.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;

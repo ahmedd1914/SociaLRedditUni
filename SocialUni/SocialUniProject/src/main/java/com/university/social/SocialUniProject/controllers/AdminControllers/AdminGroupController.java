@@ -2,7 +2,7 @@ package com.university.social.SocialUniProject.controllers.AdminControllers;
 
 import com.university.social.SocialUniProject.dto.RequestDto;
 import com.university.social.SocialUniProject.dto.UserDto.UsersDto;
-import com.university.social.SocialUniProject.models.Enums.Visibility;
+import com.university.social.SocialUniProject.enums.Visibility;
 import com.university.social.SocialUniProject.responses.GroupResponseDto;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
 import org.springframework.http.ResponseEntity;

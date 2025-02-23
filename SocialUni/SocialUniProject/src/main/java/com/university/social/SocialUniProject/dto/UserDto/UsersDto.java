@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.dto.UserDto;
 
 import com.university.social.SocialUniProject.models.User;
-import com.university.social.SocialUniProject.models.Enums.Role;
+import com.university.social.SocialUniProject.enums.Role;
 import lombok.Getter;
 import lombok.Setter;
 

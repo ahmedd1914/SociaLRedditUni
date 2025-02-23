@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
-import com.university.social.SocialUniProject.dto.CommentDto.UpdateCommentDto;
+import com.university.social.SocialUniProject.dto.UpdateCommentDto;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.CommentService;
 import jakarta.validation.Valid;

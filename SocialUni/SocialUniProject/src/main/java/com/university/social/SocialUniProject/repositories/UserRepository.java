@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.repositories;
 
-import com.university.social.SocialUniProject.models.Enums.Role;
+import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -1,9 +1,9 @@
 package com.university.social.SocialUniProject.services.PostServices;
 
-import com.university.social.SocialUniProject.dto.CommentDto.CreateCommentDto;
-import com.university.social.SocialUniProject.dto.CommentDto.UpdateCommentDto;
+import com.university.social.SocialUniProject.dto.CreateCommentDto;
+import com.university.social.SocialUniProject.dto.UpdateCommentDto;
 import com.university.social.SocialUniProject.models.Comment;
-import com.university.social.SocialUniProject.models.Enums.ReactionType;
+import com.university.social.SocialUniProject.enums.ReactionType;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.CommentRepository;

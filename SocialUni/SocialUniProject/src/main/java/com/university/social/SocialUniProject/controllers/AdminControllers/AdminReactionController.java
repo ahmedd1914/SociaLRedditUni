@@ -1,6 +1,6 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
-import com.university.social.SocialUniProject.models.Enums.ReactionType;
+import com.university.social.SocialUniProject.enums.ReactionType;
 import com.university.social.SocialUniProject.responses.ReactionResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.ReactionService;
 import org.springframework.http.ResponseEntity;

@@ -1,12 +1,11 @@
 package com.university.social.SocialUniProject.controllers;
 
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-import com.university.social.SocialUniProject.dto.GroupDto.CreateGroupDto;
+import com.university.social.SocialUniProject.dto.CreateGroupDto;
 import com.university.social.SocialUniProject.dto.RequestDto;
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
-import com.university.social.SocialUniProject.models.Group;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.responses.GroupResponseDto;
-import com.university.social.SocialUniProject.models.Enums.Category;
+import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
 import com.university.social.SocialUniProject.services.NotificationService;

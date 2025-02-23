@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.dto.CommentDto;
+package com.university.social.SocialUniProject.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

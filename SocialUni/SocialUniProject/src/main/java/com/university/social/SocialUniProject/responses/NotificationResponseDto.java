@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.responses;
 
 
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import lombok.Getter;
 import lombok.Setter;
 

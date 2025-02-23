@@ -1,7 +1,7 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
-import com.university.social.SocialUniProject.dto.PostDto.CreatePostDto;
-import com.university.social.SocialUniProject.models.Enums.Category;
+import com.university.social.SocialUniProject.dto.CreatePostDto;
+import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.PostService;
 import org.springframework.format.annotation.DateTimeFormat;

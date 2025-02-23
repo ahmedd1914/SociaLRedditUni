@@ -2,6 +2,7 @@ package com.university.social.SocialUniProject.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -18,8 +19,9 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString
+@ToString(exclude = {"sender", "receiver", "group"})
 public class Message {
 
     @Id
@@ -30,20 +32,17 @@ public class Message {
     // The user who sent the message
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sender_id", nullable = false)
-    @ToString.Exclude
     private User sender;
 
     // For direct messages, the receiver is a User.
-    // For group chats, receiver can be null and group is set.
+    // For group chats, this can be null, and 'group' is set instead.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "receiver_id", nullable = true)
-    @ToString.Exclude
+    @JoinColumn(name = "receiver_id")
     private User receiver;
 
-    // For group chat messages, this field is set.
+    // For group chat messages
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "group_id", nullable = true)
-    @ToString.Exclude
+    @JoinColumn(name = "group_id")
     private Group group;
 
     @Column(columnDefinition = "TEXT")
@@ -52,6 +51,8 @@ public class Message {
     @Column(nullable = false)
     private boolean isRead = false;
 
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime sentAt;
 
     // When true, the message is deleted for everyone (hard deletion)
@@ -63,17 +64,10 @@ public class Message {
     @Column(name = "user_id")
     private Set<Long> deletedFor = new HashSet<>();
 
+    // Optional convenience constructor
     public Message(User sender, User receiver, String content) {
         this.sender = sender;
         this.receiver = receiver;
         this.content = content;
-        this.sentAt = LocalDateTime.now();
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        if (sentAt == null) {
-            sentAt = LocalDateTime.now();
-        }
     }
 }

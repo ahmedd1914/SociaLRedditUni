@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.dto.GroupDto;
+package com.university.social.SocialUniProject.dto;
 
 import lombok.Getter;
 import lombok.Setter;
