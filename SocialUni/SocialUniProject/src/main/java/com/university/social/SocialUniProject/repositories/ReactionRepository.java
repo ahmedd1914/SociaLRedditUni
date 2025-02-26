@@ -4,7 +4,7 @@ import com.university.social.SocialUniProject.models.Comment;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.Reaction;
 import com.university.social.SocialUniProject.models.User;
-import com.university.social.SocialUniProject.models.Enums.ReactionType;
+import com.university.social.SocialUniProject.enums.ReactionType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -25,4 +25,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
     @Query("SELECT r.type, COUNT(r) FROM Reaction r WHERE r.comment.id = :commentId GROUP BY r.type")
     List<Object[]> findReactionTypeCountsByComment(@Param("commentId") Long commentId);
+
+    List<Reaction> findByType(ReactionType type);
+
 }

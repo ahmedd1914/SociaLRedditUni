@@ -1,10 +1,10 @@
 package com.university.social.SocialUniProject.controllers;
 
 
-import com.university.social.SocialUniProject.dto.CommentDto.CreateCommentDto;
-import com.university.social.SocialUniProject.dto.CommentDto.UpdateCommentDto;
+import com.university.social.SocialUniProject.dto.CreateCommentDto;
+import com.university.social.SocialUniProject.dto.UpdateCommentDto;
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;

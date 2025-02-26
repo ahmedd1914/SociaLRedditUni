@@ -1,6 +1,6 @@
-package com.university.social.SocialUniProject.dto.UserDto;
+package com.university.social.SocialUniProject.responses;
 
-import com.university.social.SocialUniProject.models.Enums.Role;
+import com.university.social.SocialUniProject.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;

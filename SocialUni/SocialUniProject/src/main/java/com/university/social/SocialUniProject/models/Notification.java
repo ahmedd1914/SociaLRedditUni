@@ -1,9 +1,10 @@
 package com.university.social.SocialUniProject.models;
 
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,8 +18,9 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString
+@ToString(exclude = "recipient")
 public class Notification {
 
     @Id
@@ -33,6 +35,7 @@ public class Notification {
     private NotificationType notificationType; // e.g. COMMENT, NEW_POST
 
     @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     private boolean isRead = false;
@@ -41,13 +44,13 @@ public class Notification {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recipient_id", nullable = false,
             foreignKey = @ForeignKey(name = "fk_notification_recipient"))
-    @ToString.Exclude
     private User recipient;
 
     // Optional references to related items
     private Long relatedPostId;
     private Long relatedCommentId;
 
+    // Optional convenience constructor (if needed)
     public Notification(String message, NotificationType notificationType, User recipient,
                         Long relatedPostId, Long relatedCommentId) {
         this.message = message;
@@ -55,71 +58,5 @@ public class Notification {
         this.recipient = recipient;
         this.relatedPostId = relatedPostId;
         this.relatedCommentId = relatedCommentId;
-        this.createdAt = LocalDateTime.now();
-        this.isRead = false;
     }
-
-//    public Long getId() {
-//        return id;
-//    }
-//
-//    public void setId(Long id) {
-//        this.id = id;
-//    }
-//
-//    public String getMessage() {
-//        return message;
-//    }
-//
-//    public void setMessage(String message) {
-//        this.message = message;
-//    }
-//
-//    public NotificationType getNotificationType() {
-//        return notificationType;
-//    }
-//
-//    public void setNotificationType(NotificationType notificationType) {
-//        this.notificationType = notificationType;
-//    }
-//
-//    public LocalDateTime getCreatedAt() {
-//        return createdAt;
-//    }
-//
-//    public void setCreatedAt(LocalDateTime createdAt) {
-//        this.createdAt = createdAt;
-//    }
-//
-//    public boolean isRead() {
-//        return isRead;
-//    }
-//
-//    public void setRead(boolean read) {
-//        isRead = read;
-//    }
-//
-//    public User getRecipient() {
-//        return recipient;
-//    }
-//
-//    public void setRecipient(User recipient) {
-//        this.recipient = recipient;
-//    }
-//
-//    public Long getRelatedPostId() {
-//        return relatedPostId;
-//    }
-//
-//    public void setRelatedPostId(Long relatedPostId) {
-//        this.relatedPostId = relatedPostId;
-//    }
-//
-//    public Long getRelatedCommentId() {
-//        return relatedCommentId;
-//    }
-//
-//    public void setRelatedCommentId(Long relatedCommentId) {
-//        this.relatedCommentId = relatedCommentId;
-//    }
 }

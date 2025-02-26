@@ -1,12 +1,11 @@
 package com.university.social.SocialUniProject.controllers;
 
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-import com.university.social.SocialUniProject.dto.GroupDto.CreateGroupDto;
+import com.university.social.SocialUniProject.dto.CreateGroupDto;
 import com.university.social.SocialUniProject.dto.RequestDto;
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
-import com.university.social.SocialUniProject.models.Group;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.responses.GroupResponseDto;
-import com.university.social.SocialUniProject.models.Enums.Category;
+import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
 import com.university.social.SocialUniProject.services.NotificationService;
@@ -115,29 +114,38 @@ public class GroupController {
     public ResponseEntity<String> leaveGroup(@PathVariable Long groupId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         }
 
-        Long userId = Long.parseLong(authentication.getName());
-        String response = groupService.leaveGroup(userId, groupId);
+        try {
+            Long userId = Long.parseLong(authentication.getName());
+            String response = groupService.leaveGroup(userId, groupId);
 
-        Group group = groupService.getGroupById(groupId);
-        User leavingUser = userService.getUserById(userId);
+            GroupResponseDto groupDto = groupService.getGroupById(groupId); // Use DTO instead of entity
+            User leavingUser = userService.getUserById(userId);
 
-        for (User admin : group.getAdmins()) {
-            if (!admin.getId().equals(userId)) { // Prevent self-notification
-                notificationService.createNotification(new CreateNotificationDto(
-                        leavingUser.getUsername() + " left your group " + group.getName(),
-                        NotificationType.GROUP_LEAVE,
-                        admin.getId(),
-                        null,
-                        null
-                ));
+            if (groupDto.getAdminIds() != null) {
+                for (Long adminId : groupDto.getAdminIds()) {
+                    if (!adminId.equals(userId)) { // Prevent self-notification
+                        notificationService.createNotification(new CreateNotificationDto(
+                                leavingUser.getUsername() + " left your group " + groupDto.getName(),
+                                NotificationType.GROUP_LEAVE,
+                                adminId,
+                                null,
+                                null
+                        ));
+                    }
+                }
             }
-        }
 
-        return ResponseEntity.ok(response);
+            return ResponseEntity.ok(response);
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid User ID format");
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
+
 
     @DeleteMapping("/{groupId}")
     public ResponseEntity<?> deleteGroup(@PathVariable Long groupId) {

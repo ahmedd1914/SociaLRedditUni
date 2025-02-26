@@ -2,7 +2,10 @@ package com.university.social.SocialUniProject.services;
 
 
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-import com.university.social.SocialUniProject.models.Enums.NotificationType;
+
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import com.university.social.SocialUniProject.models.Notification;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.NotificationRepository;
@@ -10,7 +13,9 @@ import com.university.social.SocialUniProject.repositories.UserRepository;
 import com.university.social.SocialUniProject.responses.NotificationResponseDto;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -77,6 +82,73 @@ public class NotificationService {
         }
     }
 
+    // Admin: Get all notifications with optional filtering & pagination
+    public List<NotificationResponseDto> getAllNotifications(String search,
+                                                             Long recipientId,
+                                                             Boolean isRead,
+                                                             String type,
+                                                             int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        // For simplicity, we fetch all notifications and filter in-memory.
+        // In production you’d likely add custom repository queries.
+        List<Notification> notifications = notificationRepository.findAll(pageable).getContent();
+
+        return notifications.stream()
+                .filter(n -> search == null || n.getMessage().toLowerCase().contains(search.toLowerCase()))
+                .filter(n -> recipientId == null || n.getRecipient().getId().equals(recipientId))
+                .filter(n -> isRead == null || n.isRead() == isRead)
+                .filter(n -> type == null || n.getNotificationType().name().equalsIgnoreCase(type))
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    // Admin: Bulk mark notifications as read
+    public void bulkMarkAsRead(List<Long> notificationIds) {
+        List<Notification> notifications = notificationRepository.findAllById(notificationIds);
+        notifications.forEach(n -> n.setRead(true));
+        notificationRepository.saveAll(notifications);
+    }
+
+    // Admin: Bulk delete notifications
+    public void bulkDeleteNotifications(List<Long> notificationIds) {
+        List<Notification> notifications = notificationRepository.findAllById(notificationIds);
+        notificationRepository.deleteAll(notifications);
+    }
+
+    // Admin: Get detailed notification statistics
+    public Map<String, Object> getNotificationStatistics() {
+        Map<String, Object> stats = new HashMap<>();
+        List<Notification> allNotifications = notificationRepository.findAll();
+        long total = allNotifications.size();
+        stats.put("totalNotifications", total);
+        long read = allNotifications.stream().filter(Notification::isRead).count();
+        stats.put("readNotifications", read);
+        long unread = total - read;
+        stats.put("unreadNotifications", unread);
+        // Breakdown by notification type
+        Map<String, Long> typeCounts = allNotifications.stream()
+                .collect(Collectors.groupingBy(n -> n.getNotificationType().name(), Collectors.counting()));
+        stats.put("notificationsByType", typeCounts);
+        // Breakdown per recipient (for top recipients)
+        Map<String, Long> notificationsByRecipient = allNotifications.stream()
+                .collect(Collectors.groupingBy(n -> n.getRecipient().getUsername(), Collectors.counting()));
+        stats.put("notificationsByRecipient", notificationsByRecipient);
+        return stats;
+    }
+
+    // Admin: Get notification by ID remains the same
+    public NotificationResponseDto getNotificationById(Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        return mapToDto(notification);
+    }
+
+    // Admin: Delete a notification by ID remains the same
+    public void deleteNotification(Long id) {
+        Notification notification = notificationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Notification not found"));
+        notificationRepository.delete(notification);
+    }
     // Convert Notification entity to DTO
     private NotificationResponseDto mapToDto(Notification notification) {
         NotificationResponseDto dto = new NotificationResponseDto();

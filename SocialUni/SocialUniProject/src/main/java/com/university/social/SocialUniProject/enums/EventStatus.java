@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.models.Enums;
+package com.university.social.SocialUniProject.enums;
 
 public enum EventStatus {
     WILL_ATTEND,

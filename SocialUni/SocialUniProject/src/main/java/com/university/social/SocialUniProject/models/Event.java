@@ -1,10 +1,9 @@
 package com.university.social.SocialUniProject.models;
 
-import com.university.social.SocialUniProject.models.Enums.Category;
-import com.university.social.SocialUniProject.models.Enums.EventStatus;
+import com.university.social.SocialUniProject.enums.Category;
+import com.university.social.SocialUniProject.enums.EventStatus;
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -14,6 +13,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = {"organizer", "attendees", "group", "comments"})
 public class Event {
 
     @Id
@@ -25,11 +25,12 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    // Event date (not creation time)
     private LocalDateTime date;
 
     private String location;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizer_id", nullable = false)
     private User organizer;
 
@@ -41,7 +42,7 @@ public class Event {
     )
     private Set<User> attendees;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "group_id")
     private Group group;
 

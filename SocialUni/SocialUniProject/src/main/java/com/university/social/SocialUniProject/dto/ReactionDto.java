@@ -1,6 +1,6 @@
-package com.university.social.SocialUniProject.dto.PostDto;
+package com.university.social.SocialUniProject.dto;
 
-import com.university.social.SocialUniProject.models.Enums.ReactionType;
+import com.university.social.SocialUniProject.enums.ReactionType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
