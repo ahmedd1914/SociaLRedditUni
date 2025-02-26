@@ -4,6 +4,7 @@ package com.university.social.SocialUniProject.services.UserServices;
 import com.university.social.SocialUniProject.dto.UserDto.LoginUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.RegisterUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.VerifyUserDto;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.UserRepository;
 import jakarta.mail.MessagingException;
@@ -12,9 +13,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class AuthenticationService {
@@ -59,41 +59,32 @@ public class AuthenticationService {
 
 
     public void verifyUser(VerifyUserDto input) {
-        Optional<User> optionalUser = userRepository.findByEmail(input.getEmail());
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("Verification code has expired");
-            }
-            if (user.getVerificationCode().equals(input.getVerificationCode())) {
-                user.setEnabled(true);
-                user.setVerificationCode(null);
-                user.setVerificationCodeExpiresAt(null);
-                userRepository.save(user);
-            } else {
-                throw new RuntimeException("Invalid verification code");
-            }
+        User user = userRepository.findByEmail(input.getEmail())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Verification code has expired");
+        }
+        if (user.getVerificationCode().equals(input.getVerificationCode())) {
+            user.setEnabled(true);
+            user.setVerificationCode(null);
+            user.setVerificationCodeExpiresAt(null);
+            userRepository.save(user);
         } else {
-            throw new RuntimeException("User not found");
+            throw new IllegalArgumentException("Invalid verification code");
         }
     }
 
     public void resendVerificationCode(String email) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isPresent()) {
-            User user = optionalUser.get();
-            if (user.isEnabled()) {
-                throw new RuntimeException("Account is already verified");
-            }
-            user.setVerificationCode(generateVerificationCode());
-            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
-            sendVerificationEmail(user);
-            userRepository.save(user);
-        } else {
-            throw new RuntimeException("User not found");
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (user.isEnabled()) {
+            throw new IllegalStateException("Account is already verified");
         }
+        user.setVerificationCode(generateVerificationCode());
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
+        sendVerificationEmail(user);
+        userRepository.save(user);
     }
-
     private void sendVerificationEmail(User user) { //TODO: Update with company logo
         String subject = "Account Verification";
         String verificationCode = "VERIFICATION CODE " + user.getVerificationCode();
@@ -113,13 +104,12 @@ public class AuthenticationService {
         try {
             emailService.sendVerificationEmail(user.getEmail(), subject, htmlMessage);
         } catch (MessagingException e) {
-            // Handle email sending exception
             e.printStackTrace();
         }
     }
     private String generateVerificationCode() {
-        Random random = new Random();
-        int code = random.nextInt(900000) + 100000;
+        SecureRandom secureRandom = new SecureRandom();
+        int code = secureRandom.nextInt(900000) + 100000;
         return String.valueOf(code);
     }
 }

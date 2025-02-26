@@ -1,20 +1,17 @@
 package com.university.social.SocialUniProject.controllers;
 
-import com.university.social.SocialUniProject.dto.CreateNotificationDto;
 import com.university.social.SocialUniProject.dto.CreateGroupDto;
 import com.university.social.SocialUniProject.dto.RequestDto;
+import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.responses.GroupResponseDto;
-import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
 import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.services.UserServices.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.university.social.SocialUniProject.utils.SecurityUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Set;
@@ -23,13 +20,17 @@ import java.util.Set;
 @RequestMapping("/groups")
 public class GroupController {
 
-    @Autowired
-    private GroupService groupService;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private NotificationService notificationService;
+    private final GroupService groupService;
+    private final UserService userService;
+    private final NotificationService notificationService;
 
+    public GroupController(GroupService groupService,
+                           UserService userService,
+                           NotificationService notificationService) {
+        this.groupService = groupService;
+        this.userService = userService;
+        this.notificationService = notificationService;
+    }
 
     @GetMapping("/public")
     public ResponseEntity<List<GroupResponseDto>> getPublicGroups() {
@@ -45,13 +46,11 @@ public class GroupController {
 
     @GetMapping("/my-groups")
     public ResponseEntity<List<GroupResponseDto>> getUserGroups() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String userId = authentication.getName();
-        return ResponseEntity.ok(groupService.getUserGroups(Long.parseLong(userId)));
+        Long userId = SecurityUtils.getAuthenticatedUserId();
+        List<GroupResponseDto> groups = groupService.getUserGroups(userId);
+        return ResponseEntity.ok(groups);
     }
+
     @GetMapping("/category/{category}")
     public ResponseEntity<List<GroupResponseDto>> getGroupsByCategory(@PathVariable Category category) {
         return ResponseEntity.ok(groupService.getGroupsByCategory(category));
@@ -59,106 +58,44 @@ public class GroupController {
 
     @PostMapping("/create")
     public ResponseEntity<GroupResponseDto> createGroup(@RequestBody CreateGroupDto groupDto) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || authentication.getPrincipal().equals("anonymousUser")) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-        }
-
-        String userId = authentication.getName();
-        User user = userService.getUserById(Long.parseLong(userId));
-        if (user == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
-        }
-
-        GroupResponseDto response = groupService.createGroup(groupDto, user.getId());
+        Long userId = SecurityUtils.getAuthenticatedUserId();
+        // Optionally, you can fetch the user (if needed) via userService.getUserById(userId)
+        GroupResponseDto response = groupService.createGroup(groupDto, userId);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/join/{groupId}")
     public ResponseEntity<String> joinGroup(@PathVariable Long groupId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        Long userId = Long.parseLong(authentication.getName());
+        Long userId = SecurityUtils.getAuthenticatedUserId();
         String response = groupService.handleJoinRequest(userId, groupId);
         return ResponseEntity.ok(response);
     }
+
     @GetMapping("/requests/{groupId}")
     public ResponseEntity<Set<RequestDto>> getPendingJoinRequests(@PathVariable Long groupId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        Long adminId = Long.parseLong(authentication.getName());
+        Long adminId = SecurityUtils.getAuthenticatedUserId();
         Set<RequestDto> pendingRequests = groupService.getPendingJoinRequests(adminId, groupId);
         return ResponseEntity.ok(pendingRequests);
     }
+
     @PostMapping("/approve/{groupId}/{userId}")
     public ResponseEntity<String> approveJoinRequest(@PathVariable Long groupId, @PathVariable Long userId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        Long adminId = Long.parseLong(authentication.getName());
+        Long adminId = SecurityUtils.getAuthenticatedUserId();
         String response = groupService.approveJoinRequest(adminId, userId, groupId);
         return ResponseEntity.ok(response);
     }
 
-
-
     @PostMapping("/leave/{groupId}")
     public ResponseEntity<String> leaveGroup(@PathVariable Long groupId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
-        }
-
-        try {
-            Long userId = Long.parseLong(authentication.getName());
-            String response = groupService.leaveGroup(userId, groupId);
-
-            GroupResponseDto groupDto = groupService.getGroupById(groupId); // Use DTO instead of entity
-            User leavingUser = userService.getUserById(userId);
-
-            if (groupDto.getAdminIds() != null) {
-                for (Long adminId : groupDto.getAdminIds()) {
-                    if (!adminId.equals(userId)) { // Prevent self-notification
-                        notificationService.createNotification(new CreateNotificationDto(
-                                leavingUser.getUsername() + " left your group " + groupDto.getName(),
-                                NotificationType.GROUP_LEAVE,
-                                adminId,
-                                null,
-                                null
-                        ));
-                    }
-                }
-            }
-
-            return ResponseEntity.ok(response);
-        } catch (NumberFormatException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid User ID format");
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+        Long userId = SecurityUtils.getAuthenticatedUserId();
+        String response = groupService.leaveGroup(userId, groupId);
+        return ResponseEntity.ok(response);
     }
 
-
     @DeleteMapping("/{groupId}")
-    public ResponseEntity<?> deleteGroup(@PathVariable Long groupId) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        String userId = authentication.getName();
-        try {
-            groupService.deleteGroup(groupId, Long.parseLong(userId));
-            return ResponseEntity.ok().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
-        }
+    public ResponseEntity<Void> deleteGroup(@PathVariable Long groupId) {
+        Long userId = SecurityUtils.getAuthenticatedUserId();
+        groupService.deleteGroup(groupId, userId);
+        return ResponseEntity.ok().build();
     }
 }

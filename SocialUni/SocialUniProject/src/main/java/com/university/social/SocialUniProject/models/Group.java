@@ -70,6 +70,6 @@ public class Group {
     private Set<Post> posts = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private Category category;
 }
