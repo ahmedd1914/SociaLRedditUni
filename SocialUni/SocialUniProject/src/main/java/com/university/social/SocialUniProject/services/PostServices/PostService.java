@@ -15,6 +15,7 @@ import com.university.social.SocialUniProject.repositories.PostRepository;
 import com.university.social.SocialUniProject.repositories.ReactionRepository;
 import com.university.social.SocialUniProject.repositories.UserRepository;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
+import com.university.social.SocialUniProject.responses.PostMetricsDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
@@ -258,61 +259,32 @@ public class PostService {
         )));
     }
 
-    public Map<String, Object> getPostStatistics() {
-        Map<String, Object> stats = new HashMap<>();
-        long totalPosts = postRepository.count();
-        stats.put("totalPosts", totalPosts);
-
+    public PostMetricsDto getPostMetrics() {
         List<Post> posts = postRepository.findAll();
+        if (posts.isEmpty()) {
+            throw new ResourceNotFoundException("No posts found");
+        }
 
-        // Total reactions
-        int totalReactions = posts.stream()
-                .mapToInt(p -> p.getReactions().size())
-                .sum();
-        stats.put("totalReactions", totalReactions);
+        // Find latest post
+        Post latest = posts.stream()
+                .max(Comparator.comparing(Post::getCreatedAt))
+                .orElseThrow(() -> new ResourceNotFoundException("No latest post found"));
 
-        // Average reactions
-        double avgReactions = totalPosts > 0 ? (double) totalReactions / totalPosts : 0.0;
-        stats.put("averageReactionsPerPost", avgReactions);
+        // Find post with most reactions
+        Post mostReacted = posts.stream()
+                .max(Comparator.comparingInt(p -> p.getReactions().size()))
+                .orElseThrow(() -> new ResourceNotFoundException("No reacted post found"));
 
-        // Total comments
-        long totalComments = commentRepository.count();
-        stats.put("totalComments", totalComments);
+        // Find post with most comments
+        Post mostCommented = posts.stream()
+                .max(Comparator.comparingInt(p -> commentRepository.findByPostIdAndParentCommentIsNull(p.getId()).size()))
+                .orElseThrow(() -> new ResourceNotFoundException("No commented post found"));
 
-        // Average comments
-        double avgComments = totalPosts > 0 ? (double) totalComments / totalPosts : 0.0;
-        stats.put("averageCommentsPerPost", avgComments);
-
-        // Visibility breakdown
-        long publicCount = posts.stream()
-                .filter(p -> p.getVisibility() == Visibility.PUBLIC)
-                .count();
-        long privateCount = posts.stream()
-                .filter(p -> p.getVisibility() == Visibility.PRIVATE)
-                .count();
-        stats.put("publicPosts", publicCount);
-        stats.put("privatePosts", privateCount);
-
-        // Top 5 posts by reaction count
-        List<PostResponseDto> topPostsByReactions = posts.stream()
-                .sorted((p1, p2) -> Integer.compare(p2.getReactions().size(), p1.getReactions().size()))
-                .limit(5)
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-        stats.put("topPostsByReactions", topPostsByReactions);
-
-        // Breakdown of posts per category
-        Map<String, Long> postsByCategory = posts.stream()
-                .flatMap(p -> p.getCategories().stream())
-                .collect(Collectors.groupingBy(Enum::name, Collectors.counting()));
-        stats.put("postsByCategory", postsByCategory);
-
-        // Posts by author
-        Map<String, Long> postsByAuthor = posts.stream()
-                .collect(Collectors.groupingBy(p -> p.getUser().getUsername(), Collectors.counting()));
-        stats.put("postsByAuthor", postsByAuthor);
-
-        return stats;
+        return new PostMetricsDto(
+                convertToDto(latest),
+                convertToDto(mostReacted),
+                convertToDto(mostCommented)
+        );
     }
 
     // ---------- Private Conversion Methods ----------
