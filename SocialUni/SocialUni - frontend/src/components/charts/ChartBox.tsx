@@ -13,26 +13,54 @@ import {
   Cell,
   XAxis,
   YAxis,
-  // CartesianGrid,
   Tooltip,
-  // Legend,
   ResponsiveContainer,
 } from 'recharts';
 
+/**
+ * If you know the shape of your "chartData", "chartPieData", etc.,
+ * you can replace 'object[]' with more specific types. For example:
+ * 
+ * interface BarLineData {
+ *   name: string;
+ *   value: number;
+ * }
+ * 
+ * interface PieData {
+ *   name: string;
+ *   value: number;
+ *   color: string;
+ * }
+ * 
+ * interface AreaData {
+ *   name: string;
+ *   smartphones: number;
+ *   consoles: number;
+ *   laptops: number;
+ *   others: number;
+ * }
+ */
+
 interface ChartBoxProps {
-  chartType: string; // 'line', 'bar', 'area', 'pie'
+  chartType: 'line' | 'bar' | 'area' | 'pie'; // possible chart types
   color?: string;
   IconBox?: IconType;
   title?: string;
   dataKey?: string;
   number?: number | string;
   percentage?: number;
-  chartData?: object[];
+  
+  // For line/bar charts:
+  data?: object[]; 
+  
+  // For pie charts:
   chartPieData?: Array<{
     name: string;
     value: number;
     color: string;
   }>;
+  
+  // For area charts:
   chartAreaData?: Array<{
     name: string;
     smartphones: number;
@@ -40,6 +68,7 @@ interface ChartBoxProps {
     laptops: number;
     others: number;
   }>;
+
   isLoading?: boolean;
   isSuccess?: boolean;
 }
@@ -52,22 +81,26 @@ const ChartBox: React.FC<ChartBoxProps> = ({
   dataKey,
   number,
   percentage,
-  chartData,
+  data,
   chartPieData,
   chartAreaData,
   isLoading,
   isSuccess,
 }) => {
+  // ---------------------------
+  // 1) LINE CHART
+  // ---------------------------
   if (chartType === 'line') {
     if (isLoading) {
       return (
         <div className="w-full h-full flex justify-between items-end xl:gap-5">
+          {/* Skeleton/Loading State */}
           <div className="flex h-full flex-col justify-between items-start">
             <div className="flex items-center gap-2">
               {IconBox && (
-                <IconBox className="m-0 p-0 text-[24px] xl:text-[30px] 2xl:text-[42px] leading-none" />
+                <IconBox className="m-0 p-0 text-[24px] xl:text-[30px] 2xl:text-[42px]" />
               )}
-              <span className="w-[88px] xl:w-[60px] 2xl:w-[82px] m-0 p-0 text-[16px] xl:text-[15px] 2xl:text-[20px] leading-[1.15] 2xl:leading-tight font-semibold">
+              <span className="w-[88px] xl:w-[60px] 2xl:w-[82px] text-[16px] xl:text-[15px] 2xl:text-[20px] font-semibold">
                 {title}
               </span>
             </div>
@@ -82,28 +115,24 @@ const ChartBox: React.FC<ChartBoxProps> = ({
       );
     }
 
-    if (isSuccess) {
+    if (isSuccess && data) {
       return (
         <div className="w-full h-full flex justify-between items-end xl:gap-5">
           <div className="flex h-full flex-col justify-between items-start">
             <div className="flex items-center gap-2">
               {IconBox && (
-                <IconBox className="m-0 p-0 text-[24px] xl:text-[30px] 2xl:text-[42px] 3xl:text-[48px] leading-none" />
+                <IconBox className="text-[24px] xl:text-[30px] 2xl:text-[42px] 3xl:text-[48px]" />
               )}
-              <span className="w-[88px] xl:w-[60px] 2xl:w-[82px] 3xl:w-[140px] m-0 p-0 text-[16px] xl:text-[15px] 2xl:text-[20px] 3xl:text-[24px] leading-[1.15] 2xl:leading-tight font-semibold">
+              <span className="w-[88px] xl:w-[60px] 2xl:w-[82px] 3xl:w-[140px] text-[16px] xl:text-[15px] 2xl:text-[20px] 3xl:text-[24px] font-semibold">
                 {title}
               </span>
             </div>
-            <span className="font-bold text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl m-0 p-0">
+            <span className="font-bold text-xl xl:text-2xl 2xl:text-3xl 3xl:text-4xl">
               {number}
             </span>
             <button
-              onClick={() =>
-                toast('Ngapain?', {
-                  icon: '😋',
-                })
-              }
-              className="px-0 py-0 min-h-0 max-h-5 btn btn-link font-medium text-base-content no-underline m-0"
+              onClick={() => toast('Ngapain?', { icon: '😋' })}
+              className="btn btn-link px-0 py-0 min-h-0 max-h-5 font-medium text-base-content no-underline"
             >
               View All
             </button>
@@ -111,7 +140,7 @@ const ChartBox: React.FC<ChartBoxProps> = ({
           <div className="flex h-full grow flex-col justify-between items-end">
             <div className="w-full h-full xl:h-[60%]">
               <ResponsiveContainer width="99%" height="100%">
-                <LineChart width={300} height={100} data={chartData}>
+                <LineChart data={data}>
                   <Line
                     type="monotone"
                     dataKey={dataKey}
@@ -125,8 +154,6 @@ const ChartBox: React.FC<ChartBoxProps> = ({
                       border: 'none',
                       color: 'white',
                       borderRadius: '8px',
-                      paddingTop: '0px',
-                      paddingBottom: '0px',
                     }}
                     itemStyle={{ color: 'white' }}
                     labelStyle={{ display: 'none' }}
@@ -134,12 +161,10 @@ const ChartBox: React.FC<ChartBoxProps> = ({
                 </LineChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex xl:flex-col 2xl:flex-row gap-2 xl:gap-2 items-end xl:items-end 2xl:items-center">
+            <div className="flex xl:flex-col 2xl:flex-row gap-2 items-end xl:items-end 2xl:items-center">
               <span
                 className={`${
-                  percentage && percentage > 0
-                    ? 'text-success'
-                    : 'text-error'
+                  percentage && percentage > 0 ? 'text-success' : 'text-error'
                 } text-2xl xl:text-xl 2xl:text-3xl font-bold`}
               >
                 {percentage || ''}%
@@ -153,9 +178,12 @@ const ChartBox: React.FC<ChartBoxProps> = ({
       );
     }
 
-    return null;
+    return null; // if not loading and not success
   }
 
+  // ---------------------------
+  // 2) BAR CHART
+  // ---------------------------
   if (chartType === 'bar') {
     if (isLoading) {
       return (
@@ -168,32 +196,28 @@ const ChartBox: React.FC<ChartBoxProps> = ({
       );
     }
 
-    if (isSuccess) {
+    if (isSuccess && data) {
       return (
         <div className="w-full h-full p-0 m-0 flex flex-col items-start 3xl:justify-between gap-3 xl:gap-4">
           <span className="text-2xl xl:text-2xl 2xl:text-4xl font-bold">
             {title || 'No title'}
           </span>
           <div className="w-full min-h-40 xl:min-h-[150px] 2xl:min-h-[180px] 3xl:min-h-[250px]">
-            {chartData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <Bar dataKey={dataKey || ''} fill={color || ''} />
-                  <XAxis dataKey="name" />
-                  <Tooltip
-                    contentStyle={{
-                      background: color,
-                      borderRadius: '5px',
-                    }}
-                    itemStyle={{ color: 'white' }}
-                    labelStyle={{ display: 'none' }}
-                    cursor={{ fill: 'none' }}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <span>No data</span>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data}>
+                <Bar dataKey={dataKey || ''} fill={color || '#8884d8'} />
+                <XAxis dataKey="name" />
+                <Tooltip
+                  contentStyle={{
+                    background: color || '#8884d8',
+                    borderRadius: '5px',
+                  }}
+                  itemStyle={{ color: 'white' }}
+                  labelStyle={{ display: 'none' }}
+                  cursor={{ fill: 'none' }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       );
@@ -202,6 +226,9 @@ const ChartBox: React.FC<ChartBoxProps> = ({
     return null;
   }
 
+  // ---------------------------
+  // 3) PIE CHART
+  // ---------------------------
   if (chartType === 'pie') {
     if (isLoading) {
       return (
@@ -220,41 +247,37 @@ const ChartBox: React.FC<ChartBoxProps> = ({
       );
     }
 
-    if (isSuccess) {
+    if (isSuccess && chartPieData) {
       return (
         <div className="w-full h-full p-0 m-0 flex flex-col items-start justify-between gap-3 xl:gap-4">
           <span className="text-2xl xl:text-2xl 2xl:text-4xl font-bold">
             {title || 'no title'}
           </span>
           <div className="w-full min-h-[300px] 2xl:min-h-[360px] 3xl:min-h-[420px]">
-            {chartPieData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Tooltip
-                    contentStyle={{
-                      background: 'white',
-                      borderRadius: '5px',
-                    }}
-                  />
-                  <Pie
-                    data={chartPieData}
-                    innerRadius={'70%'}
-                    outerRadius={'90%'}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {chartPieData?.map((item) => (
-                      <Cell key={item.name} fill={item.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              'no data'
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Tooltip
+                  contentStyle={{
+                    background: 'white',
+                    borderRadius: '5px',
+                  }}
+                />
+                <Pie
+                  data={chartPieData}
+                  innerRadius="70%"
+                  outerRadius="90%"
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {chartPieData.map((item) => (
+                    <Cell key={item.name} fill={item.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
           </div>
           <div className="w-full flex flex-col 2xl:flex-row justify-between gap-2 items-start 2xl:items-center 2xl:flex-wrap">
-            {chartPieData?.map((item) => (
+            {chartPieData.map((item) => (
               <div
                 className="flex flex-row 2xl:flex-col gap-2 items-center"
                 key={item.name}
@@ -277,6 +300,9 @@ const ChartBox: React.FC<ChartBoxProps> = ({
     return null;
   }
 
+  // ---------------------------
+  // 4) AREA CHART
+  // ---------------------------
   if (chartType === 'area') {
     if (isLoading) {
       return (
@@ -289,53 +315,48 @@ const ChartBox: React.FC<ChartBoxProps> = ({
       );
     }
 
-    if (isSuccess) {
+    if (isSuccess && chartAreaData) {
       return (
         <div className="w-full h-full p-0 m-0 flex flex-col items-start gap-4 xl:gap-7 justify-between">
           <span className="text-2xl xl:text-2xl 2xl:text-4xl font-bold">
             {title || 'no title'}
           </span>
           <div className="w-full min-h-[300px] 2xl:min-h-[360px] 3xl:min-h-[420px]">
-            {chartAreaData ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartAreaData}>
-                  {/* <CartesianGrid strokeDasharray="3 3" /> */}
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="smartphones"
-                    stackId="1"
-                    stroke="#8884d8"
-                    fill="#8884d8"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="consoles"
-                    stackId="1"
-                    stroke="#82ca9d"
-                    fill="#82ca9d"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="laptops"
-                    stackId="1"
-                    stroke="#ffc658"
-                    fill="#ffc658"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="others"
-                    stackId="1"
-                    stroke="#969595"
-                    fill="#969595"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              'no data'
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartAreaData}>
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Area
+                  type="monotone"
+                  dataKey="smartphones"
+                  stackId="1"
+                  stroke="#8884d8"
+                  fill="#8884d8"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="consoles"
+                  stackId="1"
+                  stroke="#82ca9d"
+                  fill="#82ca9d"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="laptops"
+                  stackId="1"
+                  stroke="#ffc658"
+                  fill="#ffc658"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="others"
+                  stackId="1"
+                  stroke="#969595"
+                  fill="#969595"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
       );
@@ -344,6 +365,7 @@ const ChartBox: React.FC<ChartBoxProps> = ({
     return null;
   }
 
+  // If chartType doesn't match any known type, return null
   return null;
 };
 

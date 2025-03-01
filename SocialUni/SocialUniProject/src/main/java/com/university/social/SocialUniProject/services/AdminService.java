@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.services;
 
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.models.User;
@@ -27,6 +28,12 @@ public class AdminService {
         return users.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    // 7️⃣ Get Single User
+    public UserResponseDto getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        return mapToDto(user);
+    }
 
     // 2️⃣ Search & Filter Users
     public List<UserResponseDto> searchUsers(String username, Role role) {
@@ -73,7 +80,6 @@ public class AdminService {
         userRepository.save(user);
     }
 
-
     // 4️⃣ Unban User
     public void unbanUser(Long userId) {
         Optional<User> userOptional = userRepository.findById(userId);
@@ -111,6 +117,7 @@ public class AdminService {
         }
     }
 
+    // 6️⃣ Delete User
     public void deleteUser(Long userId) {
         UserDetails currentAdmin = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User adminUser = userRepository.findByUsername(currentAdmin.getUsername())
@@ -136,8 +143,7 @@ public class AdminService {
         userRepository.deleteById(userId);
     }
 
-
-
+    // ---------- Private Conversion Method ----------
     private UserResponseDto mapToDto(User user) {
         return new UserResponseDto(
                 user.getId(),

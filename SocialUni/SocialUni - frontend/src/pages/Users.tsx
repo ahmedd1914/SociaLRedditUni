@@ -1,7 +1,7 @@
 import React from 'react';
 import { GridColDef } from '@mui/x-data-grid';
 import DataTable from '../components/DataTable';
-import { fetchUsers } from '../api/ApiCollection';
+import { fetchAllUsers } from '../api/ApiCollection';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import AddData from '../components/AddData';
@@ -10,7 +10,7 @@ const Users = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isLoading, isError, isSuccess, data } = useQuery({
     queryKey: ['allusers'],
-    queryFn: fetchUsers,
+    queryFn: fetchAllUsers,
   });
 
   const columns: GridColDef[] = [
@@ -43,13 +43,6 @@ const Users = () => {
       type: 'string',
       headerName: 'Email',
       minWidth: 200,
-      flex: 1,
-    },
-    {
-      field: 'phone',
-      type: 'string',
-      headerName: 'Phone',
-      minWidth: 120,
       flex: 1,
     },
     {

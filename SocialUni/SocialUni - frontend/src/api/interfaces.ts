@@ -278,6 +278,7 @@ export interface PostResponseDto {
     categoryName: string;
     username: string;
     createdAt: string;
+    image: string;
     reactionCount: number;
     reactionTypes: Record<string, number>;
     comments: CommentResponseDto[];
@@ -299,9 +300,10 @@ export interface UsersDto {
     username: string;
     email: string;
     role: Role;
-    isBanned: boolean;
+    enabled: boolean;
+    lastLogin: string; 
+    img?: string;
     createdAt: string;
-    lastLogin: string;
 }
 // In interfaces.ts
 export interface UpdatePostDto {

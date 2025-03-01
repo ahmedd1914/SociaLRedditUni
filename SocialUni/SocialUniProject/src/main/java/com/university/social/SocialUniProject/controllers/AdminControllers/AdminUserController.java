@@ -27,7 +27,15 @@ public class AdminUserController {
     public ResponseEntity<List<UserResponseDto>> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
-
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long userId) {
+        try {
+            UserResponseDto user = adminService.getUserById(userId);
+            return ResponseEntity.ok(user);
+        } catch (RuntimeException ex) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
     // 2️⃣ Search & Filter Users
     @GetMapping("/users/search")
     public ResponseEntity<List<UserResponseDto>> searchUsers(

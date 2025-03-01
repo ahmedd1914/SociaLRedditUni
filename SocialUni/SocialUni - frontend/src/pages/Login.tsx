@@ -1,16 +1,38 @@
-// import React from 'react';
+import { useState } from 'react';
 import ChangeThemes from '../components/ChangesThemes';
 import { DiReact } from 'react-icons/di';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { loginUser } from '../api/ApiCollection';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = async () => {
+    try {
+      const response = await loginUser({ email, password });
+      console.log('Login successful:', response);
+      // Save token to localStorage if your API returns one
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+      }
+      toast.success('Login successful!');
+      // Navigate to the authenticated admin home page
+      navigate('/admin/home');
+    } catch (error) {
+      console.error('Login failed:', error);
+      toast.error('Login failed! Please check your credentials.');
+      // Optionally, navigate back to login (or simply stay on this page)
+      navigate('/login');
+    }
+  };
+
   return (
-    // screen
     <div className="w-full p-0 m-0">
-      {/* container */}
       <div className="w-full min-h-screen flex justify-center items-center bg-base-200 relative">
-        {/* theme */}
+        {/* Theme Toggle */}
         <div className="absolute top-5 right-5 z-[99]">
           <ChangeThemes />
         </div>
@@ -37,8 +59,10 @@ const Login = () => {
               </svg>
               <input
                 type="text"
-                className="grow input outline-none focus:outline-none border-none border-[0px] h-auto pl-1 pr-0"
+                className="grow input outline-none focus:outline-none border-none h-auto pl-1 pr-0"
                 placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </label>
             <label className="input input-bordered flex items-center gap-2">
@@ -56,8 +80,10 @@ const Login = () => {
               </svg>
               <input
                 type="password"
-                className="grow input outline-none focus:outline-none border-none border-[0px] h-auto pl-1 pr-0"
+                className="grow input outline-none focus:outline-none border-none h-auto pl-1 pr-0"
                 placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </label>
             <div className="flex items-center justify-between">
@@ -81,8 +107,8 @@ const Login = () => {
               </a>
             </div>
             <div
-              onClick={() => navigate('/')}
-              className="btn btn-block btn-primary"
+              onClick={handleLogin}
+              className="btn btn-block btn-primary cursor-pointer"
             >
               Log In
             </div>
@@ -114,6 +140,12 @@ const Login = () => {
                   alt="apple"
                 />
               </button>
+            </div>
+            {/* Register button */}
+            <div className="w-full flex justify-center items-center">
+              <Link to="/register" className="link link-primary font-semibold text-xs">
+                Register a new account
+              </Link>
             </div>
           </div>
         </div>

@@ -34,7 +34,7 @@ import {
 
 // 1. Create a single Axios instance with baseURL from environment variables
 const axiosInstance = axios.create({
-    baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
+    baseURL: 'http://localhost:8080',
 });
 
 // 2. Interceptor to attach token on every request
@@ -42,6 +42,9 @@ axiosInstance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token'); // or sessionStorage, cookies, etc.
         if (token) {
+            if (!config.headers) {
+                config.headers = {};
+            }
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -507,7 +510,7 @@ export const bulkDeleteNotifications = async (
     try {
         const { data } = await axiosInstance.delete<{ success: boolean; message: string }>(
             '/admin/notifications/bulk',
-            { data: notificationIds }
+            { params: { ids: notificationIds } }
         );
         console.log('bulkDeleteNotifications:', data);
         return data;
@@ -661,7 +664,7 @@ export const bulkDeletePosts = async (
     try {
         const { data } = await axiosInstance.delete<{ success: boolean; message: string }>(
             '/admin/posts/bulk',
-            { data: postIds }
+            { params: { ids: postIds } }
         );
         console.log('bulkDeletePosts:', data);
         return data;
@@ -741,6 +744,17 @@ export const fetchReactionStats = async (): Promise<ReactionStatsDto> => {
 export const fetchAllUsers = async (): Promise<UsersDto[]> => {
     try {
         const { data } = await axiosInstance.get<UsersDto[]>('/admin/users');
+        console.log('fetchAllUsers:', data);
+        return data;
+    } catch (err) {
+        console.error(err);
+        throw err;
+    }
+};
+
+export const fetchUserById = async (userId:number): Promise<UsersDto[]> => {
+    try {
+        const { data } = await axiosInstance.get<UsersDto[]>(`/admin/users/${userId}`);
         console.log('fetchAllUsers:', data);
         return data;
     } catch (err) {
