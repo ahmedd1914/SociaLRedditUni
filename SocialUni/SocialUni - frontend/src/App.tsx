@@ -5,7 +5,7 @@ import {
   ScrollRestoration,
   Navigate,
 } from 'react-router-dom';
-import Home from './pages/Home';
+import AdminHome from './pages/AdminHome';
 import Users from './pages/Users';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -17,6 +17,8 @@ import ToasterProvider from './components/ToasterProvider';
 import EditProfile from './pages/EditProfile';
 import User from './pages/User';
 import Login from './pages/Login';
+import Register from './pages/Register';
+import Verify from './pages/Verify';
 // import Register from './pages/Register';
 // import Notifications from './pages/Notifications';
 // import Settings from './pages/Settings';
@@ -63,6 +65,16 @@ function App() {
       element: <Login />,
       errorElement: <Error />,
     },
+    {
+      path: '/register',
+      element: <Register />,
+      errorElement: <Error />,
+    },
+    {
+      path: '/verify',
+      element: <Verify />,
+      errorElement: <Error />,
+    },
     // 3) Admin routes behind an "/admin" prefix
     {
       path: '/admin',
@@ -71,7 +83,7 @@ function App() {
       children: [
         {
           path: 'home',
-          element: <Home />,
+          element: <AdminHome />,
         },
         {
           path: 'profile',

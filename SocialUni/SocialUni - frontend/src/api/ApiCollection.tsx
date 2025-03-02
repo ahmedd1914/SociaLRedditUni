@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import {
     // Auth
     RegisterUserDto,
@@ -52,63 +52,93 @@ axiosInstance.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
+
 /* ===================== AUTH API ===================== */
+// 1) REGISTER
 export const registerUser = async (
     registerUserDto: RegisterUserDto
 ): Promise<LoginResponse> => {
-    try {
-        const { data } = await axiosInstance.post<LoginResponse>('/auth/signup', registerUserDto);
-        console.log('registerUser:', data);
-        return data;
-    } catch (err) {
-        console.error(err);
-        throw err;
+    const { data } = await axiosInstance.post<LoginResponse>(
+        '/auth/signup',
+        registerUserDto
+    );
+
+    console.log('register response:', data); // This should show { token: "...", expiresIn: ... }
+
+    if (!data.token) {
+        throw new Error('No token returned from register API');
     }
+
+    localStorage.setItem('token', data.token);  // Save the actual token
+    return data; // Return full object {token, expiresIn}
 };
+
+
+// 2) LOGIN
 
 export const loginUser = async (
     loginUserDto: LoginUserDto
-): Promise<LoginResponse> => {
+): Promise<{ token: string; expiresIn: number }> => {
     try {
-        const { data } = await axiosInstance.post<LoginResponse>('/auth/login', loginUserDto);
-        console.log('loginUser:', data);
+        const response = await axiosInstance.post<{
+            token: string;
+            expiresIn: number;
+        }>('/auth/login', loginUserDto);
+
+        console.log('Full axios response:', response);
+
+        const data = response.data;
+        console.log('Extracted data:', data);
+
+        if (!data.token) {
+            throw new Error('No token returned from login API');
+        }
+
         return data;
     } catch (err) {
-        console.error(err);
+        console.error('loginUser failed:', err);
         throw err;
     }
 };
 
-export const verifyUser = async (
-    verifyUserDto: VerifyUserDto
-): Promise<{ success: boolean; message: string }> => {
-    try {
-        const { data } = await axiosInstance.post<{ success: boolean; message: string }>(
-            '/auth/verify',
-            verifyUserDto
-        );
-        console.log('verifyUser:', data);
-        return data;
-    } catch (err) {
-        console.error(err);
-        throw err;
-    }
+
+
+
+// 3) LOGOUT
+export const logoutUser = async (): Promise<string> => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('No token found');
+
+  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const response: AxiosResponse<string> = await axiosInstance.post<string>(
+    '/auth/logout',
+    {},
+    config
+  );
+  localStorage.removeItem('token');
+  return response.data;
 };
 
+// 4) VERIFY USER
+export const verifyUser = async (verifyUserDto: VerifyUserDto): Promise<any> => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error('No token found');
+
+  const config = { headers: { Authorization: `Bearer ${token}` } };
+  const { data } = await axiosInstance.post('/auth/verify', verifyUserDto, config);
+  return data;
+};
+
+// 5) RESEND CODE
 export const resendVerificationCode = async (
-    email: string
+  email: string
 ): Promise<GenericDeleteResponse> => {
-    try {
-        const { data } = await axiosInstance.post<GenericDeleteResponse>(
-            `/auth/resend?email=${email}`
-        );
-        console.log('resendVerificationCode:', data);
-        return data;
-    } catch (err) {
-        console.error(err);
-        throw err;
-    }
+  const { data } = await axiosInstance.post<GenericDeleteResponse>(
+    `/auth/resend?email=${email}`
+  );
+  return data;
 };
+
 
 /* =================== ADMIN COMMENT API =================== */
 export const fetchAllComments = async (): Promise<CommentResponseDto[]> => {

@@ -355,3 +355,9 @@ export interface PostMetricsDto {
     mostCommentedPost: PostSummary;
 }
 
+export interface DecodedToken {
+    sub: string;    // e.g. user ID
+    role: string;   // e.g. "ROLE_ADMIN" or "ROLE_USER"
+    iat: number;
+    exp: number;
+  }

@@ -14,11 +14,12 @@ public class UsersDto {
     private String username;
     private String email;
     private Role role; // User role (ADMIN, USER, MODERATOR, etc.)
-    private boolean isBanned; // To track if the user is banned
-    private LocalDateTime createdAt; // Account creation date
-    private LocalDateTime lastLogin; // Last login timestamp
+    private boolean isBanned;
+    private LocalDateTime createdAt;
+    private LocalDateTime lastLogin;
+    private String imgUrl;
 
-    public UsersDto(Long id, String username, String email, Role role, boolean isBanned, LocalDateTime createdAt, LocalDateTime lastLogin) {
+    public UsersDto(Long id, String username, String email, Role role, boolean isBanned, LocalDateTime createdAt, LocalDateTime lastLogin, String imgUrl) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -26,9 +27,10 @@ public class UsersDto {
         this.isBanned = isBanned;
         this.createdAt = createdAt;
         this.lastLogin = lastLogin;
+        this.imgUrl = imgUrl;
     }
 
-    // ✅ Static factory method to convert a User entity to UserDto
+
     public static UsersDto fromEntity(User user) {
         return new UsersDto(
                 user.getId(),
@@ -37,7 +39,8 @@ public class UsersDto {
                 user.getRole(),
                 user.isBanned(),
                 user.getCreatedAt(),
-                user.getLastLogin()
+                user.getLastLogin(),
+                user.getImgUrl()
         );
     }
 }

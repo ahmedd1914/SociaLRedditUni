@@ -1,23 +1,45 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { jwtDecode } from 'jwt-decode'; // <-- for decoding JWT
+import { 
+  MdGroup, 
+  MdInventory2, 
+  MdAssessment, 
+  MdSwapHorizontalCircle 
+} from 'react-icons/md';
+import { 
+  fetchAllUsers, 
+  fetchAllPosts, 
+  fetchAllComments, 
+  fetchAllReactions, 
+  fetchAllNotifications, 
+  fetchAllEvents, 
+  fetchAllGroups 
+} from '../api/ApiCollection';
 import TopDealsBox from '../components/topDealsBox/TopDealsBox';
 import ChartBox from '../components/charts/ChartBox';
-import { useQuery } from '@tanstack/react-query';
-import {
-  MdGroup,
-  MdInventory2,
-  MdAssessment,
-  MdSwapHorizontalCircle,
-} from 'react-icons/md';
-import {
-  fetchAllUsers,
-  fetchAllPosts,
-  fetchAllComments,
-  fetchAllReactions,
-  fetchAllNotifications,
-  fetchAllEvents,
-  fetchAllGroups,
-} from '../api/ApiCollection';
 
 const Home = () => {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    try {
+      const decoded: any = jwtDecode(token);
+      if (decoded.role !== 'ROLE_ADMIN') {
+        navigate('/error');
+      }
+    } catch {
+      navigate('/error');
+    }
+  }, [navigate]);
+
+  // 2) Now your existing queries
   const queryGetTotalUsers = useQuery({
     queryKey: ['totalusers'],
     queryFn: fetchAllUsers,
@@ -56,25 +78,19 @@ const Home = () => {
   return (
     <div className="home w-full p-0 m-0">
       <div className="w-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 grid-flow-dense auto-rows-[minmax(200px,auto)] xl:auto-rows-[minmax(150px,auto)] gap-3 xl:gap-3 px-0">
-        
-        {/* Left box with top deals */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 row-span-3 3xl:row-span-5">
           <TopDealsBox />
         </div>
-
-        {/* 1) Total Users */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-2">
           <ChartBox
             chartType="line"
             IconBox={MdGroup}
             title="Total Users"
-            data={queryGetTotalUsers.data}            // Pass data here
+            data={queryGetTotalUsers.data}
             isLoading={queryGetTotalUsers.isLoading}
             isSuccess={queryGetTotalUsers.isSuccess}
           />
         </div>
-
-        {/* 2) Total Products (Posts) */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-2">
           <ChartBox
             chartType="line"
@@ -85,8 +101,6 @@ const Home = () => {
             isSuccess={queryGetTotalProducts.isSuccess}
           />
         </div>
-
-        {/* 3) Leads by Source (Notifications) */}
         <div className="box row-span-3 col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-5">
           <ChartBox
             chartType="pie"
@@ -96,8 +110,6 @@ const Home = () => {
             isSuccess={queryGetTotalSource.isSuccess}
           />
         </div>
-
-        {/* 4) Total Ratio (Comments) */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-2">
           <ChartBox
             chartType="line"
@@ -108,8 +120,6 @@ const Home = () => {
             isSuccess={queryGetTotalRatio.isSuccess}
           />
         </div>
-
-        {/* 5) Total Revenue (Reactions) */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-2">
           <ChartBox
             chartType="line"
@@ -120,8 +130,6 @@ const Home = () => {
             isSuccess={queryGetTotalRevenue.isSuccess}
           />
         </div>
-
-        {/* 6) Revenue by Products (Events) */}
         <div className="box row-span-2 col-span-full xl:col-span-2 3xl:row-span-3">
           <ChartBox
             chartType="area"
@@ -131,8 +139,6 @@ const Home = () => {
             isSuccess={queryGetTotalRevenueByProducts.isSuccess}
           />
         </div>
-
-        {/* 7) Total Visit (Groups) */}
         <div className="box col-span-full sm:col-span-1 xl:col-span-1 3xl:row-span-2">
           <ChartBox
             chartType="bar"

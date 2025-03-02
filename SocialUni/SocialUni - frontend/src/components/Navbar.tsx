@@ -8,6 +8,7 @@ import ChangeThemes from './ChangesThemes';
 import toast from 'react-hot-toast';
 import { menu } from './menu/data';
 import MenuItem from './menu/MenuItem';
+import { logoutUser } from '../api/ApiCollection'; 
 
 const Navbar = () => {
   const [isFullScreen, setIsFullScreen] = React.useState(true);
@@ -15,12 +16,13 @@ const Navbar = () => {
 
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
   const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
-
+  const navigate = useNavigate();
   const toggleFullScreen = () => {
     setIsFullScreen((prev) => !prev);
+    
   };
 
-  const navigate = useNavigate();
+  
 
   React.useEffect(() => {
     if (isFullScreen) {
@@ -29,6 +31,16 @@ const Navbar = () => {
       element?.requestFullscreen({ navigationUI: 'auto' });
     }
   }, [element, isFullScreen]);
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      navigate('/login');
+    } catch (err) {
+      console.error(err);
+      toast.error('Logout failed');
+    }
+  };
 
   return (
     // navbar screen
@@ -155,7 +167,7 @@ const Navbar = () => {
                 <a className="justify-between">My Profile</a>
               </li>
             </Link>
-            <li onClick={() => navigate('/login')}>
+            <li onClick={handleLogout}>
               <a>Log Out</a>
             </li>
           </ul>

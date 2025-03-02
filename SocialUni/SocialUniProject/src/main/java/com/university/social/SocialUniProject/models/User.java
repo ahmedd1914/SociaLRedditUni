@@ -37,7 +37,7 @@ public class User implements UserDetails {
     private boolean isBanned;
     private LocalDateTime createdAt;
 
-
+    private String imgUrl;
     @Column(name = "verification_code")
     private String verificationCode;
 
