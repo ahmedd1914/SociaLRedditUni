@@ -1,9 +1,11 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
 import com.university.social.SocialUniProject.dto.AdminActionDto;
+import com.university.social.SocialUniProject.dto.CreateUserDto;
 import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.services.AdminService;
+import com.university.social.SocialUniProject.services.UserServices.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,9 +19,16 @@ import java.util.List;
 public class AdminUserController {
 
     private final AdminService adminService;
+
     public AdminUserController(AdminService adminService) {
         this.adminService = adminService;
 
+    }
+    @PostMapping("/create")
+    public ResponseEntity<UserResponseDto> createUser(@RequestBody CreateUserDto createUserDto) {
+        // Create the user and return the response DTO
+        UserResponseDto responseDto = adminService.createUser(createUserDto);
+        return ResponseEntity.ok(responseDto);
     }
 
     // 1️⃣ View All Users

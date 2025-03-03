@@ -1,38 +1,108 @@
-import React, { ChangeEvent } from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
 import { useNavigate } from 'react-router-dom';
+import { fetchUserById, updateUserProfile } from '../api/ApiCollection';
+import { jwtDecode } from 'jwt-decode';
+import { UpdateUserDto, UsersDto } from '../api/interfaces';
 
 const EditProfile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
   const navigate = useNavigate();
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = React.useState<File | null>(
-    null
-  );
-  const [preview, setPreview] = React.useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string>('https://avatars.githubusercontent.com/u/74099030?v=4');
+
+  const [profile, setProfile] = useState<UpdateUserDto>({
+    fname: '',
+    lname: '',
+    phoneNumber: '',
+    username: '',
+    email: '',
+    imgUrl: undefined,
+  });
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const imageUpload = e.target.files[0];
-      setSelectedFile(imageUpload);
-      setPreview(URL.createObjectURL(imageUpload));
-      console.log('Selected File: ', selectedFile);
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setPreview(URL.createObjectURL(file));
     }
   };
-  const handleIconClick = () => {
-    fileInputRef.current?.click();
-  };
 
-  const [firstName, setFirstName] = React.useState('Frans');
-  const [lastName, setLastName] = React.useState('AHW');
-  const [nickName, setNickName] = React.useState('Frans');
-  const [email, setEmail] = React.useState('franswinata6@gmail.com');
-  const [phone, setPhone] = React.useState('081-234-5678');
-  const [address, setAddress] = React.useState(
-    'Suite 948 Jl. Gajahmada No. 91, Malang, SM 74810'
-  );
+  const handleIconClick = () => fileInputRef.current?.click();
+
+  const fetchUserData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        toast.error('You are not authenticated!');
+        navigate('/login');
+        return;
+    }
+
+    const decoded: any = jwtDecode(token);
+    const userId = Number(decoded.sub);
+
+    try {
+        const user: UsersDto = await fetchUserById(userId);
+
+        setProfile({
+          fname: user.fname ?? '',
+          lname: user.lname ?? '',
+          phoneNumber: user.phoneNumber ?? '',
+          username: user.username,
+          email: user.email,
+          imgUrl: user.imgUrl ?? undefined,
+      });
+      
+
+        setPreview(user.imgUrl || 'https://avatars.githubusercontent.com/u/74099030?v=4');
+    } catch (err) {
+        toast.error('Failed to fetch profile');
+        console.error(err);
+    }
+};
+
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
+
+  const handleUpdateProfile = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        toast.error('You are not authenticated!');
+        navigate('/login');
+        return;
+    }
+
+    const decoded: any = jwtDecode(token);
+    const userId = Number(decoded.sub);
+
+    try {
+        const updatedProfile: UpdateUserDto = { ...profile };
+        if (selectedFile) {
+            const base64Image = await fileToBase64(selectedFile);
+            updatedProfile.imgUrl = base64Image;
+        }
+        await updateUserProfile(userId, updatedProfile);
+        toast.success('Profile updated successfully!');
+        navigate('/admin/profile');
+    } catch (err) {
+        toast.error('Failed to update profile');
+    }
+};
+
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+      reader.readAsDataURL(file);
+    });
+  };
 
   return (
     // screen
@@ -46,16 +116,13 @@ const EditProfile = () => {
           </h2>
           <div className="w-full xl:w-auto grid grid-cols-2 xl:flex gap-3">
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate(`/admin/profile?refresh=${new Date().getTime()}`)}
               className="btn btn-block xl:w-auto dark:btn-neutral"
             >
               Discard Changes
             </button>
             <button
-              onClick={() => {
-                navigate('/profile');
-                toast('Gabisa diedit dong!', { icon: '😛' });
-              }}
+              onClick={handleUpdateProfile}
               className="btn btn-block xl:w-auto btn-primary"
             >
               Save Changes
@@ -75,11 +142,8 @@ const EditProfile = () => {
             <div className="avatar">
               <div className="w-24 xl:w-36 2xl:w-48 rounded-full">
                 <img
-                  src={
-                    preview ||
-                    'https://avatars.githubusercontent.com/u/74099030?v=4'
-                  }
-                  alt="foto-cowok-ganteng"
+                  src={preview || 'https://avatars.githubusercontent.com/u/74099030?v=4'}
+                  alt="Profile"
                 />
               </div>
             </div>
@@ -90,13 +154,12 @@ const EditProfile = () => {
             className="hidden"
             onChange={handleFileSelect}
           />
-
           {/* Heading */}
           <div className="flex flex-col items-start gap-1">
             <h3 className="font-semibold text-xl xl:text-3xl">
-              {firstName} {lastName}
+              {profile.fname} {profile.lname}
             </h3>
-            <span className="font-normal text-base">Supervisor</span>
+            <span className="font-normal text-base">{profile.email}</span>
           </div>
         </div>
         {/* block 3 */}
@@ -115,49 +178,39 @@ const EditProfile = () => {
               {/* row 1 */}
               <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
                 <div className="w-full whitespace-nowrap">
-                  <span className="whitespace-nowrap">
-                    First Name*
-                  </span>
+                  <span className="whitespace-nowrap">First Name*</span>
                 </div>
                 <input
                   type="text"
                   placeholder="Type here"
-                  value={firstName}
-                  onChange={(element) =>
-                    setFirstName(element.target.value)
-                  }
+                  value={profile.fname}
+                  onChange={(e) => setProfile({ ...profile, fname: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
               {/* row 2 */}
               <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
                 <div className="w-full whitespace-nowrap">
-                  <span className="whitespace-nowrap">
-                    Last Name*
-                  </span>
+                  <span className="whitespace-nowrap">Last Name*</span>
                 </div>
                 <input
                   type="text"
                   placeholder="Type here"
-                  value={lastName}
-                  onChange={(element) =>
-                    setLastName(element.target.value)
-                  }
+                  value={profile.lname}
+                  onChange={(e) => setProfile({ ...profile, lname: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
               {/* row 3 */}
               <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
                 <div className="w-full whitespace-nowrap">
-                  <span className="whitespace-nowrap">Nickname</span>
+                  <span className="whitespace-nowrap">Phone</span>
                 </div>
                 <input
                   type="text"
                   placeholder="Type here"
-                  value={nickName}
-                  onChange={(element) =>
-                    setNickName(element.target.value)
-                  }
+                  value={profile.phoneNumber}
+                  onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -167,55 +220,41 @@ const EditProfile = () => {
               {/* row 1 */}
               <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
                 <div className="w-full whitespace-nowrap">
-                  <span className="whitespace-nowrap">Email*</span>
+                  <span className="whitespace-nowrap">Username*</span>
                 </div>
                 <input
                   type="text"
                   placeholder="Type here"
-                  value={email}
-                  onChange={(element) =>
-                    setEmail(element.target.value)
-                  }
+                  value={profile.username}
+                  onChange={(e) => setProfile({ ...profile, username: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
               {/* row 2 */}
               <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
                 <div className="w-full whitespace-nowrap">
-                  <span className="whitespace-nowrap">Phone</span>
+                  <span className="whitespace-nowrap">Email*</span>
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   placeholder="Type here"
-                  value={phone}
-                  onChange={(element) =>
-                    setPhone(element.target.value)
-                  }
+                  value={profile.email}
+                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
               {/* row 3 */}
-              <div className="w-full grid sm:col-span-full xl:grid-cols-3 2xl:grid-cols-4 xl:items-start gap-1 xl:gap-0">
-                <div className="w-full whitespace-nowrap xl:mt-3">
-                  <span className="whitespace-nowrap">Address</span>
+              <div className="w-full grid xl:grid-cols-3 2xl:grid-cols-4 items-center gap-1 xl:gap-0">
+                <div className="w-full whitespace-nowrap">
+                  <span className="whitespace-nowrap">Image URL</span>
                 </div>
-                <textarea
-                  className="textarea textarea-bordered w-full col-span-2 2xl:col-span-3"
-                  placeholder="Address"
-                  value={address}
-                  onChange={(element) =>
-                    setAddress(element.target.value)
-                  }
-                ></textarea>
-                {/* <input
+                <input
                   type="text"
                   placeholder="Type here"
-                  value={address}
-                  onChange={(element) =>
-                    setAddress(element.target.value)
-                  }
+                  value={profile.imgUrl}
+                  onChange={(e) => setProfile({ ...profile, imgUrl: e.target.value })}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
-                /> */}
+                />
               </div>
             </div>
             {/* column 3 */}
@@ -243,8 +282,7 @@ const EditProfile = () => {
               <div className="w-full h-[2px] bg-base-300 dark:bg-slate-700 mt-1"></div>
             </div>
             <span className="text-sm xl:text-sm text-neutral-400 dark:text-neutral-content">
-              Authorize faster and easier with your external service
-              account.
+              Authorize faster and easier with your external service account.
             </span>
           </div>
           {/* services block */}
@@ -252,50 +290,26 @@ const EditProfile = () => {
             {/* column 1 */}
             <div className="col-span-2 flex flex-col items-start gap-5 xl:w-[240px]">
               <button
-                onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
-                  })
-                }
+                onClick={() => toast('Gaboleh', { icon: '😠' })}
                 className="btn btn-block btn-disabled flex-nowrap justify-start"
               >
-                <img
-                  className="w-6 opacity-20"
-                  src="/icons8-microsoft.svg"
-                  alt="microsoft"
-                />
+                <img className="w-6 opacity-20" src="/icons8-microsoft.svg" alt="microsoft" />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connect with Microsoft
                 </span>
               </button>
               <div className="px-4 gap-2 min-h-12 text-sm font-semibold flex items-center justify-start">
-                <img
-                  className="w-6"
-                  src="/icons8-google.svg"
-                  alt="google"
-                />
+                <img className="w-6" src="/icons8-google.svg" alt="google" />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connected with Google
                 </span>
               </div>
               <button
-                onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
-                  })
-                }
+                onClick={() => toast('Gaboleh', { icon: '😠' })}
                 className="btn btn-block btn-disabled justify-start"
               >
-                <img
-                  className="dark:hidden w-6 opacity-20"
-                  src="/icons8-apple-black.svg"
-                  alt="apple"
-                />
-                <img
-                  className="hidden dark:block w-6 opacity-20"
-                  src="/icons8-apple-white.svg"
-                  alt="apple"
-                />
+                <img className="dark:hidden w-6 opacity-20" src="/icons8-apple-black.svg" alt="apple" />
+                <img className="hidden dark:block w-6 opacity-20" src="/icons8-apple-white.svg" alt="apple" />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connect with Apple
                 </span>
@@ -305,11 +319,7 @@ const EditProfile = () => {
             <div className="col-span-1 flex flex-col items-start gap-5">
               <button className="btn btn-ghost text-error"></button>
               <button
-                onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
-                  })
-                }
+                onClick={() => toast('Gaboleh', { icon: '😠' })}
                 className="btn btn-ghost btn-disabled text-error text-xs xl:text-sm"
               >
                 Disconnect
@@ -327,25 +337,13 @@ const EditProfile = () => {
             <HiOutlineTrash className="text-lg" />
             Delete My Account
           </button>
-          <dialog
-            id="modal_delete"
-            className="modal"
-            ref={modalDelete}
-          >
+          <dialog id="modal_delete" className="modal" ref={modalDelete}>
             <div className="modal-box">
-              <h3 className="font-bold text-lg dark:text-white">
-                Action Confirmation!
-              </h3>
-              <p className="py-4">
-                Do you want to delete your account?
-              </p>
+              <h3 className="font-bold text-lg dark:text-white">Action Confirmation!</h3>
+              <p className="py-4">Do you want to delete your account?</p>
               <div className="modal-action mx-0 flex-col items-stretch justify-stretch gap-3">
                 <button
-                  onClick={() =>
-                    toast('Lancang kamu ya!', {
-                      icon: '😠',
-                    })
-                  }
+                  onClick={() => toast('Lancang kamu ya!', { icon: '😠' })}
                   className="btn btn-error btn-block text-base-100 dark:text-white"
                 >
                   Yes, I want to delete my account

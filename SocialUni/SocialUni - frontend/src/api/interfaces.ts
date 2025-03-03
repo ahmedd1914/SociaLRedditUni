@@ -1,17 +1,3 @@
-/**
- * src/types/types.ts
- *
- * This file defines interfaces for:
- * - Request DTOs (the data sent from the frontend to the backend)
- * - Response DTOs (the data returned by the backend)
- * - Enums used in both.
- *
- * Adjust enum values as necessary to match your Java definitions.
- */
-
-/* =========================
-   Enums (as in the backend)
-   ========================= */
 
 // Visibility (e.g., for posts, groups, comments)
 export enum Visibility {
@@ -21,12 +7,17 @@ export enum Visibility {
 
 // Category (for events, groups, posts, etc.)
 export enum Category {
-    GENERAL = 'GENERAL',
-    MUSIC = 'MUSIC',
-    TECH = 'TECH',
-    SPORTS = 'SPORTS',
-    ART = 'ART',
-    OTHER = 'OTHER',
+    DISCUSSION = "DISCUSSION",
+    ANNOUNCEMENT = "ANNOUNCEMENT",
+    PROJECT = "PROJECT",
+    GENERAL = "GENERAL",
+    TECH = "TECH",
+    ART = "ART",
+    MUSIC = "MUSIC",
+    SPORTS = "SPORTS",
+    GAMING = "GAMING",
+    ENTERTAINMENT = "ENTERTAINMENT",
+    SCIENCE = "SCIENCE"
 }
 
 // EventStatus (for events)
@@ -95,7 +86,7 @@ export interface CreateCommentDto {
     content: string;         // NotBlank
     mediaUrl?: string;
     postId: number;          // NotNull
-    parentCommentId?: number;
+    parentCommentId?: number | null;
     visibility: Visibility;  // default = PUBLIC in backend
 }
 
@@ -131,7 +122,7 @@ export interface CreateNotificationDto {
 export interface CreatePostDto {
     title: string;
     content: string;
-    categoryId: number;
+    category: Category;
     visibility: Visibility;
     groupId?: number;
 }
@@ -205,6 +196,14 @@ export interface VerifyUserDto {
     verificationCode: string;
 }
 
+export type UpdateUserDto = {
+    fname: string;
+    lname: string;
+    phoneNumber?: string;
+    username: string;
+    email: string;
+    imgUrl?: string;
+  };
 /* =========================
    RESPONSE DTOs
    (Data returned from the backend)
@@ -282,6 +281,7 @@ export interface PostResponseDto {
     reactionCount: number;
     reactionTypes: Record<string, number>;
     comments: CommentResponseDto[];
+    groupId?: number;
 }
 
 /** ReactionResponseDto.java */
@@ -297,12 +297,15 @@ export interface ReactionResponseDto {
 /** UsersDto.java */
 export interface UsersDto {
     id: number;
+    fname: string;
+    lname: string;
     username: string;
     email: string;
+    phoneNumber?: string;
     role: Role;
     enabled: boolean;
     lastLogin: string; 
-    img?: string;
+    imgUrl?: string;
     createdAt: string;
 }
 // In interfaces.ts
@@ -361,3 +364,12 @@ export interface DecodedToken {
     iat: number;
     exp: number;
   }
+  export interface CreateUserDto {
+    fname: string;
+    lname: string;
+    username: string;
+    email: string;
+    phoneNumber: string;
+    password: string;
+  }
+  

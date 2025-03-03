@@ -16,58 +16,60 @@ const Users = () => {
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },
     {
-      field: 'firstName',
+      field: 'username',
       headerName: 'Name',
       minWidth: 220,
       flex: 1,
-      renderCell: (params) => {
-        return (
-          <div className="flex gap-3 items-center">
-            <div className="avatar">
-              <div className="w-6 xl:w-9 rounded-full">
-                <img
-                  src={params.row.img || '/Portrait_Placeholder.png'}
-                  alt="user-picture"
-                />
-              </div>
+      renderCell: (params) => (
+        <div className="flex gap-3 items-center">
+          <div className="avatar">
+            <div className="w-6 xl:w-9 rounded-full">
+              <img
+                src={params.row.img || '/Portrait_Placeholder.png'}
+                alt="user-picture"
+              />
             </div>
-            <span className="mb-0 pb-0 leading-none">
-              {params.row.firstName} {params.row.lastName}
-            </span>
           </div>
-        );
-      },
+          <span className="mb-0 pb-0 leading-none">
+            {params.row.username}
+          </span>
+        </div>
+      ),
     },
     {
       field: 'email',
-      type: 'string',
       headerName: 'Email',
       minWidth: 200,
       flex: 1,
     },
     {
+      field: 'phoneNumber',
+      headerName: 'Phone',
+      width: 130,
+    },
+    {
+      field: 'role',
+      headerName: 'Role',
+      width: 120,
+    },
+    {
+      field: 'enabled',
+      headerName: 'Active',
+      type: 'boolean',
+      width: 100,
+      renderCell: (params) => (params.row.enabled ? 'Yes' : 'No'),
+    },
+    {
       field: 'createdAt',
       headerName: 'Created At',
       minWidth: 100,
-      type: 'string',
-      flex: 1,
+      flex: 0.5,
     },
-    // {
-    //   field: 'fullName',
-    //   headerName: 'Full name',
-    //   description:
-    //     'This column has a value getter and is not sortable.',
-    //   sortable: false,
-    //   width: 160,
-    //   valueGetter: (params: GridValueGetterParams) =>
-    //     `${params.row.firstName || ''} ${params.row.lastName || ''}`,
-    // },
     {
-      field: 'verified',
-      headerName: 'Verified',
-      width: 80,
-      type: 'boolean',
-      flex: 1,
+      field: 'lastLogin',
+      headerName: 'Last Login',
+      minWidth: 100,
+      flex: 0.5,
     },
   ];
 
@@ -76,14 +78,10 @@ const Users = () => {
       toast.loading('Loading...', { id: 'promiseUsers' });
     }
     if (isError) {
-      toast.error('Error while getting the data!', {
-        id: 'promiseUsers',
-      });
+      toast.error('Error while getting the data!', { id: 'promiseUsers' });
     }
     if (isSuccess) {
-      toast.success('Got the data successfully!', {
-        id: 'promiseUsers',
-      });
+      toast.success('Got the data successfully!', { id: 'promiseUsers' });
     }
   }, [isError, isLoading, isSuccess]);
 
@@ -103,47 +101,27 @@ const Users = () => {
           </div>
           <button
             onClick={() => setIsOpen(true)}
-            className={`btn ${
-              isLoading ? 'btn-disabled' : 'btn-primary'
-            }`}
+            className={`btn ${isLoading ? 'btn-disabled' : 'btn-primary'}`}
           >
             Add New User +
           </button>
         </div>
-        {isLoading ? (
-          <DataTable
-            slug="users"
-            columns={columns}
-            rows={[]}
-            includeActionColumn={true}
-          />
-        ) : isSuccess ? (
-          <DataTable
-            slug="users"
-            columns={columns}
-            rows={data}
-            includeActionColumn={true}
-          />
-        ) : (
-          <>
-            <DataTable
-              slug="users"
-              columns={columns}
-              rows={[]}
-              includeActionColumn={true}
-            />
-            <div className="w-full flex justify-center">
-              Error while getting the data!
-            </div>
-          </>
-        )}
-
+        <div className="w-full overflow-x-auto">
+          {isLoading ? (
+            <DataTable slug="users" columns={columns} rows={[]} includeActionColumn={true} />
+          ) : isSuccess ? (
+            <DataTable slug="users" columns={columns} rows={data} includeActionColumn={true} />
+          ) : (
+            <>
+              <DataTable slug="users" columns={columns} rows={[]} includeActionColumn={true} />
+              <div className="w-full flex justify-center">
+                Error while getting the data!
+              </div>
+            </>
+          )}
+        </div>
         {isOpen && (
-          <AddData
-            slug={'user'}
-            isOpen={isOpen}
-            setIsOpen={setIsOpen}
-          />
+          <AddData slug="user" isOpen={isOpen} setIsOpen={setIsOpen} />
         )}
       </div>
     </div>

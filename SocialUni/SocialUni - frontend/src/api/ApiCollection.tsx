@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, isAxiosError } from 'axios';
 import {
     // Auth
     RegisterUserDto,
@@ -8,17 +8,21 @@ import {
     // Comments
     UpdateCommentDto,
     CommentResponseDto,
+    CreateCommentDto,
     // Events
     UpdateEventDto,
     EventResponseDto,
+    CreateEventDto,
     // Groups
     GroupResponseDto,
+    CreateGroupDto,
     // Notifications
     NotificationResponseDto,
     NotificationStatsDto,
     // Posts
     PostResponseDto,
     UpdatePostDto,
+    CreatePostDto,
     // Reactions
     ReactionResponseDto,
     ReactionStatsDto,
@@ -26,6 +30,8 @@ import {
     UsersDto,
     Visibility,
     GenericDeleteResponse,
+    UpdateUserDto,
+    CreateUserDto,
     // Newly added placeholders
     ChatMessageDto,
     MessageStatsDto,
@@ -57,20 +63,12 @@ axiosInstance.interceptors.request.use(
 // 1) REGISTER
 export const registerUser = async (
     registerUserDto: RegisterUserDto
-): Promise<LoginResponse> => {
-    const { data } = await axiosInstance.post<LoginResponse>(
-        '/auth/signup',
-        registerUserDto
-    );
-
-    console.log('register response:', data); // This should show { token: "...", expiresIn: ... }
-
-    if (!data.token) {
-        throw new Error('No token returned from register API');
-    }
-
-    localStorage.setItem('token', data.token);  // Save the actual token
-    return data; // Return full object {token, expiresIn}
+): Promise<string> => {
+    const { data } = await axiosInstance.post<string>('/auth/signup', registerUserDto);
+    const token = data;  // because backend sends plain string
+    localStorage.setItem('token', token);
+    console.log('register response:', token);
+    return token;
 };
 
 
@@ -164,7 +162,29 @@ export const fetchCommentById = async (
         throw err;
     }
 };
-
+export const createComment = async (commentDto: CreateCommentDto): Promise<CommentResponseDto> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+  
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  
+    try {
+      const { data } = await axiosInstance.post<CommentResponseDto>('/comments/create', commentDto, config);
+      console.log('Comment created:', data);
+      return data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        console.error('Axios error (createComment):', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error (createComment):', error);
+      }
+      throw error;
+    }
+  };
 export const updateComment = async (
     commentId: number,
     updateCommentDto: UpdateCommentDto
@@ -209,7 +229,29 @@ export const fetchAllEvents = async (): Promise<EventResponseDto[]> => {
         throw err;
     }
 };
-
+export const createEvent = async (dto: CreateEventDto): Promise<EventResponseDto> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+  
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  
+    try {
+      const { data } = await axiosInstance.post<EventResponseDto>('/events/create', dto, config);
+      console.log('Event created:', data);
+      return data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        console.error('Axios error (createEvent):', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error (createEvent):', error);
+      }
+      throw error;
+    }
+  };
 export const updateEvent = async (
     eventId: number,
     updateEventDto: UpdateEventDto
@@ -266,7 +308,29 @@ export const fetchGroupById = async (
         throw err;
     }
 };
-
+export const createGroup = async (groupDto: CreateGroupDto): Promise<GroupResponseDto> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+  
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  
+    try {
+      const { data } = await axiosInstance.post<GroupResponseDto>('/groups/create', groupDto, config);
+      console.log('Group created:', data);
+      return data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        console.error('Axios error (createGroup):', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error (createGroup):', error);
+      }
+      throw error;
+    }
+  };
 export const deleteGroup = async (
     groupId: number,
     userId: number
@@ -588,6 +652,31 @@ export const fetchPostById = async (
     }
 };
 
+export const createPost = async (postDto: CreatePostDto): Promise<PostResponseDto> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+  
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  
+    try {
+      const { data } = await axiosInstance.post<PostResponseDto>('/posts/create', postDto, config);
+      console.log('Post created:', data);
+      return data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        console.error('Axios error (createPost):', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error (createPost):', error);
+      }
+      throw error;
+    }
+  };
+  
+
 export const updatePost = async (
     postId: number,
     postDto: UpdatePostDto
@@ -782,10 +871,9 @@ export const fetchAllUsers = async (): Promise<UsersDto[]> => {
     }
 };
 
-export const fetchUserById = async (userId:number): Promise<UsersDto[]> => {
+export const fetchUserById = async (userId: number): Promise<UsersDto> => {
     try {
-        const { data } = await axiosInstance.get<UsersDto[]>(`/admin/users/${userId}`);
-        console.log('fetchAllUsers:', data);
+        const { data } = await axiosInstance.get<UsersDto>(`/admin/users/${userId}`);
         return data;
     } catch (err) {
         console.error(err);
@@ -793,6 +881,29 @@ export const fetchUserById = async (userId:number): Promise<UsersDto[]> => {
     }
 };
 
+export const createUser = async (userDto: CreateUserDto): Promise<UsersDto> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    };
+  
+    try {
+      const { data } = await axiosInstance.post<UsersDto>('/admin/create', userDto, config);
+      console.log('User created:', data);
+      return data;
+    } catch (error: any) {
+      if (isAxiosError(error)) {
+        console.error('Axios error (createUser):', error.response?.data || error.message);
+      } else {
+        console.error('Unexpected error (createUser):', error);
+      }
+      throw error;
+    }
+  };
 export const searchUsers = async (
     username: string,
     role: string
@@ -870,5 +981,26 @@ export const deleteUser = async (
         throw err;
     }
 };
+export const updateUserProfile = async (userId: number, updateUserDto: UpdateUserDto): Promise<void> => {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('No token found');
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    };
+
+    try {
+        await axiosInstance.put(`/users/${userId}`, updateUserDto, config);
+    } catch (error: any) {
+        if (isAxiosError(error)) {
+            console.error('Axios error:', error.response?.data || error.message);
+        } else {
+            console.error('Unexpected error:', error);
+        }
+        throw error;
+    }
+};
+
 
 export default axiosInstance;

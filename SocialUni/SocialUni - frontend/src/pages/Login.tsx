@@ -23,7 +23,7 @@ const Login = () => {
         const decoded = jwtDecode<DecodedToken>(token);
         console.log('Decoded JWT:', decoded);
 
-        if (decoded.role === 'ROLE_ADMIN') {
+        if (decoded.role === 'ADMIN') {
             navigate('/admin/home');
         } else {
             navigate('/user/home');

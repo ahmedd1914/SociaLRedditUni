@@ -4,25 +4,29 @@ import { HiBars3CenterLeft } from 'react-icons/hi2';
 import { DiReact } from 'react-icons/di';
 import { HiSearch, HiOutlineBell } from 'react-icons/hi';
 import { RxEnterFullScreen, RxExitFullScreen } from 'react-icons/rx';
+import { jwtDecode } from 'jwt-decode';
 import ChangeThemes from './ChangesThemes';
 import toast from 'react-hot-toast';
 import { menu } from './menu/data';
 import MenuItem from './menu/MenuItem';
-import { logoutUser } from '../api/ApiCollection'; 
+import { logoutUser, fetchUserById } from '../api/ApiCollection'; 
+import { DecodedToken, UsersDto } from '../api/interfaces';
+
+
 
 const Navbar = () => {
   const [isFullScreen, setIsFullScreen] = React.useState(true);
   const element = document.getElementById('root');
-
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
-  const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
+  const [user, setUser] = React.useState<UsersDto | null>(null);
+
   const navigate = useNavigate();
+
+  const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
+
   const toggleFullScreen = () => {
     setIsFullScreen((prev) => !prev);
-    
   };
-
-  
 
   React.useEffect(() => {
     if (isFullScreen) {
@@ -32,9 +36,33 @@ const Navbar = () => {
     }
   }, [element, isFullScreen]);
 
+  React.useEffect(() => {
+    const loadUserData = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const decoded: DecodedToken = jwtDecode(token);
+        const userId = parseInt(decoded.sub, 10); // userId from token "sub"
+        const fetchedUser = await fetchUserById(userId);
+        setUser(fetchedUser);
+      } catch (err) {
+        console.error('Failed to load user data:', err);
+        toast.error('Failed to load user profile');
+        navigate('/login');
+      }
+    };
+
+    loadUserData();
+  }, [navigate]);
+
   const handleLogout = async () => {
     try {
       await logoutUser();
+      localStorage.removeItem('token');
       navigate('/login');
     } catch (err) {
       console.error(err);
@@ -93,7 +121,7 @@ const Navbar = () => {
         </div>
 
         {/* navbar logo */}
-        <Link to={'/'} className="flex items-center gap-1 xl:gap-2">
+        <Link to={'/admin/home'} className="flex items-center gap-1 xl:gap-2">
           <DiReact className="text-3xl sm:text-4xl xl:text-4xl 2xl:text-6xl text-primary animate-spin-slow" />
           <span className="text-[16px] leading-[1.2] sm:text-lg xl:text-xl 2xl:text-2xl font-semibold text-base-content dark:text-neutral-200">
             React Dashboard

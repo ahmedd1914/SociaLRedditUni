@@ -60,7 +60,8 @@ public class AuthenticationService {
 
         // Send email before saving
         sendVerificationEmail(user);
-
+        user.setLastLogin(null);
+        user.setCreatedAt(LocalDateTime.now());
         // Persist user in DB
         user = userRepository.save(user);
 
@@ -80,6 +81,10 @@ public class AuthenticationService {
         // Find user
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+        System.out.println("✅ Last login updated in database: " + user.getLastLogin());
 
         // Return JWT containing userId + role
         return jwtService.generateTokenForUser(user);

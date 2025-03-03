@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.services.UserServices;
 
+import com.university.social.SocialUniProject.dto.UpdateUserDto;
 import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.UserRepository;
@@ -10,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -48,4 +50,19 @@ public class UserService implements UserDetailsService {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
+    public void updateUser(Long userId, UpdateUserDto updateUserDto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        user.setFName(updateUserDto.getFName());
+        user.setLName(updateUserDto.getLName());
+        user.setUsername(updateUserDto.getUsername());
+        user.setEmail(updateUserDto.getEmail());
+        user.setPhoneNumber(updateUserDto.getPhoneNumber());
+        user.setImgUrl(updateUserDto.getImgUrl());
+
+
+        userRepository.save(user);
+    }
+
 }

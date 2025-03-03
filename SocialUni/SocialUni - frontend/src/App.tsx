@@ -19,6 +19,7 @@ import User from './pages/User';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Verify from './pages/Verify';
+import Groups from './pages/Groups';
 // import Register from './pages/Register';
 // import Notifications from './pages/Notifications';
 // import Settings from './pages/Settings';
@@ -56,7 +57,7 @@ function App() {
     // 1) Redirect root "/" to "/login"
     {
       path: '/',
-      element: <Navigate to="/login" replace />,
+      element: <Navigate to="/home" replace />,
       errorElement: <Error />,
     },
     // 2) Login route
@@ -104,6 +105,10 @@ function App() {
         {
           path: 'posts',
           element: <Posts />,
+        },
+        {
+          path: 'groups',
+          element: <Groups />,
         },
         // { path: 'notifications', element: <Notifications /> },
         // { path: 'settings', element: <Settings /> },

@@ -18,8 +18,11 @@ public class UsersDto {
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
     private String imgUrl;
+    private String FName;
+    private String LName;
+    private String phoneNumber;
 
-    public UsersDto(Long id, String username, String email, Role role, boolean isBanned, LocalDateTime createdAt, LocalDateTime lastLogin, String imgUrl) {
+    public UsersDto(Long id, String username, String email, Role role, boolean isBanned, LocalDateTime createdAt, LocalDateTime lastLogin, String imgUrl, String FName, String LName, String phoneNumber) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -28,6 +31,9 @@ public class UsersDto {
         this.createdAt = createdAt;
         this.lastLogin = lastLogin;
         this.imgUrl = imgUrl;
+        this.FName = FName;
+        this.LName = LName;
+        this.phoneNumber = phoneNumber;
     }
 
 
@@ -40,7 +46,10 @@ public class UsersDto {
                 user.isBanned(),
                 user.getCreatedAt(),
                 user.getLastLogin(),
-                user.getImgUrl()
+                user.getImgUrl(),
+                user.getFName(),
+                user.getLName(),
+                user.getPhoneNumber()
         );
     }
 }

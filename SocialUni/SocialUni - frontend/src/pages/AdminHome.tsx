@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { jwtDecode } from 'jwt-decode'; // <-- for decoding JWT
+import { jwtDecode } from 'jwt-decode'; 
+import { DecodedToken } from '../api/interfaces';
 import { 
   MdGroup, 
   MdInventory2, 
@@ -24,20 +25,26 @@ const Home = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/login');
-      return;
-    }
-    try {
-      const decoded: any = jwtDecode(token);
-      if (decoded.role !== 'ROLE_ADMIN') {
-        navigate('/error');
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+          navigate('/login');
+          return;
       }
-    } catch {
-      navigate('/error');
-    }
+
+      try {
+          const decoded: DecodedToken = jwtDecode<DecodedToken>(token);
+          console.log('Decoded Token:', decoded);
+
+          if (decoded.role !== 'ADMIN') {  
+              navigate('/error');
+          }
+      } catch (err) {
+          console.error('Failed to decode token:', err);
+          navigate('/error');
+      }
   }, [navigate]);
+
 
   // 2) Now your existing queries
   const queryGetTotalUsers = useQuery({

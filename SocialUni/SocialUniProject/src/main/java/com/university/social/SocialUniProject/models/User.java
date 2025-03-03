@@ -24,6 +24,8 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
+    private String FName;
+    private String LName;
     @Column(unique = true, nullable = false)
     private String username;
 
@@ -32,15 +34,19 @@ public class User implements UserDetails {
 
     @Column(nullable = false)
     private String password;
+    private String phoneNumber;
     @Enumerated(EnumType.STRING)
     private Role role;
     private boolean isBanned;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     private String imgUrl;
     @Column(name = "verification_code")
     private String verificationCode;
 
+    @Column(name = "last_login")
     private LocalDateTime lastLogin;
     @Column(name = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
@@ -83,6 +89,10 @@ public class User implements UserDetails {
     @Override
     public boolean isCredentialsNonExpired() {
         return UserDetails.super.isCredentialsNonExpired();
+    }
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now(); // Auto-assign current date-time when inserted
     }
 
 }

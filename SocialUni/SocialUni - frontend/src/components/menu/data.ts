@@ -105,7 +105,7 @@ export const menu = [
     ],
   },
   {
-    catalog: 'groups & messages',
+    catalog: 'groups',
     listItems: [
       {
         // AdminGroupController
@@ -126,17 +126,17 @@ export const menu = [
         icon: HiOutlinePencilSquare,
         label: 'groups',
       },
-      {
-        // AdminMessageController (Group Messages)
-        // e.g.:
-        // - GET /admin/group-messages/group/{groupId}
-        // - DELETE /admin/group-messages/{messageId}?adminId=...
-        // - GET /admin/group-messages/group/{groupId}/stats
-        isLink: true,
-        url: '/admin/group-messages',
-        icon: HiOutlineArrowLeftOnRectangle,
-        label: 'group messages',
-      },
+      // {
+      //   // AdminMessageController (Group Messages)
+      //   // e.g.:
+      //   // - GET /admin/group-messages/group/{groupId}
+      //   // - DELETE /admin/group-messages/{messageId}?adminId=...
+      //   // - GET /admin/group-messages/group/{groupId}/stats
+      //   isLink: true,
+      //   url: '/admin/group-messages',
+      //   icon: HiOutlineArrowLeftOnRectangle,
+      //   label: 'group messages',
+      // },
     ],
   },
   {
