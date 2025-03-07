@@ -372,4 +372,11 @@ export interface DecodedToken {
     phoneNumber: string;
     password: string;
   }
-  
+  export interface UserActivity {
+    id: number;
+    type: 'POST' | 'COMMENT' | 'GROUP';
+    title: string;
+    content?: string;
+    createdAt: string;
+    entityId: number;
+  }

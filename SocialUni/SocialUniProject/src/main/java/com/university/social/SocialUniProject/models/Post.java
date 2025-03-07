@@ -54,12 +54,10 @@ public class Post {
     @JoinColumn(name = "group_id")
     private Group group;
 
-    // Storing categories as an Enum set
-    @ElementCollection(targetClass = Category.class)
-    @CollectionTable(name = "post_categories", joinColumns = @JoinColumn(name = "post_id"))
+
     @Enumerated(EnumType.STRING)
     @Column(name = "category")
-    private Set<Category> categories = new HashSet<>();
+    private Category categories;
 
     // One-to-Many with Comment
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)

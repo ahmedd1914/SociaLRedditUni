@@ -1,10 +1,10 @@
-import React, { ChangeEvent, useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { useNavigate } from 'react-router-dom';
-import { fetchUserById, updateUserProfile } from '../api/ApiCollection';
-import { jwtDecode } from 'jwt-decode';
-import { UpdateUserDto, UsersDto } from '../api/interfaces';
+import React, { ChangeEvent, useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
+import { fetchUserById, updateUserProfile } from "../api/ApiCollection";
+import { jwtDecode } from "jwt-decode";
+import { UpdateUserDto, UsersDto } from "../api/interfaces";
 
 const EditProfile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
@@ -12,14 +12,16 @@ const EditProfile = () => {
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string>('https://avatars.githubusercontent.com/u/74099030?v=4');
+  const [preview, setPreview] = useState<string>(
+    "https://avatars.githubusercontent.com/u/74099030?v=4"
+  );
 
   const [profile, setProfile] = useState<UpdateUserDto>({
-    fname: '',
-    lname: '',
-    phoneNumber: '',
-    username: '',
-    email: '',
+    fname: "",
+    lname: "",
+    phoneNumber: "",
+    username: "",
+    email: "",
     imgUrl: undefined,
   });
 
@@ -34,66 +36,65 @@ const EditProfile = () => {
   const handleIconClick = () => fileInputRef.current?.click();
 
   const fetchUserData = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-        toast.error('You are not authenticated!');
-        navigate('/login');
-        return;
+      toast.error("You are not authenticated!");
+      navigate("/login");
+      return;
     }
 
     const decoded: any = jwtDecode(token);
     const userId = Number(decoded.sub);
 
     try {
-        const user: UsersDto = await fetchUserById(userId);
+      const user: UsersDto = await fetchUserById(userId);
 
-        setProfile({
-          fname: user.fname ?? '',
-          lname: user.lname ?? '',
-          phoneNumber: user.phoneNumber ?? '',
-          username: user.username,
-          email: user.email,
-          imgUrl: user.imgUrl ?? undefined,
+      setProfile({
+        fname: user.fname ?? "",
+        lname: user.lname ?? "",
+        phoneNumber: user.phoneNumber ?? "",
+        username: user.username,
+        email: user.email,
+        imgUrl: user.imgUrl ?? undefined,
       });
-      
 
-        setPreview(user.imgUrl || 'https://avatars.githubusercontent.com/u/74099030?v=4');
+      setPreview(
+        user.imgUrl || "https://avatars.githubusercontent.com/u/74099030?v=4"
+      );
     } catch (err) {
-        toast.error('Failed to fetch profile');
-        console.error(err);
+      toast.error("Failed to fetch profile");
+      console.error(err);
     }
-};
-
+  };
 
   useEffect(() => {
     fetchUserData();
   }, []);
 
   const handleUpdateProfile = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-        toast.error('You are not authenticated!');
-        navigate('/login');
-        return;
+      toast.error("You are not authenticated!");
+      navigate("/login");
+      return;
     }
 
     const decoded: any = jwtDecode(token);
     const userId = Number(decoded.sub);
 
     try {
-        const updatedProfile: UpdateUserDto = { ...profile };
-        if (selectedFile) {
-            const base64Image = await fileToBase64(selectedFile);
-            updatedProfile.imgUrl = base64Image;
-        }
-        await updateUserProfile(userId, updatedProfile);
-        toast.success('Profile updated successfully!');
-        navigate('/admin/profile');
+      const updatedProfile: UpdateUserDto = { ...profile };
+      if (selectedFile) {
+        const base64Image = await fileToBase64(selectedFile);
+        updatedProfile.imgUrl = base64Image;
+      }
+      await updateUserProfile(userId, updatedProfile);
+      toast.success("Profile updated successfully!");
+      navigate("/admin/profile");
     } catch (err) {
-        toast.error('Failed to update profile');
+      toast.error("Failed to update profile");
     }
-};
-
+  };
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -116,7 +117,9 @@ const EditProfile = () => {
           </h2>
           <div className="w-full xl:w-auto grid grid-cols-2 xl:flex gap-3">
             <button
-              onClick={() => navigate(`/admin/profile?refresh=${new Date().getTime()}`)}
+              onClick={() =>
+                navigate(`/admin/profile?refresh=${new Date().getTime()}`)
+              }
               className="btn btn-block xl:w-auto dark:btn-neutral"
             >
               Discard Changes
@@ -142,7 +145,10 @@ const EditProfile = () => {
             <div className="avatar">
               <div className="w-24 xl:w-36 2xl:w-48 rounded-full">
                 <img
-                  src={preview || 'https://avatars.githubusercontent.com/u/74099030?v=4'}
+                  src={
+                    preview ||
+                    "https://avatars.githubusercontent.com/u/74099030?v=4"
+                  }
                   alt="Profile"
                 />
               </div>
@@ -184,7 +190,9 @@ const EditProfile = () => {
                   type="text"
                   placeholder="Type here"
                   value={profile.fname}
-                  onChange={(e) => setProfile({ ...profile, fname: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, fname: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -197,7 +205,9 @@ const EditProfile = () => {
                   type="text"
                   placeholder="Type here"
                   value={profile.lname}
-                  onChange={(e) => setProfile({ ...profile, lname: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, lname: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -210,7 +220,9 @@ const EditProfile = () => {
                   type="text"
                   placeholder="Type here"
                   value={profile.phoneNumber}
-                  onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, phoneNumber: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -226,7 +238,9 @@ const EditProfile = () => {
                   type="text"
                   placeholder="Type here"
                   value={profile.username}
-                  onChange={(e) => setProfile({ ...profile, username: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, username: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -239,7 +253,9 @@ const EditProfile = () => {
                   type="email"
                   placeholder="Type here"
                   value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -252,7 +268,9 @@ const EditProfile = () => {
                   type="text"
                   placeholder="Type here"
                   value={profile.imgUrl}
-                  onChange={(e) => setProfile({ ...profile, imgUrl: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, imgUrl: e.target.value })
+                  }
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>
@@ -290,10 +308,14 @@ const EditProfile = () => {
             {/* column 1 */}
             <div className="col-span-2 flex flex-col items-start gap-5 xl:w-[240px]">
               <button
-                onClick={() => toast('Gaboleh', { icon: '😠' })}
+                onClick={() => toast("Gaboleh", { icon: "😠" })}
                 className="btn btn-block btn-disabled flex-nowrap justify-start"
               >
-                <img className="w-6 opacity-20" src="/icons8-microsoft.svg" alt="microsoft" />
+                <img
+                  className="w-6 opacity-20"
+                  src="/icons8-microsoft.svg"
+                  alt="microsoft"
+                />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connect with Microsoft
                 </span>
@@ -305,11 +327,19 @@ const EditProfile = () => {
                 </span>
               </div>
               <button
-                onClick={() => toast('Gaboleh', { icon: '😠' })}
+                onClick={() => toast("Gaboleh", { icon: "😠" })}
                 className="btn btn-block btn-disabled justify-start"
               >
-                <img className="dark:hidden w-6 opacity-20" src="/icons8-apple-black.svg" alt="apple" />
-                <img className="hidden dark:block w-6 opacity-20" src="/icons8-apple-white.svg" alt="apple" />
+                <img
+                  className="dark:hidden w-6 opacity-20"
+                  src="/icons8-apple-black.svg"
+                  alt="apple"
+                />
+                <img
+                  className="hidden dark:block w-6 opacity-20"
+                  src="/icons8-apple-white.svg"
+                  alt="apple"
+                />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connect with Apple
                 </span>
@@ -319,7 +349,7 @@ const EditProfile = () => {
             <div className="col-span-1 flex flex-col items-start gap-5">
               <button className="btn btn-ghost text-error"></button>
               <button
-                onClick={() => toast('Gaboleh', { icon: '😠' })}
+                onClick={() => toast("Gaboleh", { icon: "😠" })}
                 className="btn btn-ghost btn-disabled text-error text-xs xl:text-sm"
               >
                 Disconnect
@@ -339,11 +369,13 @@ const EditProfile = () => {
           </button>
           <dialog id="modal_delete" className="modal" ref={modalDelete}>
             <div className="modal-box">
-              <h3 className="font-bold text-lg dark:text-white">Action Confirmation!</h3>
+              <h3 className="font-bold text-lg dark:text-white">
+                Action Confirmation!
+              </h3>
               <p className="py-4">Do you want to delete your account?</p>
               <div className="modal-action mx-0 flex-col items-stretch justify-stretch gap-3">
                 <button
-                  onClick={() => toast('Lancang kamu ya!', { icon: '😠' })}
+                  onClick={() => toast("Lancang kamu ya!", { icon: "😠" })}
                   className="btn btn-error btn-block text-base-100 dark:text-white"
                 >
                   Yes, I want to delete my account

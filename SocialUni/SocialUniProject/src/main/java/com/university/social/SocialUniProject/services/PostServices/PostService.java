@@ -8,12 +8,10 @@ import com.university.social.SocialUniProject.enums.Visibility;
 import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.exceptions.UnauthorizedActionException;
 import com.university.social.SocialUniProject.models.Comment;
+import com.university.social.SocialUniProject.models.Group;
 import com.university.social.SocialUniProject.models.Post;
 import com.university.social.SocialUniProject.models.User;
-import com.university.social.SocialUniProject.repositories.CommentRepository;
-import com.university.social.SocialUniProject.repositories.PostRepository;
-import com.university.social.SocialUniProject.repositories.ReactionRepository;
-import com.university.social.SocialUniProject.repositories.UserRepository;
+import com.university.social.SocialUniProject.repositories.*;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
 import com.university.social.SocialUniProject.responses.PostMetricsDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
@@ -34,18 +32,20 @@ public class PostService {
     private final ReactionRepository reactionRepository;
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
+    private final GroupRepository groupRepository;
 
     @Autowired
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
                        ReactionRepository reactionRepository,
                        CommentRepository commentRepository,
-                       NotificationService notificationService) {
+                       NotificationService notificationService, GroupRepository groupRepository) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.reactionRepository = reactionRepository;
         this.commentRepository = commentRepository;
         this.notificationService = notificationService;
+        this.groupRepository = groupRepository;
     }
 
     // ---------- Helper Methods ----------
@@ -81,10 +81,8 @@ public class PostService {
         User user = findUserById(userId);
 
         // Validate category
-        if (postDto.getCategoryId() == null
-                || postDto.getCategoryId() < 0
-                || postDto.getCategoryId() >= Category.values().length) {
-            throw new ResourceNotFoundException("Invalid category ID: " + postDto.getCategoryId());
+        if (postDto.getCategory() == null) {
+            throw new ResourceNotFoundException("Invalid category: null");
         }
 
         Post post = new Post();
@@ -94,16 +92,25 @@ public class PostService {
         post.setVisibility(postDto.getVisibility());
         post.setCreatedAt(LocalDateTime.now());
 
-        int categoryIndex = Math.toIntExact(postDto.getCategoryId());
-        Category category = Category.values()[categoryIndex];
-        post.setCategories(Set.of(category));
+        // Category is a single enum
+        post.setCategories(postDto.getCategory());
+
+        // 1) Check if groupId was provided
+        if (postDto.getGroupId() != null) {
+            // 2) Fetch the group
+            Group group = groupRepository.findById(postDto.getGroupId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Group not found with ID: " + postDto.getGroupId()));
+            // 3) Set the group on the post
+            post.setGroup(group);
+        }
 
         Post savedPost = postRepository.save(post);
         if (savedPost.getId() == null) {
             throw new ResourceNotFoundException("Failed to save post");
         }
 
-        // Notify user that their post was created
+        // Notify user that their post was created (if you have such logic)
         notificationService.createNotification(new CreateNotificationDto(
                 "Your post '" + savedPost.getTitle() + "' has been created.",
                 NotificationType.POST_CREATED,
@@ -114,6 +121,7 @@ public class PostService {
 
         return convertToDto(savedPost);
     }
+
 
     public List<PostResponseDto> getAllPublicPosts() {
         return postRepository.findByVisibility(Visibility.PUBLIC)
@@ -300,8 +308,8 @@ public class PostService {
         int totalReactions = reactionTypes.values().stream().mapToInt(Integer::intValue).sum();
 
         // Categories
-        String categoryNames = post.getCategories() != null && !post.getCategories().isEmpty()
-                ? post.getCategories().stream().map(Enum::name).collect(Collectors.joining(", "))
+        String categoryName = (post.getCategories() != null)
+                ? post.getCategories().name()
                 : "Uncategorized";
 
         // Comments
@@ -310,16 +318,21 @@ public class PostService {
                 .map(this::mapToCommentResponse)
                 .collect(Collectors.toList());
 
+        // Determine groupId (null if no group is assigned)
+        Long groupId = (post.getGroup() != null) ? post.getGroup().getId() : null;
+
+        // Create and return the DTO with the groupId included
         return new PostResponseDto(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
-                categoryNames,
+                categoryName,
                 post.getUser().getUsername(),
                 post.getCreatedAt(),
                 totalReactions,
                 reactionTypes,
-                comments
+                comments,
+                groupId   // This field will be null if no group is assigned
         );
     }
 

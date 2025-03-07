@@ -1,10 +1,25 @@
-import React, { ChangeEvent, FormEvent, useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import { HiOutlineXMark } from 'react-icons/hi2';
-import { useQueryClient } from '@tanstack/react-query';
-import { CreatePostDto, CreateGroupDto, CreateEventDto, CreateCommentDto, CreateUserDto, Visibility, Category, EventPrivacy } from '../api/interfaces';
+import React, { ChangeEvent, FormEvent, useState, useEffect } from "react";
+import toast from "react-hot-toast";
+import { HiOutlineXMark } from "react-icons/hi2";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  CreatePostDto,
+  CreateGroupDto,
+  CreateEventDto,
+  CreateCommentDto,
+  CreateUserDto,
+  Visibility,
+  Category,
+  EventPrivacy,
+} from "../api/interfaces";
 // Import your API functions for each type:
-import { createUser, createPost, createGroup, createEvent, createComment } from '../api/ApiCollection';
+import {
+  createUser,
+  createPost,
+  createGroup,
+  createEvent,
+  createComment,
+} from "../api/ApiCollection";
 
 interface AddDataProps {
   slug: string;
@@ -20,19 +35,19 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
 
   // For "user"
   const [userForm, setUserForm] = useState<CreateUserDto>({
-    fname: '',
-    lname: '',
-    username: '',
-    email: '',
-    phoneNumber: '',
-    password: '',
+    fname: "",
+    lname: "",
+    username: "",
+    email: "",
+    phoneNumber: "",
+    password: "",
     // add role if needed, default to "USER"
   });
 
   // For "post"
   const [postForm, setPostForm] = useState<CreatePostDto>({
-    title: '',
-    content: '',
+    title: "",
+    content: "",
     category: Category.GENERAL,
     visibility: Visibility.PUBLIC,
     groupId: undefined, // optional
@@ -40,8 +55,8 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
 
   // For "group"
   const [groupForm, setGroupForm] = useState<CreateGroupDto>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     visibility: Visibility.PUBLIC,
     category: Category.GENERAL,
     // add other fields as needed
@@ -49,23 +64,23 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
 
   // For "event"
   const [eventForm, setEventForm] = useState<CreateEventDto>({
-    name: '',
-    description: '',
-    date: '',
-    location: '',
+    name: "",
+    description: "",
+    date: "",
+    location: "",
     groupId: undefined,
     category: Category.GENERAL,
     privacy: EventPrivacy.PUBLIC,
   });
 
   const [commentForm, setCommentForm] = useState<CreateCommentDto>({
-    content: '',         // NotBlank
-    mediaUrl: '',
+    content: "", // NotBlank
+    mediaUrl: "",
     postId: 0,
     parentCommentId: null, // Set to null for top-level comments
-    visibility: Visibility.PUBLIC,  // default = PUBLIC in backend
+    visibility: Visibility.PUBLIC, // default = PUBLIC in backend
   });
-  
+
   const loadImage = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const imageUpload = e.target.files[0];
@@ -76,46 +91,46 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Submitting new data for slug:', slug);
+    console.log("Submitting new data for slug:", slug);
     try {
       switch (slug) {
-        case 'user':
-          console.log('User Form:', userForm);
+        case "user":
+          console.log("User Form:", userForm);
           await createUser(userForm);
-          toast.success('User created successfully!');
-          queryClient.invalidateQueries({ queryKey: ['allusers'] });
+          toast.success("User created successfully!");
+          queryClient.invalidateQueries({ queryKey: ["allusers"] });
           break;
-        case 'post':
-          console.log('Post Form:', postForm);
+        case "post":
+          console.log("Post Form:", postForm);
           await createPost(postForm);
-          toast.success('Post created successfully!');
-          queryClient.invalidateQueries({ queryKey: ['allposts'] });
+          toast.success("Post created successfully!");
+          queryClient.invalidateQueries({ queryKey: ["allposts"] });
           break;
-        case 'group':
-          console.log('Group Form:', groupForm);
+        case "group":
+          console.log("Group Form:", groupForm);
           await createGroup(groupForm);
-          toast.success('Group created successfully!');
-          queryClient.invalidateQueries({ queryKey: ['allgroups'] });
+          toast.success("Group created successfully!");
+          queryClient.invalidateQueries({ queryKey: ["allgroups"] });
           break;
-        case 'event':
-          console.log('Event Form:', eventForm);
+        case "event":
+          console.log("Event Form:", eventForm);
           await createEvent(eventForm);
-          toast.success('Event created successfully!');
-          queryClient.invalidateQueries({ queryKey: ['allevents'] });
+          toast.success("Event created successfully!");
+          queryClient.invalidateQueries({ queryKey: ["allevents"] });
           break;
-        case 'comment':
-          console.log('Comment Form:', commentForm);
+        case "comment":
+          console.log("Comment Form:", commentForm);
           await createComment(commentForm);
-          toast.success('Comment created successfully!');
-          queryClient.invalidateQueries({ queryKey: ['allcomments'] });
+          toast.success("Comment created successfully!");
+          queryClient.invalidateQueries({ queryKey: ["allcomments"] });
           break;
         default:
-          throw new Error('Invalid slug');
+          throw new Error("Invalid slug");
       }
       setIsOpen(false);
     } catch (error) {
-      console.error('Error while creating data:', error);
-      toast.error('Failed to create data');
+      console.error("Error while creating data:", error);
+      toast.error("Failed to create data");
     }
   };
 
@@ -127,15 +142,20 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
   // Render form based on slug
   const renderForm = () => {
     switch (slug) {
-      case 'user':
+      case "user":
         return (
-          <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full grid grid-cols-1 lg:grid-cols-2 gap-4"
+          >
             <input
               type="text"
               placeholder="First Name"
               name="firstName"
               value={userForm.fname}
-              onChange={(e) => setUserForm({ ...userForm, fname: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, fname: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -143,7 +163,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Last Name"
               name="lastName"
               value={userForm.lname}
-              onChange={(e) => setUserForm({ ...userForm, lname: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, lname: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -151,7 +173,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Username"
               name="username"
               value={userForm.username}
-              onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, username: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -159,7 +183,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Email"
               name="email"
               value={userForm.email}
-              onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, email: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -167,7 +193,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Phone Number"
               name="phoneNumber"
               value={userForm.phoneNumber}
-              onChange={(e) => setUserForm({ ...userForm, phoneNumber: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, phoneNumber: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -175,7 +203,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Password"
               name="password"
               value={userForm.password}
-              onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+              onChange={(e) =>
+                setUserForm({ ...userForm, password: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <label className="form-control w-full">
@@ -198,47 +228,79 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
                 </div>
               </div>
             )}
-            <button className="mt-5 btn btn-primary btn-block font-semibold" disabled={userForm.fname === '' || userForm.lname === '' || userForm.email === '' || userForm.username === '' || userForm.password === ''}>
+            <button
+              className="mt-5 btn btn-primary btn-block font-semibold"
+              disabled={
+                userForm.fname === "" ||
+                userForm.lname === "" ||
+                userForm.email === "" ||
+                userForm.username === "" ||
+                userForm.password === ""
+              }
+            >
               Submit
             </button>
           </form>
         );
-      case 'post':
+      case "post":
         return (
-          <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full grid grid-cols-1 gap-4"
+          >
             <input
               type="text"
               placeholder="Title"
               name="title"
               value={postForm.title}
-              onChange={(e) => setPostForm({ ...postForm, title: e.target.value })}
+              onChange={(e) =>
+                setPostForm({ ...postForm, title: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <textarea
               placeholder="Content"
               name="content"
               value={postForm.content}
-              onChange={(e) => setPostForm({ ...postForm, content: e.target.value })}
+              onChange={(e) =>
+                setPostForm({ ...postForm, content: e.target.value })
+              }
               className="textarea textarea-bordered w-full"
             />
             {/* Category Dropdown */}
-            <select
-              name="categoryId"
-              value={postForm.category}
-              onChange={(e) => setPostForm({ ...postForm, category: e.target.value as Category })}
-              className="select select-bordered w-full"
-            >
-              {Object.entries(Category).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {key}
-                </option>
-              ))}
-            </select>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Category</span>
+                <span className="label-text-alt">Select a category</span>
+              </label>
+              <select
+                name="category"
+                value={postForm.category}
+                onChange={(e) =>
+                  setPostForm({
+                    ...postForm,
+                    category: e.target.value as Category,
+                  })
+                }
+                className="select select-bordered w-full"
+              >
+                {Object.values(Category).map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* Visibility Dropdown */}
             <select
               name="visibility"
               value={postForm.visibility}
-              onChange={(e) => setPostForm({ ...postForm, visibility: e.target.value as Visibility })}
+              onChange={(e) =>
+                setPostForm({
+                  ...postForm,
+                  visibility: e.target.value as Visibility,
+                })
+              }
               className="select select-bordered w-full"
             >
               <option value={Visibility.PUBLIC}>Public</option>
@@ -249,91 +311,129 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               type="number"
               placeholder="Group ID (optional)"
               name="groupId"
-              value={postForm.groupId ?? ''} // show blank if undefined
+              value={postForm.groupId ?? ""} // show blank if undefined
               onChange={(e) => {
                 const val = e.target.value;
                 // if blank, set groupId to undefined
                 setPostForm({
                   ...postForm,
-                  groupId: val === '' ? undefined : parseInt(val, 10),
+                  groupId: val === "" ? undefined : parseInt(val, 10),
                 });
               }}
               className="input input-bordered w-full"
             />
-            <button className="mt-5 btn btn-primary btn-block font-semibold" disabled={postForm.title === '' || postForm.content === ''}>
+            <button
+              className="mt-5 btn btn-primary btn-block font-semibold"
+              disabled={postForm.title === "" || postForm.content === ""}
+            >
               Submit
             </button>
           </form>
         );
-      case 'group':
+      case "group":
         return (
-          <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full grid grid-cols-1 gap-4"
+          >
             <input
               type="text"
               placeholder="Group Name"
               name="name"
               value={groupForm.name}
-              onChange={(e) => setGroupForm({ ...groupForm, name: e.target.value })}
+              onChange={(e) =>
+                setGroupForm({ ...groupForm, name: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <textarea
               placeholder="Description"
               name="description"
               value={groupForm.description}
-              onChange={(e) => setGroupForm({ ...groupForm, description: e.target.value })}
+              onChange={(e) =>
+                setGroupForm({ ...groupForm, description: e.target.value })
+              }
               className="textarea textarea-bordered w-full"
             />
             {/* Category Dropdown */}
-            <select
-              name="categoryId"
-              value={groupForm.category}
-              onChange={(e) => setGroupForm({ ...groupForm, category: e.target.value as Category })}
-              className="select select-bordered w-full"
-            >
-              {Object.entries(Category).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {key}
-                </option>
-              ))}
-            </select>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Category</span>
+                <span className="label-text-alt">Select a category</span>
+              </label>
+              <select
+                name="category"
+                value={groupForm.category}
+                onChange={(e) =>
+                  setGroupForm({
+                    ...groupForm,
+                    category: e.target.value as Category,
+                  })
+                }
+                className="select select-bordered w-full"
+              >
+                {Object.values(Category).map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
             {/* Visibility Dropdown */}
             <select
               name="visibility"
               value={groupForm.visibility}
-              onChange={(e) => setGroupForm({ ...groupForm, visibility: e.target.value as Visibility })}
+              onChange={(e) =>
+                setGroupForm({
+                  ...groupForm,
+                  visibility: e.target.value as Visibility,
+                })
+              }
               className="select select-bordered w-full"
             >
               <option value={Visibility.PUBLIC}>Public</option>
               <option value={Visibility.PRIVATE}>Private</option>
             </select>
-            <button className="mt-5 btn btn-primary btn-block font-semibold" disabled={groupForm.name === '' || groupForm.description === ''}>
+            <button
+              className="mt-5 btn btn-primary btn-block font-semibold"
+              disabled={groupForm.name === "" || groupForm.description === ""}
+            >
               Submit
             </button>
           </form>
         );
-      case 'event':
+      case "event":
         return (
-          <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full grid grid-cols-1 gap-4"
+          >
             <input
               type="text"
               placeholder="Event Title"
               name="title"
               value={eventForm.name}
-              onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, name: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <textarea
               placeholder="Event Description"
               name="description"
               value={eventForm.description}
-              onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, description: e.target.value })
+              }
               className="textarea textarea-bordered w-full"
             />
             <input
               type="datetime-local"
               name="date"
               value={eventForm.date}
-              onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, date: e.target.value })
+              }
               className="input input-bordered w-full"
             />
             <input
@@ -341,33 +441,86 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
               placeholder="Location"
               name="location"
               value={eventForm.location}
-              onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
+              onChange={(e) =>
+                setEventForm({ ...eventForm, location: e.target.value })
+              }
               className="input input-bordered w-full"
             />
-            <button className="mt-5 btn btn-primary btn-block font-semibold" disabled={eventForm.name === '' || eventForm.description === '' || eventForm.date === '' || eventForm.location === ''}>
+            <button
+              className="mt-5 btn btn-primary btn-block font-semibold"
+              disabled={
+                eventForm.name === "" ||
+                eventForm.description === "" ||
+                eventForm.date === "" ||
+                eventForm.location === ""
+              }
+            >
               Submit
             </button>
           </form>
         );
-      case 'comment':
+      case "comment":
         return (
-          <form onSubmit={handleSubmit} className="w-full grid grid-cols-1 gap-4">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full grid grid-cols-1 gap-4"
+          >
             <textarea
               placeholder="Comment"
               name="content"
               value={commentForm.content}
-              onChange={(e) => setCommentForm({ ...commentForm, content: e.target.value })}
+              onChange={(e) =>
+                setCommentForm({ ...commentForm, content: e.target.value })
+              }
               className="textarea textarea-bordered w-full"
             />
-            <input
-              type="number"
-              placeholder="Post ID"
-              name="postId"
-              value={commentForm.postId}
-              onChange={(e) => setCommentForm({ ...commentForm, postId: Number(e.target.value) })}
-              className="input input-bordered w-full"
-            />
-            <button className="mt-5 btn btn-primary btn-block font-semibold" disabled={commentForm.content === '' || commentForm.postId === 0}>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Post ID (required)</span>
+                <span className="label-text-alt">
+                  The ID of the post you're commenting on
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="Enter post ID"
+                name="postId"
+                value={commentForm.postId}
+                onChange={(e) =>
+                  setCommentForm({
+                    ...commentForm,
+                    postId: Number(e.target.value),
+                  })
+                }
+                className="input input-bordered w-full"
+              />
+            </div>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Parent Comment ID (optional)</span>
+                <span className="label-text-alt">
+                  Leave empty for top-level comments
+                </span>
+              </label>
+              <input
+                type="number"
+                placeholder="Enter parent comment ID if replying to another comment"
+                name="parentCommentId"
+                value={commentForm.parentCommentId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setCommentForm({
+                    ...commentForm,
+                    parentCommentId: val === "" ? null : parseInt(val, 10),
+                  });
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
+            <button
+              className="mt-5 btn btn-primary btn-block font-semibold"
+              disabled={commentForm.content === "" || commentForm.postId === 0}
+            >
               Submit
             </button>
           </form>
@@ -382,8 +535,8 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
       <div className="w-screen h-screen fixed top-0 left-0 flex justify-center items-center bg-black/75 z-[99]">
         <div
           className={`w-[80%] xl:w-[50%] rounded-lg p-7 bg-base-100 relative transition duration-300 flex flex-col items-stretch gap-5 overflow-y-auto max-h-full ${
-            showModal ? 'translate-y-0' : 'translate-y-full'
-          } ${showModal ? 'opacity-100' : 'opacity-0'}`}
+            showModal ? "translate-y-0" : "translate-y-full"
+          } ${showModal ? "opacity-100" : "opacity-0"}`}
         >
           <div className="w-full flex justify-between pb-5 border-b border-base-content border-opacity-30">
             <button

@@ -12,5 +12,6 @@ import java.util.List;
 public interface GroupRepository extends JpaRepository<Group, Long> {
     List<Group> findByCategory(Category category);
     List<Group> findByVisibility(Visibility visibility);
+    List<Group> findByOwnerId(Long ownerId);
 
 }

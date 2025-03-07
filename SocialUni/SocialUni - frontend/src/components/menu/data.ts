@@ -38,7 +38,7 @@ export const menu = [
         // - GET /admin/profile
         // - PUT /admin/profile (update admin info)
         isLink: true,
-        url: '/admin/profile',
+        url: '/profile',
         icon: HiOutlineUser,
         label: 'profile',
       },

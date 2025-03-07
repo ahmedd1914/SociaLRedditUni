@@ -4,25 +4,23 @@ import {
   Outlet,
   ScrollRestoration,
   Navigate,
-} from 'react-router-dom';
-import AdminHome from './pages/AdminHome';
-import Users from './pages/Users';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import Menu from './components/menu/Menu';
-import Error from './pages/Error';
-import Profile from './pages/Profile';
-import Posts from './pages/Posts';
-import ToasterProvider from './components/ToasterProvider';
-import EditProfile from './pages/EditProfile';
-import User from './pages/User';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Verify from './pages/Verify';
-import Groups from './pages/Groups';
-// import Register from './pages/Register';
-// import Notifications from './pages/Notifications';
-// import Settings from './pages/Settings';
+} from "react-router-dom";
+import AdminHome from "./pages/AdminHome";
+import Users from "./pages/Users";
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import Menu from "./components/menu/Menu";
+import Error from "./pages/Error";
+import Profile from "./pages/Profile";
+import Posts from "./pages/Posts";
+import ToasterProvider from "./components/ToasterProvider";
+import EditProfile from "./pages/EditProfile";
+import User from "./pages/User";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Verify from "./pages/Verify";
+import Groups from "./pages/Groups";
+import Comments from "./pages/Comments";
 
 function App() {
   // Layout with Navbar + Sidebar + Footer
@@ -56,62 +54,64 @@ function App() {
   const router = createBrowserRouter([
     // 1) Redirect root "/" to "/login"
     {
-      path: '/',
+      path: "/",
       element: <Navigate to="/home" replace />,
       errorElement: <Error />,
     },
     // 2) Login route
     {
-      path: '/login',
+      path: "/login",
       element: <Login />,
       errorElement: <Error />,
     },
     {
-      path: '/register',
+      path: "/register",
       element: <Register />,
       errorElement: <Error />,
     },
     {
-      path: '/verify',
+      path: "/verify",
       element: <Verify />,
       errorElement: <Error />,
     },
     // 3) Admin routes behind an "/admin" prefix
     {
-      path: '/admin',
+      path: "/admin",
       element: <AdminLayout />,
       errorElement: <Error />,
       children: [
         {
-          path: 'home',
+          path: "home",
           element: <AdminHome />,
         },
         {
-          path: 'profile',
+          path: "profile",
           element: <Profile />,
         },
         {
-          path: 'profile/edit',
+          path: "profile/edit",
           element: <EditProfile />,
         },
         {
-          path: 'users',
+          path: "users",
           element: <Users />,
         },
         {
-          path: 'users/:id',
+          path: "users/:id",
           element: <User />,
         },
         {
-          path: 'posts',
+          path: "posts",
           element: <Posts />,
         },
         {
-          path: 'groups',
+          path: "groups",
           element: <Groups />,
         },
-        // { path: 'notifications', element: <Notifications /> },
-        // { path: 'settings', element: <Settings /> },
+        {
+          path: "comments",
+          element: <Comments />,
+        },
       ],
     },
   ]);
