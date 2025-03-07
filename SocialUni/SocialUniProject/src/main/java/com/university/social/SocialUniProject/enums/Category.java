@@ -4,6 +4,13 @@ public enum Category {
     DISCUSSION,
     ANNOUNCEMENT,
     PROJECT,
-    GENERAL
+    GENERAL,
+    TECH,
+    ART,
+    MUSIC,
+    SPORTS,
+    GAMING,
+    ENTERTAINMENT,
+    SCIENCE
     // Add more as needed
 }

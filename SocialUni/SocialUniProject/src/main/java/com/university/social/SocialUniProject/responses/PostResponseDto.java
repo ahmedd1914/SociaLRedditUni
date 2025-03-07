@@ -20,9 +20,9 @@ public class PostResponseDto {
     private LocalDateTime createdAt;
     private int reactionCount;
     private Map<String, Integer> reactionTypes;
-    private List<CommentResponseDto> commments;
+    private List<CommentResponseDto> comments;
 
-    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> commments) {
+    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> comments) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -31,7 +31,7 @@ public class PostResponseDto {
         this.createdAt = createdAt;
         this.reactionCount = reactionCount;
         this.reactionTypes = reactionTypes != null ? reactionTypes : new HashMap<>();
-        this.commments = commments;
+        this.comments = comments;
     }
 
 

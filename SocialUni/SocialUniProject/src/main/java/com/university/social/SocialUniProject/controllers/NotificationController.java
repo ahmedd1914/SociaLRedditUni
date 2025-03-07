@@ -5,7 +5,6 @@ import com.university.social.SocialUniProject.responses.NotificationResponseDto;
 import com.university.social.SocialUniProject.services.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 
 @RestController
@@ -21,19 +20,22 @@ public class NotificationController {
     // Create a new notification (for testing/admin use)
     @PostMapping
     public ResponseEntity<NotificationResponseDto> createNotification(@RequestBody CreateNotificationDto dto) {
-        return ResponseEntity.ok(notificationService.createNotification(dto));
+        NotificationResponseDto response = notificationService.createNotification(dto);
+        return ResponseEntity.ok(response);
     }
 
     // Get all notifications for a user
     @GetMapping("/{userId}")
     public ResponseEntity<List<NotificationResponseDto>> getUserNotifications(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getUserNotifications(userId));
+        List<NotificationResponseDto> notifications = notificationService.getUserNotifications(userId);
+        return ResponseEntity.ok(notifications);
     }
 
     // Get unread notifications for a user
     @GetMapping("/{userId}/unread")
     public ResponseEntity<List<NotificationResponseDto>> getUnreadNotifications(@PathVariable Long userId) {
-        return ResponseEntity.ok(notificationService.getUnreadNotifications(userId));
+        List<NotificationResponseDto> notifications = notificationService.getUnreadNotifications(userId);
+        return ResponseEntity.ok(notifications);
     }
 
     // Mark a notification as read

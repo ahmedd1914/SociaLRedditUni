@@ -31,7 +31,7 @@ public class AdminGroupController {
     // Get group by id
     @GetMapping("/groups/{groupId}")
     public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long groupId) {
-        return ResponseEntity.ok(groupService.getGroupById(groupId));
+        return ResponseEntity.ok(groupService.getGroupByIdd(groupId));
     }
 
     // Delete group (admin deletion)
@@ -47,7 +47,7 @@ public class AdminGroupController {
     public ResponseEntity<GroupResponseDto> changeGroupVisibility(@PathVariable Long groupId,
                                                                   @RequestParam Visibility visibility) {
         groupService.changeGroupVisibility(groupId, visibility);
-        GroupResponseDto updatedGroup = groupService.getGroupById(groupId);
+        GroupResponseDto updatedGroup = groupService.getGroupByIdd(groupId);
         return ResponseEntity.ok(updatedGroup);
     }
 
@@ -56,7 +56,7 @@ public class AdminGroupController {
     public ResponseEntity<GroupResponseDto> transferGroupOwnership(@PathVariable Long groupId,
                                                                    @PathVariable Long newOwnerId) {
         groupService.transferGroupOwnership(groupId, newOwnerId);
-        GroupResponseDto updatedGroup = groupService.getGroupById(groupId);
+        GroupResponseDto updatedGroup = groupService.getGroupByIdd(groupId);
         return ResponseEntity.ok(updatedGroup);
     }
 

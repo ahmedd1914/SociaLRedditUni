@@ -65,17 +65,8 @@ public class JwtService {
         final String extractedUserId = extractUserId(token);
         final String expectedUserId = String.valueOf(((User) userDetails).getId());
 
-        System.out.println("🔍 Token Validation - Extracted UserId: " + extractedUserId);
-        System.out.println("🔍 Token Validation - Expected UserId: " + expectedUserId);
-        System.out.println("🔍 Token Expiry: " + extractExpiration(token));
-
         return (extractedUserId.equals(expectedUserId)) && !isTokenExpired(token);
     }
-//    public boolean isTokenValid(String token, UserDetails userDetails) {
-//
-//        final String userId = extractUserId(token);
-//        return (userId.equals(userDetails.getUsername()) || userId.equals(String.valueOf(userDetails))) && !isTokenExpired(token);
-//    }
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());

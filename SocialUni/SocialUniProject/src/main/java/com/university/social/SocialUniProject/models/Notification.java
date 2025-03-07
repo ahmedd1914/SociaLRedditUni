@@ -31,7 +31,7 @@ public class Notification {
     private String message;  // e.g. "User X commented on your post"
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "notification_type", nullable = false, length = 100)
     private NotificationType notificationType; // e.g. COMMENT, NEW_POST
 
     @CreationTimestamp

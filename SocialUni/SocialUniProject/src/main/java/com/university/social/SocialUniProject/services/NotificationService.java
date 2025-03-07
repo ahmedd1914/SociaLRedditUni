@@ -1,22 +1,19 @@
 package com.university.social.SocialUniProject.services;
 
-
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
-
-
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.models.Notification;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.NotificationRepository;
 import com.university.social.SocialUniProject.repositories.UserRepository;
 import com.university.social.SocialUniProject.responses.NotificationResponseDto;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,14 +27,15 @@ public class NotificationService {
         this.userRepository = userRepository;
     }
 
+    // Helper method for fetching a User by ID
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
     // Create and save a new notification
     public NotificationResponseDto createNotification(CreateNotificationDto dto) {
-        Optional<User> recipientOpt = userRepository.findById(dto.getRecipientId());
-        if (recipientOpt.isEmpty()) {
-            throw new IllegalArgumentException("Recipient not found");
-        }
-
-        User recipient = recipientOpt.get();
+        User recipient = getUserById(dto.getRecipientId());
         Notification notification = new Notification(
                 dto.getMessage(),
                 dto.getNotificationType(),
@@ -45,41 +43,30 @@ public class NotificationService {
                 dto.getRelatedPostId(),
                 dto.getRelatedCommentId()
         );
-
         notificationRepository.save(notification);
         return mapToDto(notification);
     }
 
     // Get all notifications for a user
     public List<NotificationResponseDto> getUserNotifications(Long userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
-        }
-
-        List<Notification> notifications = notificationRepository.findByRecipientOrderByCreatedAtDesc(userOpt.get());
+        User user = getUserById(userId);
+        List<Notification> notifications = notificationRepository.findByRecipientOrderByCreatedAtDesc(user);
         return notifications.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     // Get unread notifications for a user
     public List<NotificationResponseDto> getUnreadNotifications(Long userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            throw new IllegalArgumentException("User not found");
-        }
-
-        List<Notification> notifications = notificationRepository.findByRecipientAndIsReadFalse(userOpt.get());
+        User user = getUserById(userId);
+        List<Notification> notifications = notificationRepository.findByRecipientAndIsReadFalse(user);
         return notifications.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
     // Mark a notification as read
     public void markNotificationAsRead(Long notificationId) {
-        Optional<Notification> notificationOpt = notificationRepository.findById(notificationId);
-        if (notificationOpt.isPresent()) {
-            Notification notification = notificationOpt.get();
+        notificationRepository.findById(notificationId).ifPresent(notification -> {
             notification.setRead(true);
             notificationRepository.save(notification);
-        }
+        });
     }
 
     // Admin: Get all notifications with optional filtering & pagination
@@ -90,7 +77,6 @@ public class NotificationService {
                                                              int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         // For simplicity, we fetch all notifications and filter in-memory.
-        // In production you’d likely add custom repository queries.
         List<Notification> notifications = notificationRepository.findAll(pageable).getContent();
 
         return notifications.stream()
@@ -136,19 +122,20 @@ public class NotificationService {
         return stats;
     }
 
-    // Admin: Get notification by ID remains the same
+    // Admin: Get notification by ID
     public NotificationResponseDto getNotificationById(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         return mapToDto(notification);
     }
 
-    // Admin: Delete a notification by ID remains the same
+    // Admin: Delete a notification by ID
     public void deleteNotification(Long id) {
         Notification notification = notificationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Notification not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Notification not found"));
         notificationRepository.delete(notification);
     }
+
     // Convert Notification entity to DTO
     private NotificationResponseDto mapToDto(Notification notification) {
         NotificationResponseDto dto = new NotificationResponseDto();

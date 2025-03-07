@@ -10,9 +10,10 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/auth")
 @RestController
+@RequestMapping("/auth")
 public class AuthController {
+
     private final JwtService jwtService;
     private final AuthenticationService authenticationService;
 
@@ -24,38 +25,25 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<String> register(@RequestBody RegisterUserDto registerUserDto) {
         String jwtToken = authenticationService.signup(registerUserDto);
-        return ResponseEntity.ok(jwtToken); // Return JWT token on signup
+        return ResponseEntity.ok(jwtToken);
     }
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<?> authenticate(@RequestBody LoginUserDto loginUserDto) {
-        try {
-            String jwtToken = authenticationService.authenticate(loginUserDto);
-            LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loginResponse);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON)
-                    .body("{\"error\": \"" + e.getMessage() + "\"}");
-        }
+    public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto) {
+        String jwtToken = authenticationService.authenticate(loginUserDto);
+        LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
+        return ResponseEntity.ok(loginResponse);
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<?> verifyUser(@RequestBody VerifyUserDto verifyUserDto) {
-        try {
-            authenticationService.verifyUser(verifyUserDto);
-            return ResponseEntity.ok("Account verified successfully");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<String> verifyUser(@RequestBody VerifyUserDto verifyUserDto) {
+        authenticationService.verifyUser(verifyUserDto);
+        return ResponseEntity.ok("Account verified successfully");
     }
 
     @PostMapping("/resend")
-    public ResponseEntity<?> resendVerificationCode(@RequestParam String email) {
-        try {
-            authenticationService.resendVerificationCode(email);
-            return ResponseEntity.ok("Verification code sent");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<String> resendVerificationCode(@RequestParam String email) {
+        authenticationService.resendVerificationCode(email);
+        return ResponseEntity.ok("Verification code sent");
     }
 }

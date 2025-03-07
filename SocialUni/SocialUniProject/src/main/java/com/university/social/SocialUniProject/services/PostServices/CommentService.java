@@ -2,6 +2,8 @@ package com.university.social.SocialUniProject.services.PostServices;
 
 import com.university.social.SocialUniProject.dto.CreateCommentDto;
 import com.university.social.SocialUniProject.dto.UpdateCommentDto;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
+import com.university.social.SocialUniProject.exceptions.UnauthorizedActionException;
 import com.university.social.SocialUniProject.models.Comment;
 import com.university.social.SocialUniProject.enums.ReactionType;
 import com.university.social.SocialUniProject.models.Post;
@@ -15,48 +17,55 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class CommentService {
 
-    @Autowired
-    private CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
+    private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final ReactionRepository reactionRepository;
 
     @Autowired
-    private PostRepository postRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ReactionRepository reactionRepository;
-
-    public CommentService(CommentRepository commentRepository) {
+    public CommentService(CommentRepository commentRepository,
+                          PostRepository postRepository,
+                          UserRepository userRepository,
+                          ReactionRepository reactionRepository) {
         this.commentRepository = commentRepository;
+        this.postRepository = postRepository;
+        this.userRepository = userRepository;
+        this.reactionRepository = reactionRepository;
+    }
+
+    // Helper method to fetch a User by ID
+    private User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    // Helper method to fetch a Post by ID
+    private Post getPostById(Long postId) {
+        return postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
     }
 
     public Comment getCommentById(Long commentId) {
-        Optional<Comment> comment = commentRepository.findById(commentId);
-        return comment.orElseThrow(() -> new RuntimeException("Comment not found"));
+        return commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
     }
 
     public CommentResponseDto createComment(Long userId, CreateCommentDto commentDto) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        Post post = postRepository.findById(commentDto.getPostId())
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
+        User user = getUserById(userId);
+        Post post = getPostById(commentDto.getPostId());
         Comment parentComment = null;
         if (commentDto.getParentCommentId() != null) {
             parentComment = commentRepository.findById(commentDto.getParentCommentId())
                     .orElse(null);
         }
-
 
         Comment comment = new Comment();
         comment.setContent(commentDto.getContent());
@@ -65,94 +74,77 @@ public class CommentService {
         comment.setParentComment(parentComment);
         comment.setVisibility(commentDto.getVisibility());
         comment.setMediaUrl(commentDto.getMediaUrl());
-        comment.setCreatedAt(java.time.LocalDateTime.now());
+        comment.setCreatedAt(LocalDateTime.now());
 
         comment = commentRepository.save(comment);
-
         return convertToDto(comment);
     }
 
     public CommentResponseDto updateComment(Long userId, Long commentId, UpdateCommentDto updateDto) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
-
+        Comment comment = getCommentById(commentId);
         if (!comment.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only edit your own comments");
+            throw new UnauthorizedActionException("You can only edit your own comments");
         }
-
         comment.setContent(updateDto.getContent());
         comment.setMediaUrl(updateDto.getMediaUrl());
         commentRepository.save(comment);
-
         return convertToDto(comment);
     }
 
     @Transactional
     public void deleteComment(Long userId, Long commentId, boolean isAdmin) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
-
+        Comment comment = getCommentById(commentId);
         if (!isAdmin && !comment.getUser().getId().equals(userId)) {
-            throw new RuntimeException("You can only delete your own comments");
+            throw new UnauthorizedActionException("You can only delete your own comments");
         }
-
         comment.setDeleted(true);
         commentRepository.save(comment);
     }
 
     public List<CommentResponseDto> getCommentsForPost(Long postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post not found"));
-
-        List<Comment> comments = commentRepository.findByPostOrderByCreatedAtDesc(post);
-        return comments.stream().map(this::convertToDto).collect(Collectors.toList());
+        Post post = getPostById(postId);
+        return commentRepository.findByPostOrderByCreatedAtDesc(post)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     public List<CommentResponseDto> getRepliesForComment(Long commentId) {
-        Comment parentComment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
-
-        List<Comment> replies = commentRepository.findByParentCommentOrderByCreatedAtDesc(parentComment);
-        return replies.stream().map(this::convertToDto).collect(Collectors.toList());
+        Comment parentComment = getCommentById(commentId);
+        return commentRepository.findByParentCommentOrderByCreatedAtDesc(parentComment)
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
-    // Returns all comments as DTOs (for admin review)
     public List<CommentResponseDto> getAllComments() {
-        List<Comment> comments = commentRepository.findAll();
-        return comments.stream().map(this::convertToDto).collect(Collectors.toList());
+        return commentRepository.findAll()
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
-    // Allows an admin to update any comment (bypassing the ownership check)
     public CommentResponseDto updateCommentAsAdmin(Long commentId, UpdateCommentDto updateDto) {
-        Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comment not found"));
+        Comment comment = getCommentById(commentId);
         comment.setContent(updateDto.getContent());
         comment.setMediaUrl(updateDto.getMediaUrl());
         commentRepository.save(comment);
         return convertToDto(comment);
     }
 
-    // Returns a CommentResponseDto for the given commentId (for admin viewing)
     public CommentResponseDto getCommentResponseById(Long commentId) {
-        Comment comment = getCommentById(commentId);
-        return convertToDto(comment);
+        return convertToDto(getCommentById(commentId));
     }
 
     private CommentResponseDto convertToDto(Comment comment) {
         // Fetch reaction data for the comment
         List<Object[]> reactionResults = reactionRepository.findReactionTypeCountsByComment(comment.getId());
-
-        // Convert List<Object[]> to Map<String, Integer>
         Map<String, Integer> reactionTypes = reactionResults.stream()
                 .collect(Collectors.toMap(
-                        row -> ((ReactionType) row[0]).name(), // Convert Enum to String
+                        row -> ((ReactionType) row[0]).name(),
                         row -> ((Long) row[1]).intValue()
                 ));
-
-        // Calculate total reaction count
         int totalReactions = reactionTypes.values().stream().mapToInt(Integer::intValue).sum();
-
-        // Fetch and map nested replies
         List<CommentResponseDto> replies = commentRepository.findByParentCommentId(comment.getId())
                 .stream()
                 .map(this::convertToDto)
@@ -172,5 +164,4 @@ public class CommentService {
                 replies
         );
     }
-
 }
