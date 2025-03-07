@@ -19,6 +19,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByParentCommentOrderByCreatedAtDesc(Comment parentComment);
 
     Optional<Comment> findById(Long id);
-    List<Comment> findByUser(User user);
+    List<Comment> findByUserId(Long userId);
     void deleteByPost(Post post);
 }

@@ -3,7 +3,7 @@ import { GridColDef } from "@mui/x-data-grid";
 import DataTable from "../components/DataTable";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { fetchAllPosts, deletePost } from "../api/ApiCollection";
+import { fetchAllComments, deleteComment } from "../api/ApiCollection";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
@@ -13,64 +13,61 @@ import {
   HiPlus,
 } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
+import { CommentResponseDto, Visibility } from "../api/interfaces";
 import AddData from "../components/AddData";
 
-const Posts = () => {
+const Comments = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { isLoading, isSuccess, data } = useQuery({
-    queryKey: ["allposts"],
-    queryFn: fetchAllPosts,
+  const { isLoading, isError, isSuccess, data } = useQuery({
+    queryKey: ["allcomments"],
+    queryFn: fetchAllComments,
   });
 
   const handleDelete = async (id: number) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this post?"
+      "Are you sure you want to delete this comment?"
     );
     if (!confirmed) return;
 
     try {
-      await deletePost(id);
-      toast.success("Post deleted successfully!");
-      queryClient.invalidateQueries({ queryKey: ["allposts"] });
+      await deleteComment(id);
+      toast.success("Comment deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["allcomments"] });
     } catch (error) {
-      toast.error("Failed to delete post");
+      toast.error("Failed to delete comment");
     }
   };
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },
     {
-      field: "title",
-      headerName: "Title",
+      field: "content",
+      headerName: "Content",
       minWidth: 500,
       flex: 1,
       renderCell: (params) => (
-        <div className="flex gap-3 items-center py-2">
-          <div className="w-20 h-12 sm:w-24 sm:h-14 xl:w-32 xl:h-[72px] rounded overflow-hidden">
-            <img
-              src={params.row.image || "https://placehold.co/720x400"}
-              alt="thumbnail"
-              className="object-cover w-full h-full"
-            />
-          </div>
-          <div className="flex flex-col items-start gap-0">
-            <span className="text-base font-medium dark:text-white">
-              {params.row.title}
-            </span>
-            <p className="text-[14px] line-clamp-2 text-neutral-400">
-              {params.row.content}
-            </p>
-          </div>
+        <div className="flex flex-col items-start gap-0">
+          <p className="text-[14px] line-clamp-2">{params.row.content}</p>
+          {params.row.mediaUrl && (
+            <a
+              href={params.row.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary"
+            >
+              View Media
+            </a>
+          )}
         </div>
       ),
     },
     {
-      field: "categoryName",
-      headerName: "Category",
-      minWidth: 150,
+      field: "username",
+      headerName: "Author",
+      minWidth: 220,
       flex: 1,
     },
     {
@@ -79,7 +76,7 @@ const Posts = () => {
       minWidth: 120,
       flex: 1,
       renderCell: (params) =>
-        params.row.visibility === "PUBLIC" ? (
+        params.row.visibility === Visibility.PUBLIC ? (
           <div className="flex gap-1 items-center">
             <HiOutlineGlobeAmericas className="text-lg" />
             <span>{params.row.visibility}</span>
@@ -90,12 +87,6 @@ const Posts = () => {
             <span>{params.row.visibility}</span>
           </div>
         ),
-    },
-    {
-      field: "username",
-      headerName: "Author",
-      minWidth: 220,
-      flex: 1,
     },
     {
       field: "createdAt",
@@ -109,19 +100,19 @@ const Posts = () => {
       type: "number",
     },
     {
-      field: "comments",
-      headerName: "Comments",
+      field: "postId",
+      headerName: "Post ID",
       minWidth: 100,
-      renderCell: (params) => (
-        <div>{params.row.comments ? params.row.comments.length : 0}</div>
-      ),
+      type: "number",
     },
     {
-      field: "groupId",
-      headerName: "Group ID",
+      field: "parentCommentId",
+      headerName: "Parent Comment",
       minWidth: 120,
       renderCell: (params) => (
-        <div>{params.row.groupId ? params.row.groupId : "N/A"}</div>
+        <div>
+          {params.row.parentCommentId ? params.row.parentCommentId : "N/A"}
+        </div>
       ),
     },
     {
@@ -130,23 +121,23 @@ const Posts = () => {
       minWidth: 180,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
-          {/* View Post */}
+          {/* View Comment */}
           <button
-            onClick={() => navigate(`/posts/${params.row.id}`)}
+            onClick={() => navigate(`/comments/${params.row.id}`)}
             className="btn btn-square btn-ghost"
           >
             <HiOutlineEye />
           </button>
 
-          {/* Edit Post */}
+          {/* Edit Comment */}
           <button
-            onClick={() => navigate(`/posts/${params.row.id}/edit`)}
+            onClick={() => navigate(`/comments/${params.row.id}/edit`)}
             className="btn btn-square btn-ghost"
           >
             <HiOutlinePencilSquare />
           </button>
 
-          {/* Delete Post */}
+          {/* Delete Comment */}
           <button
             onClick={() => handleDelete(params.row.id)}
             className="btn btn-square btn-ghost text-red-500 hover:bg-red-100"
@@ -164,35 +155,35 @@ const Posts = () => {
         <div className="w-full flex justify-between mb-5">
           <div className="flex flex-col">
             <h2 className="font-bold text-2xl xl:text-4xl text-base-content dark:text-neutral-200">
-              Posts
+              Comments
             </h2>
             {data && data.length > 0 && (
               <span className="text-neutral dark:text-neutral-content font-medium text-base">
-                {data.length} Posts Found
+                {data.length} Comments Found
               </span>
             )}
           </div>
 
-          {/* Create Post Button */}
+          {/* Create Comment Button */}
           <button
             onClick={() => setIsModalOpen(true)}
             className="btn btn-primary flex items-center gap-2"
           >
             <HiPlus className="text-lg" />
-            Create Post
+            Create Comment
           </button>
         </div>
 
         {isLoading ? (
           <DataTable
-            slug="posts"
+            slug="comments"
             columns={columns}
             rows={[]}
             includeActionColumn={false}
           />
         ) : isSuccess ? (
           <DataTable
-            slug="posts"
+            slug="comments"
             columns={columns}
             rows={data}
             includeActionColumn={false}
@@ -200,24 +191,28 @@ const Posts = () => {
         ) : (
           <>
             <DataTable
-              slug="posts"
+              slug="comments"
               columns={columns}
               rows={[]}
               includeActionColumn={false}
             />
             <div className="w-full flex justify-center">
-              Error while fetching posts!
+              Error while fetching comments!
             </div>
           </>
         )}
       </div>
 
-      {/* Create Post Modal */}
+      {/* Create Comment Modal */}
       {isModalOpen && (
-        <AddData slug="post" isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+        <AddData
+          slug="comment"
+          isOpen={isModalOpen}
+          setIsOpen={setIsModalOpen}
+        />
       )}
     </div>
   );
 };
 
-export default Posts;
+export default Comments;

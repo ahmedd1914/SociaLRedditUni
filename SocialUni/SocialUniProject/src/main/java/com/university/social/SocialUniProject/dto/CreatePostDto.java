@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.dto;
 
+import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.enums.Visibility;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,15 +12,15 @@ import lombok.Setter;
 public class CreatePostDto {
     private String title;
     private String content;
-    private Long categoryId;
+    private Category category;
     private Visibility visibility;
     private Long groupId;
 
 
-    public CreatePostDto(String title, String content, Long categoryId, Visibility visibility, Long groupId) {
+    public CreatePostDto(String title, String content, Category category, Visibility visibility, Long groupId) {
         this.title = title;
         this.content = content;
-        this.categoryId = categoryId;
+        this.category = category;
         this.visibility = visibility;
         this.groupId = groupId;
     }

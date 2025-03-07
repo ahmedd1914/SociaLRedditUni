@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -37,7 +38,8 @@ public class Group {
 
     @Enumerated(EnumType.STRING)
     private Visibility visibility;
-
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -72,4 +74,9 @@ public class Group {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 100)
     private Category category;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+    }
 }

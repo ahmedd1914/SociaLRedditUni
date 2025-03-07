@@ -18,4 +18,5 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     // For filtering posts by category (assuming categories is a collection)
     List<Post> findByCategoriesContaining(Category category);
+    List<Post> findByUserId(Long userId);
 }

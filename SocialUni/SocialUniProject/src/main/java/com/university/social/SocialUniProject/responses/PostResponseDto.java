@@ -18,11 +18,12 @@ public class PostResponseDto {
     private String categoryName;
     private String username;
     private LocalDateTime createdAt;
+    private Long groupId;
     private int reactionCount;
     private Map<String, Integer> reactionTypes;
     private List<CommentResponseDto> comments;
 
-    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> comments) {
+    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> comments, Long groupId) {
         this.id = id;
         this.title = title;
         this.content = content;
@@ -32,6 +33,7 @@ public class PostResponseDto {
         this.reactionCount = reactionCount;
         this.reactionTypes = reactionTypes != null ? reactionTypes : new HashMap<>();
         this.comments = comments;
+        this.groupId = groupId;
     }
 
 

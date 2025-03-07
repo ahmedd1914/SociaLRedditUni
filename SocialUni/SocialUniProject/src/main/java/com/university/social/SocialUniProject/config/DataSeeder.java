@@ -92,7 +92,7 @@ public class DataSeeder implements CommandLineRunner {
         welcomePost.setTitle("Welcome to SocialUni!");
         welcomePost.setContent("This is our first post. Welcome everyone!");
         welcomePost.setVisibility(Visibility.PUBLIC);
-        welcomePost.setCategoryId(0L); // Adjust index according to your Category enum ordering.
+        welcomePost.setCategory(Category.TECH); // Adjust index according to your Category enum ordering.
         postService.createPost(welcomePost, userId);
 
         // Create a tech trends post.
@@ -100,7 +100,7 @@ public class DataSeeder implements CommandLineRunner {
         techPost.setTitle("Latest Tech Trends");
         techPost.setContent("Check out these new tech trends...");
         techPost.setVisibility(Visibility.PUBLIC);
-        techPost.setCategoryId(1L); // Adjust index as needed.
+        techPost.setCategory(Category.TECH); // Adjust index as needed.
         postService.createPost(techPost, userId);
 
         System.out.println("Posts seeded");

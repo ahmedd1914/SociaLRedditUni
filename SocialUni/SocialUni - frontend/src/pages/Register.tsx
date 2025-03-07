@@ -1,34 +1,33 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import ChangeThemes from '../components/ChangesThemes';
-import { DiReact } from 'react-icons/di';
-import { jwtDecode } from 'jwt-decode';
-import { registerUser } from '../api/ApiCollection';
-import { DecodedToken } from '../api/interfaces';
-
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import ChangeThemes from "../components/ChangesThemes";
+import { DiReact } from "react-icons/di";
+import { jwtDecode } from "jwt-decode";
+import { registerUser } from "../api/ApiCollection";
+import { DecodedToken } from "../api/interfaces";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [email, setEmail]     = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSignup = async () => {
     try {
       const token = await registerUser({ username, email, password });
-      localStorage.setItem('token', token);
+      localStorage.setItem("token", token);
       const decoded = jwtDecode<DecodedToken>(token);
-  
+
       // Possibly redirect
-      if (decoded.role === 'ROLE_ADMIN') {
-        navigate('/admin/home');
+      if (decoded.role === "ROLE_ADMIN") {
+        navigate("/admin/home");
       } else {
         // Maybe require them to verify first, or go to a "verify" page
-        navigate('/verify');
+        navigate("/verify");
       }
     } catch (error) {
-      console.error('Signup failed:', error);
+      console.error("Signup failed:", error);
     }
   };
 
@@ -47,9 +46,7 @@ const Register = () => {
               Social Uni
             </span>
           </div>
-          <span className="xl:text-xl font-semibold">
-            Create your account
-          </span>
+          <span className="xl:text-xl font-semibold">Create your account</span>
 
           <div className="w-full flex flex-col items-stretch gap-3">
             {/* Username Field */}
@@ -172,11 +169,7 @@ const Register = () => {
                 />
               </button>
               <button className="btn btn-circle dark:btn-neutral">
-                <img
-                  className="w-6"
-                  src="/icons8-google.svg"
-                  alt="Google"
-                />
+                <img className="w-6" src="/icons8-google.svg" alt="Google" />
               </button>
               <button className="btn btn-circle dark:btn-neutral">
                 <img

@@ -1,10 +1,10 @@
-import React from 'react';
-import toast from 'react-hot-toast';
-import { HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi2';
-import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
-import { fetchUserById } from '../api/ApiCollection';
-import { DecodedToken, UsersDto } from '../api/interfaces';
+import React from "react";
+import toast from "react-hot-toast";
+import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { fetchUserById } from "../api/ApiCollection";
+import { DecodedToken, UsersDto } from "../api/interfaces";
 
 const Profile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
@@ -14,39 +14,39 @@ const Profile = () => {
 
   React.useEffect(() => {
     const loadUserProfile = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        toast.error('Please log in first');
-        navigate('/login');
+        toast.error("Please log in first");
+        navigate("/login");
         return;
       }
-  
+
       try {
         const decoded: DecodedToken = jwtDecode(token);
         const userId = parseInt(decoded.sub, 10);
-  
+
         const fetchedUser = await fetchUserById(userId);
-  
-        console.log('Fetched User from backend:', fetchedUser); // 🔥 Debugging log
-  
+
+        console.log("Fetched User from backend:", fetchedUser); // 🔥 Debugging log
+
         // If your backend returns fname/lname/phone directly, this works.
         // If it still doesn't, your backend DTO is wrong and needs those fields.
         setUser({
           ...fetchedUser,
-          fname: fetchedUser.fname || '',  // Make sure it never breaks if missing
-          lname: fetchedUser.lname || '',
-          phoneNumber: fetchedUser.phoneNumber || '',
+          fname: fetchedUser.fname || "", // Make sure it never breaks if missing
+          lname: fetchedUser.lname || "",
+          phoneNumber: fetchedUser.phoneNumber || "",
         });
       } catch (error) {
-        console.error('Failed to load profile:', error);
-        toast.error('Failed to load profile data');
-        navigate('/login');
+        console.error("Failed to load profile:", error);
+        toast.error("Failed to load profile data");
+        navigate("/login");
       }
     };
-  
+
     loadUserProfile();
   }, [navigate]);
-  
+
   return (
     // screen
     <div className="w-full p-0 m-0">
@@ -57,7 +57,7 @@ const Profile = () => {
             My Profile
           </h2>
           <button
-            onClick={() => navigate('/admin/profile/edit')}
+            onClick={() => navigate("/profile/edit")}
             className="btn text-xs xl:text-sm dark:btn-neutral"
           >
             <HiOutlinePencil className="text-lg" /> Edit My Profile
@@ -69,17 +69,20 @@ const Profile = () => {
           <div className="avatar">
             <div className="w-24 xl:w-36 2xl:w-48 rounded-full">
               <img
-                src={user?.imgUrl || 'https://avatars.githubusercontent.com/u/74099030?v=4'}
+                src={
+                  user?.imgUrl ||
+                  "https://avatars.githubusercontent.com/u/74099030?v=4"
+                }
                 alt="User Avatar"
               />
             </div>
           </div>
           <div className="flex flex-col items-start gap-1">
             <h3 className="font-semibold text-xl xl:text-3xl">
-              {user?.username || 'Unknown User'}
+              {user?.username || "Unknown User"}
             </h3>
             <span className="font-normal text-base">
-              {user?.role || 'User'}
+              {user?.role || "User"}
             </span>
           </div>
         </div>
@@ -99,15 +102,15 @@ const Profile = () => {
               <div className="w-full flex flex-col gap-5 xl:gap-8">
                 <div className="flex flex-col items-start gap-1">
                   <span>First Name</span>
-                  <span className="font-semibold">{user?.fname || '-'}</span>
+                  <span className="font-semibold">{user?.fname || "-"}</span>
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <span>Last Name</span>
-                  <span className="font-semibold">{user?.lname || '-'}</span>
+                  <span className="font-semibold">{user?.lname || "-"}</span>
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <span>Username</span>
-                  <span className="font-semibold">{user?.username || '-'}</span>
+                  <span className="font-semibold">{user?.username || "-"}</span>
                 </div>
               </div>
 
@@ -115,15 +118,17 @@ const Profile = () => {
               <div className="w-full flex flex-col gap-5 xl:gap-8">
                 <div className="flex flex-col items-start gap-1">
                   <span>Email</span>
-                  <span className="font-semibold">{user?.email || '-'}</span>
+                  <span className="font-semibold">{user?.email || "-"}</span>
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <span>Phone</span>
-                  <span className="font-semibold">{user?.phoneNumber || '-'}</span>
+                  <span className="font-semibold">
+                    {user?.phoneNumber || "-"}
+                  </span>
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <span>Role</span>
-                  <span className="font-semibold">{user?.role || '-'}</span>
+                  <span className="font-semibold">{user?.role || "-"}</span>
                 </div>
               </div>
 
@@ -132,13 +137,17 @@ const Profile = () => {
                 <div className="flex flex-col items-start gap-1">
                   <span>Created At</span>
                   <span className="font-semibold">
-                    {user?.createdAt ? new Date(user.createdAt).toLocaleString() : '-'}
+                    {user?.createdAt
+                      ? new Date(user.createdAt).toLocaleString()
+                      : "-"}
                   </span>
                 </div>
                 <div className="flex flex-col items-start gap-1">
                   <span>Last Login</span>
                   <span className="font-semibold">
-                    {user?.lastLogin ? new Date(user.lastLogin).toLocaleString() : '-'}
+                    {user?.lastLogin
+                      ? new Date(user.lastLogin).toLocaleString()
+                      : "-"}
                   </span>
                 </div>
                 <button className="btn btn-disabled col-span-2">
@@ -168,8 +177,8 @@ const Profile = () => {
             <div className="col-span-2 flex flex-col items-start gap-5 xl:w-[240px]">
               <button
                 onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
+                  toast("Gaboleh", {
+                    icon: "😠",
                   })
                 }
                 className="btn btn-block flex-nowrap justify-start dark:btn-neutral"
@@ -184,19 +193,15 @@ const Profile = () => {
                 </span>
               </button>
               <div className="px-4 gap-2 min-h-12 text-sm font-semibold flex items-center justify-start">
-                <img
-                  className="w-6"
-                  src="/icons8-google.svg"
-                  alt="google"
-                />
+                <img className="w-6" src="/icons8-google.svg" alt="google" />
                 <span className="text-start whitespace-nowrap text-xs xl:text-sm">
                   Connected with Google
                 </span>
               </div>
               <button
                 onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
+                  toast("Gaboleh", {
+                    icon: "😠",
                   })
                 }
                 className="btn btn-block justify-start dark:btn-neutral"
@@ -221,8 +226,8 @@ const Profile = () => {
               <button className="btn btn-ghost text-error"></button>
               <button
                 onClick={() =>
-                  toast('Gaboleh', {
-                    icon: '😠',
+                  toast("Gaboleh", {
+                    icon: "😠",
                   })
                 }
                 className="btn btn-ghost text-error text-xs xl:text-sm"
@@ -242,23 +247,17 @@ const Profile = () => {
             <HiOutlineTrash className="text-lg" />
             Delete My Account
           </button>
-          <dialog
-            id="modal_delete"
-            className="modal"
-            ref={modalDelete}
-          >
+          <dialog id="modal_delete" className="modal" ref={modalDelete}>
             <div className="modal-box">
               <h3 className="font-bold text-lg dark:text-white">
                 Action Confirmation!
               </h3>
-              <p className="py-4">
-                Do you want to delete your account?
-              </p>
+              <p className="py-4">Do you want to delete your account?</p>
               <div className="modal-action mx-0 flex-col items-stretch justify-stretch gap-3">
                 <button
                   onClick={() =>
-                    toast('Lancang kamu ya!', {
-                      icon: '😠',
+                    toast("Lancang kamu ya!", {
+                      icon: "😠",
                     })
                   }
                   className="btn btn-error btn-block text-base-100 dark:text-white"
