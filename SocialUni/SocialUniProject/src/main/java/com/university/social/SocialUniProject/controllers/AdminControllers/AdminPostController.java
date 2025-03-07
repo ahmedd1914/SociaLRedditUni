@@ -2,6 +2,7 @@ package com.university.social.SocialUniProject.controllers.AdminControllers;
 
 import com.university.social.SocialUniProject.dto.CreatePostDto;
 import com.university.social.SocialUniProject.enums.Category;
+import com.university.social.SocialUniProject.responses.PostMetricsDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.PostService;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -72,11 +73,10 @@ public class AdminPostController {
         return ResponseEntity.ok(posts);
     }
 
-    // 7. Retrieve post statistics
-    @GetMapping("/stats")
-    public ResponseEntity<Map<String, Object>> getPostStats() {
-        Map<String, Object> stats = postService.getPostStatistics();
-        return ResponseEntity.ok(stats);
+    @GetMapping("/metrics")
+    public ResponseEntity<PostMetricsDto> getPostMetrics() {
+        PostMetricsDto metrics = postService.getPostMetrics();
+        return ResponseEntity.ok(metrics);
     }
     // Filter posts by date range (start and end passed as ISO date-time strings)
     @GetMapping("/date-range")

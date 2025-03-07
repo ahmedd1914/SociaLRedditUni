@@ -1,13 +1,17 @@
 package com.university.social.SocialUniProject.services;
 
+import com.university.social.SocialUniProject.dto.CreateUserDto;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.UserRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -16,9 +20,11 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AdminService(UserRepository userRepository) {
+    public AdminService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 1️⃣ View All Users
@@ -27,7 +33,35 @@ public class AdminService {
         return users.stream().map(this::mapToDto).collect(Collectors.toList());
     }
 
+    // 7️⃣ Get Single User
+    public UserResponseDto getUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        return mapToDto(user);
+    }
+    public UserResponseDto createUser(CreateUserDto dto) {
+        User user = new User();
+        user.setUsername(dto.getUsername());
+        user.setEmail(dto.getEmail());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
+        // Set optional fields if provided
+        user.setFName(dto.getFName());
+        user.setLName(dto.getLName());
+        user.setPhoneNumber(dto.getPhoneNumber());
+
+        // Set default values
+        user.setRole(com.university.social.SocialUniProject.enums.Role.USER);
+        user.setEnabled(true);
+        user.setCreatedAt(LocalDateTime.now());
+        // Optionally, you might leave lastLogin as null until the first login
+
+        // Save the user
+        user = userRepository.save(user);
+
+        // Map the user to a response DTO
+        return UserResponseDto.fromEntity(user);
+    }
     // 2️⃣ Search & Filter Users
     public List<UserResponseDto> searchUsers(String username, Role role) {
         List<User> users;
@@ -73,7 +107,6 @@ public class AdminService {
         userRepository.save(user);
     }
 
-
     // 4️⃣ Unban User
     public void unbanUser(Long userId) {
         Optional<User> userOptional = userRepository.findById(userId);
@@ -111,6 +144,7 @@ public class AdminService {
         }
     }
 
+    // 6️⃣ Delete User
     public void deleteUser(Long userId) {
         UserDetails currentAdmin = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         User adminUser = userRepository.findByUsername(currentAdmin.getUsername())
@@ -136,8 +170,7 @@ public class AdminService {
         userRepository.deleteById(userId);
     }
 
-
-
+    // ---------- Private Conversion Method ----------
     private UserResponseDto mapToDto(User user) {
         return new UserResponseDto(
                 user.getId(),
@@ -145,7 +178,12 @@ public class AdminService {
                 user.getEmail(),
                 user.getRole(),
                 user.isEnabled(),
-                user.getLastLogin()
+                user.getLastLogin(),
+                user.getFName(),
+                user.getLName(),
+                user.getPhoneNumber(),
+                user.getImgUrl(),
+                user.getCreatedAt()
         );
     }
 }

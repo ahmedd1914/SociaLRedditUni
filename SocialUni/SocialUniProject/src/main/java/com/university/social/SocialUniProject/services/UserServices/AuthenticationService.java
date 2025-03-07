@@ -1,6 +1,5 @@
 package com.university.social.SocialUniProject.services.UserServices;
 
-
 import com.university.social.SocialUniProject.dto.UserDto.LoginUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.RegisterUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.VerifyUserDto;
@@ -15,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+
+import static com.university.social.SocialUniProject.enums.Role.USER;
 
 @Service
 public class AuthenticationService {
@@ -38,54 +39,112 @@ public class AuthenticationService {
         this.jwtService = jwtService;
     }
 
+    /**
+     * Registers a new user with 'ROLE_USER', generates a verification code,
+     * and returns a JWT that contains userId + role claim.
+     */
     public String signup(RegisterUserDto input) {
-        User user = new User(input.getUsername(), input.getEmail(), passwordEncoder.encode(input.getPassword()));
+        User user = new User(
+                input.getUsername(),
+                input.getEmail(),
+                passwordEncoder.encode(input.getPassword())
+        );
+
+        // Assign default role (e.g. 'USER')
+        user.setRole(USER);
+
+        // Generate verification details
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         user.setEnabled(false);
+
+        // Send email before saving
         sendVerificationEmail(user);
+        user.setLastLogin(null);
+        user.setCreatedAt(LocalDateTime.now());
+        // Persist user in DB
         user = userRepository.save(user);
-        return jwtService.generateToken(user.getId().toString()); // Return JWT with userId
+
+        // Return JWT containing userId + role
+        return jwtService.generateTokenForUser(user);
     }
 
+    /**
+     * Authenticates an existing user by email/password, and returns a fresh JWT.
+     */
     public String authenticate(LoginUserDto input) {
+        // Spring Security checks password
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(input.getEmail(), input.getPassword())
         );
+
+        // Find user
         User user = userRepository.findByEmail(input.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        return jwtService.generateToken(user.getId().toString()); // Return JWT with userId
+
+        user.setLastLogin(LocalDateTime.now());
+        userRepository.save(user);
+        System.out.println("✅ Last login updated in database: " + user.getLastLogin());
+
+        // Return JWT containing userId + role
+        return jwtService.generateTokenForUser(user);
     }
 
+    /**
+     * Verifies the user's account by matching JWT userId with code in DB.
+     */
+    public void verifyUserByJwt(String jwt, String inputCode) {
+        // 1) Extract userId from the JWT
+        String userIdString = jwtService.extractUserId(jwt);
+        Long userId = Long.valueOf(userIdString);
 
-    public void verifyUser(VerifyUserDto input) {
-        User user = userRepository.findByEmail(input.getEmail())
+        // 2) Load user
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // 3) Check if code is present
+        if (user.getVerificationCode() == null) {
+            throw new IllegalArgumentException("No verification code set (user might be already verified)");
+        }
+
+        // 4) Check expiration
         if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
             throw new IllegalArgumentException("Verification code has expired");
         }
-        if (user.getVerificationCode().equals(input.getVerificationCode())) {
-            user.setEnabled(true);
-            user.setVerificationCode(null);
-            user.setVerificationCodeExpiresAt(null);
-            userRepository.save(user);
-        } else {
+
+        // 5) Compare
+        if (!user.getVerificationCode().equals(inputCode)) {
             throw new IllegalArgumentException("Invalid verification code");
         }
+
+        // 6) Enable user
+        user.setEnabled(true);
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiresAt(null);
+        userRepository.save(user);
     }
 
+    /**
+     * Re-sends verification code if the user is not already enabled.
+     */
     public void resendVerificationCode(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         if (user.isEnabled()) {
             throw new IllegalStateException("Account is already verified");
         }
+
         user.setVerificationCode(generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
         sendVerificationEmail(user);
         userRepository.save(user);
     }
-    private void sendVerificationEmail(User user) { //TODO: Update with company logo
+
+    /**
+     * Helper to send verification email with a code.
+     */
+    private void sendVerificationEmail(User user) {
         String subject = "Account Verification";
         String verificationCode = "VERIFICATION CODE " + user.getVerificationCode();
         String htmlMessage = "<html>"
@@ -107,9 +166,13 @@ public class AuthenticationService {
             e.printStackTrace();
         }
     }
+
+    /**
+     * Generates a random 6-digit verification code.
+     */
     private String generateVerificationCode() {
         SecureRandom secureRandom = new SecureRandom();
-        int code = secureRandom.nextInt(900000) + 100000;
+        int code = secureRandom.nextInt(900000) + 100000; // 100000..999999
         return String.valueOf(code);
     }
 }
