@@ -219,12 +219,6 @@ public class PostService {
         ));
     }
 
-    public List<PostResponseDto> searchPosts(String keyword) {
-        List<Post> posts = postRepository
-                .findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(keyword, keyword);
-        return posts.stream().map(this::convertToDto).collect(Collectors.toList());
-    }
-
     public List<PostResponseDto> filterPostsByCategory(Category category) {
         return postRepository.findByCategoriesContaining(category)
                 .stream()
@@ -232,13 +226,6 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    public List<PostResponseDto> getPostsByDateRange(LocalDateTime start, LocalDateTime end) {
-        return postRepository.findAll()
-                .stream()
-                .filter(post -> !post.getCreatedAt().isBefore(start) && !post.getCreatedAt().isAfter(end))
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
 
     public List<PostResponseDto> getTrendingPosts() {
         return postRepository.findAll()
@@ -326,7 +313,7 @@ public class PostService {
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
-                categoryName,
+                post.getCategories(),
                 post.getUser().getUsername(),
                 post.getCreatedAt(),
                 totalReactions,

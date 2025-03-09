@@ -16,26 +16,6 @@ import {
   HiOutlineChatBubbleLeft,
   HiOutlineUserGroup,
 } from "react-icons/hi2";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-
-// Example static data for the chart – adjust as needed.
-const dataLine = [
-  { name: "Jan", purchased: 4000, wishlisted: 2400 },
-  { name: "Feb", purchased: 3000, wishlisted: 1398 },
-  { name: "Mar", purchased: 2000, wishlisted: 9800 },
-  { name: "Apr", purchased: 2780, wishlisted: 3908 },
-  { name: "May", purchased: 1890, wishlisted: 4800 },
-  { name: "Jun", purchased: 2390, wishlisted: 3800 },
-  { name: "Jul", purchased: 3490, wishlisted: 4300 },
-];
 
 const User: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -51,9 +31,11 @@ const User: React.FC = () => {
   });
 
   // Add new query for activities
-  const { data: activities } = useQuery({
+  const { data: activities } = useQuery<UserActivity[]>({
     queryKey: ["userActivities", id],
-    queryFn: () => fetchUserActivity(Number(id)),
+    queryFn: async (): Promise<UserActivity[]> => {
+      return (await fetchUserActivity(Number(id))) as UserActivity[];
+    },
     enabled: !!data, // Only fetch activities after user data is loaded
   });
 
@@ -142,9 +124,9 @@ const User: React.FC = () => {
             <div className="flex items-center gap-4 mb-6">
               <div className="avatar">
                 <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
-                  {data.profileImage ? (
+                  {data.imgUrl ? (
                     <img
-                      src={data.profileImage}
+                      src={data.imgUrl}
                       alt={data.username}
                       className="w-full h-full object-cover"
                     />

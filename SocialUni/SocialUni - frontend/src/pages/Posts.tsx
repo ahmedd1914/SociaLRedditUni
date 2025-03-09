@@ -72,6 +72,15 @@ const Posts = () => {
       headerName: "Category",
       minWidth: 150,
       flex: 1,
+      renderCell: (params) => {
+        const category =
+          params.row.category || params.row.categoryName || "Uncategorized";
+        return (
+          <div className="flex gap-1 items-center">
+            <span className="text-base font-medium">{category}</span>
+          </div>
+        );
+      },
     },
     {
       field: "visibility",
@@ -124,38 +133,6 @@ const Posts = () => {
         <div>{params.row.groupId ? params.row.groupId : "N/A"}</div>
       ),
     },
-    {
-      field: "actions",
-      headerName: "Actions",
-      minWidth: 180,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          {/* View Post */}
-          <button
-            onClick={() => navigate(`/posts/${params.row.id}`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlineEye />
-          </button>
-
-          {/* Edit Post */}
-          <button
-            onClick={() => navigate(`/posts/${params.row.id}/edit`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlinePencilSquare />
-          </button>
-
-          {/* Delete Post */}
-          <button
-            onClick={() => handleDelete(params.row.id)}
-            className="btn btn-square btn-ghost text-red-500 hover:bg-red-100"
-          >
-            <HiOutlineTrash />
-          </button>
-        </div>
-      ),
-    },
   ];
 
   return (
@@ -195,7 +172,7 @@ const Posts = () => {
             slug="posts"
             columns={columns}
             rows={data}
-            includeActionColumn={false}
+            includeActionColumn={true}
           />
         ) : (
           <>

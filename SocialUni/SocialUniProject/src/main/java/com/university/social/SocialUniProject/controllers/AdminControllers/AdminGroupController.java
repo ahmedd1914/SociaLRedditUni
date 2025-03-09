@@ -1,10 +1,12 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
+import com.university.social.SocialUniProject.dto.CreateGroupDto;
 import com.university.social.SocialUniProject.dto.RequestDto;
 import com.university.social.SocialUniProject.dto.UserDto.UsersDto;
 import com.university.social.SocialUniProject.enums.Visibility;
 import com.university.social.SocialUniProject.responses.GroupResponseDto;
 import com.university.social.SocialUniProject.services.GroupServices.GroupService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -33,22 +35,20 @@ public class AdminGroupController {
     public ResponseEntity<GroupResponseDto> getGroupById(@PathVariable Long groupId) {
         return ResponseEntity.ok(groupService.getGroupByIdd(groupId));
     }
+    @PutMapping("/{groupId}")
+    public ResponseEntity<GroupResponseDto> updateGroup(
+            @PathVariable("groupId") Long groupId,
+            @Valid @RequestBody CreateGroupDto updatedGroupDto,
+            @RequestParam("userId") Long userId) {
 
+        GroupResponseDto updatedGroup = groupService.updateGroup(groupId, updatedGroupDto, userId);
+        return ResponseEntity.ok(updatedGroup);
+    }
     // Delete group (admin deletion)
     @DeleteMapping("/groups/{groupId}/user/{userId}")
     public ResponseEntity<Void> deleteGroup(@PathVariable Long groupId, @PathVariable Long userId) {
         groupService.deleteGroup(groupId, userId);
         return ResponseEntity.noContent().build();
-    }
-
-
-    // Change group visibility and return updated group
-    @PutMapping("/groups/{groupId}/visibility")
-    public ResponseEntity<GroupResponseDto> changeGroupVisibility(@PathVariable Long groupId,
-                                                                  @RequestParam Visibility visibility) {
-        groupService.changeGroupVisibility(groupId, visibility);
-        GroupResponseDto updatedGroup = groupService.getGroupByIdd(groupId);
-        return ResponseEntity.ok(updatedGroup);
     }
 
     // Transfer group ownership and return updated group

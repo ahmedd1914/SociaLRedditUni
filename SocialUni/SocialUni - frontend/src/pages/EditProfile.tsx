@@ -4,7 +4,7 @@ import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import { fetchUserById, updateUserProfile } from "../api/ApiCollection";
 import { jwtDecode } from "jwt-decode";
-import { UpdateUserDto, UsersDto } from "../api/interfaces";
+import { Role, UpdateUserDto, UsersDto } from "../api/interfaces";
 
 const EditProfile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
@@ -23,6 +23,8 @@ const EditProfile = () => {
     username: "",
     email: "",
     imgUrl: undefined,
+    role: Role.USER,
+    enabled: true,
   });
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +58,8 @@ const EditProfile = () => {
         username: user.username,
         email: user.email,
         imgUrl: user.imgUrl ?? undefined,
+        role: user.role,
+        enabled: user.enabled,
       });
 
       setPreview(
@@ -118,7 +122,7 @@ const EditProfile = () => {
           <div className="w-full xl:w-auto grid grid-cols-2 xl:flex gap-3">
             <button
               onClick={() =>
-                navigate(`/admin/profile?refresh=${new Date().getTime()}`)
+                navigate(`/profile?refresh=${new Date().getTime()}`)
               }
               className="btn btn-block xl:w-auto dark:btn-neutral"
             >

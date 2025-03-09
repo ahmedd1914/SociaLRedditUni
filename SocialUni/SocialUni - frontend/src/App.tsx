@@ -21,6 +21,9 @@ import Register from "./pages/Register";
 import Verify from "./pages/Verify";
 import Groups from "./pages/Groups";
 import Comments from "./pages/Comments";
+import EditData from "./components/EditData";
+import Home from "./pages/Home";
+import Events from "./pages/Events";
 
 function App() {
   // Layout with Navbar + Sidebar + Footer
@@ -50,15 +53,42 @@ function App() {
     );
   };
 
+  const RootLayout = () => {
+    return (
+      <div
+        id="rootContainer"
+        className="w-full p-0 m-0 overflow-visible min-h-screen flex flex-col justify-between"
+      >
+        <ToasterProvider />
+        <ScrollRestoration />
+        <div>
+          <Navbar />
+          <div className="w-full flex gap-0 pt-20 xl:pt-[96px] 2xl:pt-[112px] mb-auto">
+            {/* Sidebar */}
+            <div className="hidden xl:block xl:w-[250px] 2xl:w-[280px] 3xl:w-[350px] border-r-2 border-base-300 dark:border-slate-700 px-3 xl:px-4 xl:py-1">
+              <Menu />
+            </div>
+            {/* Main Content */}
+            <div className="w-full px-4 xl:px-4 2xl:px-5 xl:py-2 overflow-clip">
+              <Outlet />
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  };
+
   // Define the routes
   const router = createBrowserRouter([
-    // 1) Redirect root "/" to "/login"
+    // Root redirect
     {
       path: "/",
       element: <Navigate to="/home" replace />,
       errorElement: <Error />,
     },
-    // 2) Login route
+
+    // Auth routes
     {
       path: "/login",
       element: <Login />,
@@ -74,7 +104,81 @@ function App() {
       element: <Verify />,
       errorElement: <Error />,
     },
-    // 3) Admin routes behind an "/admin" prefix
+
+    // Regular user routes
+    {
+      path: "/",
+      element: <RootLayout />,
+      errorElement: <Error />,
+      children: [
+        {
+          path: "home",
+          element: <Home />,
+        },
+        // Posts routes
+        {
+          path: "posts",
+          element: <Posts />,
+        },
+        {
+          path: "posts/:id/edit",
+          element: <EditData slug="posts" />,
+        },
+        // Groups routes
+        {
+          path: "groups",
+          element: <Groups />,
+        },
+
+        {
+          path: "groups/:id/edit",
+          element: <EditData slug="groups" />,
+        },
+        // Comments routes
+        {
+          path: "comments",
+          children: [
+            {
+              index: true,
+              element: <Comments />,
+            },
+            {
+              path: "active",
+              element: <Comments showActiveOnly={true} />,
+            },
+            {
+              path: ":id/edit",
+              element: <EditData slug="comments" />,
+            },
+          ],
+        },
+        // Profile routes
+        {
+          path: "profile",
+          element: <Profile />,
+        },
+        {
+          path: "profile/edit",
+          element: <EditProfile />,
+        },
+        // Events routes
+        {
+          path: "events",
+          children: [
+            {
+              index: true,
+              element: <Events />,
+            },
+            {
+              path: ":id/edit",
+              element: <EditData slug="events" />,
+            },
+          ],
+        },
+      ],
+    },
+
+    // Admin routes
     {
       path: "/admin",
       element: <AdminLayout />,
@@ -84,14 +188,7 @@ function App() {
           path: "home",
           element: <AdminHome />,
         },
-        {
-          path: "profile",
-          element: <Profile />,
-        },
-        {
-          path: "profile/edit",
-          element: <EditProfile />,
-        },
+        // Users admin routes
         {
           path: "users",
           element: <Users />,
@@ -101,16 +198,60 @@ function App() {
           element: <User />,
         },
         {
+          path: "users/:id/edit",
+          element: <EditData slug="admin/users" />,
+        },
+        // Posts admin routes
+        {
           path: "posts",
           element: <Posts />,
         },
+
+        {
+          path: "posts/:id/edit",
+          element: <EditData slug="admin/posts" />,
+        },
+        // Groups admin routes
         {
           path: "groups",
           element: <Groups />,
         },
+
+        {
+          path: "groups/:id/edit",
+          element: <EditData slug="admin/groups" />,
+        },
+        // Comments admin routes
         {
           path: "comments",
-          element: <Comments />,
+          children: [
+            {
+              index: true,
+              element: <Comments />,
+            },
+            {
+              path: "active",
+              element: <Comments showActiveOnly={true} />,
+            },
+            {
+              path: ":id/edit",
+              element: <EditData slug="admin/comments" />,
+            },
+          ],
+        },
+        // Events admin routes
+        {
+          path: "events",
+          children: [
+            {
+              index: true,
+              element: <Events />,
+            },
+            {
+              path: ":id/edit",
+              element: <EditData slug="admin/events" />,
+            },
+          ],
         },
       ],
     },

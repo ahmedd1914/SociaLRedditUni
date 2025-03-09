@@ -220,17 +220,29 @@ export const updateComment = async (
 };
 
 export const deleteComment = async (
-  commentId: number,
-  adminId: number
+  commentId: number
 ): Promise<GenericDeleteResponse> => {
   try {
     const { data } = await axiosInstance.delete<GenericDeleteResponse>(
-      `/admin/comments/${commentId}?adminId=${adminId}`
+      `/admin/comments/${commentId}`
     );
     console.log("deleteComment:", data);
     return data;
   } catch (err) {
     console.error(err);
+    throw err;
+  }
+};
+
+export const fetchActiveComments = async (): Promise<CommentResponseDto[]> => {
+  try {
+    const { data } = await axiosInstance.get<CommentResponseDto[]>(
+      "/admin/comments/active_comments" 
+    );
+    console.log("fetchActiveComments:", data);
+    return data;
+  } catch (err) {
+    console.error("Error fetching active comments:", err);
     throw err;
   }
 };
@@ -248,47 +260,32 @@ export const fetchAllEvents = async (): Promise<EventResponseDto[]> => {
     throw err;
   }
 };
-export const createEvent = async (
-  dto: CreateEventDto
-): Promise<EventResponseDto> => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
 
-  const config = {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  };
-
+export const fetchEventById = async (eventId: number): Promise<EventResponseDto> => {
   try {
-    const { data } = await axiosInstance.post<EventResponseDto>(
-      "/events/create",
-      dto,
-      config
-    );
-    console.log("Event created:", data);
+    const { data } = await axiosInstance.get<EventResponseDto>(`/events/${eventId}`);
+    console.log("fetchEventById:", data);
     return data;
-  } catch (error: any) {
-    if (isAxiosError(error)) {
-      console.error(
-        "Axios error (createEvent):",
-        error.response?.data || error.message
-      );
-    } else {
-      console.error("Unexpected error (createEvent):", error);
-    }
-    throw error;
+  } catch (err) {
+    console.error(err);
+    throw err;
   }
 };
-export const updateEvent = async (
-  eventId: number,
-  updateEventDto: UpdateEventDto
-): Promise<EventResponseDto> => {
+
+export const createEvent = async (createEventDto: CreateEventDto): Promise<EventResponseDto> => {
   try {
-    const { data } = await axiosInstance.put<EventResponseDto>(
-      `/admin/events/${eventId}`,
-      updateEventDto
-    );
+    const { data } = await axiosInstance.post<EventResponseDto>("/events/create", createEventDto);
+    console.log("createEvent:", data);
+    return data;
+  } catch (err) {
+    console.error(err);
+    throw err;
+  }
+};
+
+export const updateEvent = async (eventId: number, updateEventDto: UpdateEventDto): Promise<EventResponseDto> => {
+  try {
+    const { data } = await axiosInstance.put<EventResponseDto>(`/admin/events/${eventId}`, updateEventDto);
     console.log("updateEvent:", data);
     return data;
   } catch (err) {
@@ -297,15 +294,10 @@ export const updateEvent = async (
   }
 };
 
-export const deleteEvent = async (
-  eventId: number
-): Promise<GenericDeleteResponse> => {
+export const deleteEvent = async (eventId: number): Promise<void> => {
   try {
-    const { data } = await axiosInstance.delete<GenericDeleteResponse>(
-      `/admin/events/${eventId}`
-    );
-    console.log("deleteEvent:", data);
-    return data;
+    await axiosInstance.delete(`/admin/events/${eventId}`);
+    console.log("deleteEvent: success");
   } catch (err) {
     console.error(err);
     throw err;
@@ -373,18 +365,24 @@ export const createGroup = async (
   }
 };
 export const deleteGroup = async (
-  groupId: number,
-  userId: number
+  groupId: number
 ): Promise<{ success: boolean; message: string }> => {
   try {
     const { data } = await axiosInstance.delete<{
       success: boolean;
       message: string;
-    }>(`/admin/groups/${groupId}/user/${userId}`);
+    }>(`/admin/groups/${groupId}`);
     console.log("deleteGroup:", data);
     return data;
-  } catch (err) {
-    console.error(err);
+  } catch (err: unknown) {
+    if (isAxiosError(err)) {
+      console.error(
+        "Axios error (deleteGroup):",
+        err.response?.data || err.message
+      );
+    } else {
+      console.error("Unexpected error (deleteGroup):", err);
+    }
     throw err;
   }
 };
@@ -518,6 +516,31 @@ export const addUserToGroup = async (
   } catch (err) {
     console.error(err);
     throw err;
+  }
+};
+
+export const updateGroup = async (
+  groupId: number,
+  updatedGroupDto: CreateGroupDto,
+  userId: number
+): Promise<GroupResponseDto> => {
+  try {
+    const { data } = await axiosInstance.put<GroupResponseDto>(
+      `/groups/${groupId}?userId=${userId}`,
+      updatedGroupDto
+    );
+    console.log("updateGroup:", data);
+    return data;
+  } catch (error) {
+    if (isAxiosError(error)) {
+      console.error(
+        "Axios error (updateGroup):",
+        error.response?.data || error.message
+      );
+    } else {
+      console.error("Unexpected error (updateGroup):", error);
+    }
+    throw error;
   }
 };
 

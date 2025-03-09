@@ -79,7 +79,49 @@ public class GroupService {
 
         return convertToDto(savedGroup);
     }
+    @Transactional
+    public GroupResponseDto updateGroup(Long groupId, CreateGroupDto updatedGroupDto, Long userId) {
+        // Retrieve the group and user entities
+        Group group = getGroupById(groupId);
+        User user = getUserById(userId);
 
+        // Allow update only if the user is the owner or an admin of the group
+        if (!group.getOwner().getId().equals(userId) && !group.getAdmins().contains(user)) {
+            throw new UnauthorizedActionException("You are not authorized to update this group.");
+        }
+
+        // Update group fields if new values are provided
+        if (updatedGroupDto.getName() != null && !updatedGroupDto.getName().isBlank()) {
+            group.setName(updatedGroupDto.getName());
+        }
+        if (updatedGroupDto.getDescription() != null) {
+            group.setDescription(updatedGroupDto.getDescription());
+        }
+        if (updatedGroupDto.getVisibility() != null) {
+            group.setVisibility(updatedGroupDto.getVisibility());
+        }
+        if (updatedGroupDto.getCategory() != null) {
+            group.setCategory(updatedGroupDto.getCategory());
+        }
+
+        // Save the updated group
+        Group updatedGroup = groupRepository.save(group);
+
+        // Optionally, notify all group members (except the updater) that the group details have been updated
+        group.getMembers().forEach(member -> {
+            if (!member.getId().equals(userId)) {
+                notificationService.createNotification(new CreateNotificationDto(
+                        "Group '" + updatedGroup.getName() + "' details have been updated.",
+                        NotificationType.GROUP_UPDATED, // Ensure this type exists in your NotificationType enum
+                        member.getId(),
+                        null,
+                        null
+                ));
+            }
+        });
+
+        return convertToDto(updatedGroup);
+    }
     public String handleJoinRequest(Long userId, Long groupId) {
         Group group = getGroupById(groupId);
         User user = getUserById(userId);
@@ -264,22 +306,6 @@ public class GroupService {
         return groupRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
-    }
-
-    public void changeGroupVisibility(Long groupId, Visibility visibility) {
-        Group group = getGroupById(groupId);
-        group.setVisibility(visibility);
-        groupRepository.save(group);
-        // Notify group members about the visibility change
-        group.getMembers().forEach(member ->
-                notificationService.createNotification(new CreateNotificationDto(
-                        "The visibility of group '" + group.getName() + "' has been changed to " + visibility + ".",
-                        NotificationType.GROUP_VISIBILITY_CHANGED,
-                        member.getId(),
-                        null,
-                        null
-                ))
-        );
     }
 
     public void transferGroupOwnership(Long groupId, Long newOwnerId) {

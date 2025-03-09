@@ -42,18 +42,6 @@ public class AdminReactionController {
         return ResponseEntity.noContent().build();
     }
 
-    // 4. Filter reactions by type (e.g., LIKE, LOVE, etc.)
-    @GetMapping("/search")
-    public ResponseEntity<List<ReactionResponseDto>> getReactionsByType(@RequestParam String type) {
-        ReactionType reactionType;
-        try {
-            reactionType = ReactionType.valueOf(type.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
-        }
-        List<ReactionResponseDto> reactions = reactionService.getReactionsByType(reactionType);
-        return ResponseEntity.ok(reactions);
-    }
 
     // 5. Get reaction statistics
     @GetMapping("/stats")

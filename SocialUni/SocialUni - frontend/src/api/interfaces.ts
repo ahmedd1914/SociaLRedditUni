@@ -22,10 +22,9 @@ export enum Category {
 
 // EventStatus (for events)
 export enum EventStatus {
-    PLANNED = 'PLANNED',
-    ONGOING = 'ONGOING',
+    SCHEDULED = 'SCHEDULED',
     CANCELLED = 'CANCELLED',
-    FINISHED = 'FINISHED',
+    COMPLETED = 'COMPLETED',
 }
 
 // NotificationType (for notifications)
@@ -99,6 +98,7 @@ export interface CreateEventDto {
     groupId?: number;
     category?: Category;
     privacy?: EventPrivacy;
+    eventStatus?: EventStatus; 
 }
 
 /** CreateGroupDto.java */
@@ -188,6 +188,7 @@ export interface UpdateEventDto {
     category?: Category;
     status?: string;         // e.g., "PLANNED", "ONGOING", etc.
     privacy?: EventPrivacy;
+    statuis?: EventStatus;
 }
 
 /** VerifyUserDto.java */
@@ -203,6 +204,8 @@ export type UpdateUserDto = {
     username: string;
     email: string;
     imgUrl?: string;
+    role?: string;
+    enabled: boolean;
   };
 /* =========================
    RESPONSE DTOs
@@ -235,6 +238,7 @@ export interface EventResponseDto {
     groupId: number | null;
     category: Category;
     status: EventStatus;
+    privacy: EventPrivacy;
     createdAt: string;
     updatedAt: string;
 }
@@ -274,7 +278,8 @@ export interface PostResponseDto {
     id: number;
     title: string;
     content: string;
-    categoryName: string;
+    category: Category;
+    visibility: Visibility;
     username: string;
     createdAt: string;
     image: string;
@@ -312,7 +317,7 @@ export interface UsersDto {
 export interface UpdatePostDto {
     title?: string;
     content?: string;
-    categoryId?: number;
+    category?: Category;
     visibility?: Visibility;
     groupId?: number;
 }

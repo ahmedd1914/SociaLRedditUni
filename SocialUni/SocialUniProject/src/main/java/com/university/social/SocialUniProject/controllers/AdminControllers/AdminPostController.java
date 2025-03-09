@@ -53,12 +53,6 @@ public class AdminPostController {
         postService.deletePostByAdmin(postId);
         return ResponseEntity.noContent().build();
     }
-    // 5. Search posts by keyword in title or content
-    @GetMapping("/search")
-    public ResponseEntity<List<PostResponseDto>> searchPosts(@RequestParam String keyword) {
-        List<PostResponseDto> posts = postService.searchPosts(keyword);
-        return ResponseEntity.ok(posts);
-    }
 
     // 6. Filter posts by category
     @GetMapping("/filter")
@@ -77,14 +71,6 @@ public class AdminPostController {
     public ResponseEntity<PostMetricsDto> getPostMetrics() {
         PostMetricsDto metrics = postService.getPostMetrics();
         return ResponseEntity.ok(metrics);
-    }
-    // Filter posts by date range (start and end passed as ISO date-time strings)
-    @GetMapping("/date-range")
-    public ResponseEntity<List<PostResponseDto>> getPostsByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
-        List<PostResponseDto> posts = postService.getPostsByDateRange(start, end);
-        return ResponseEntity.ok(posts);
     }
 
     // Trending posts: top 5 posts based on combined reactions and comments

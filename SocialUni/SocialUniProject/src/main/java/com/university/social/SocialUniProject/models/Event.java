@@ -75,10 +75,26 @@ public class Event {
     private Category category;
 
     @Enumerated(EnumType.STRING)
-    private EventStatus status;
+    @Column(length = 20, nullable = false)
+    private EventStatus status = EventStatus.SCHEDULED; // Set default value
+
     @Enumerated(EnumType.STRING)
     private EventPrivacy privacy;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (status == null) {
+            status = EventStatus.SCHEDULED;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
