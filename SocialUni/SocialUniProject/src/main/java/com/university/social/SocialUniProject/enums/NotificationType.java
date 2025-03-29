@@ -22,6 +22,7 @@ public enum NotificationType {
     GROUP_OWNERSHIP_TRANSFERRED,
     GROUP_REMOVED,
     GROUP_ADDED,
+    GROUP_UPDATED,
 
 
     // Post-related

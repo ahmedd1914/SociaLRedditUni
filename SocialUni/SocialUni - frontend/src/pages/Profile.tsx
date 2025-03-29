@@ -1,16 +1,19 @@
 import React from "react";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { fetchUserById } from "../api/ApiCollection";
-import { DecodedToken, UsersDto } from "../api/interfaces";
+import { getCurrentUser } from "../api/ApiCollection";
+import { DecodedToken, UsersDto, Role } from "../api/interfaces";
 
 const Profile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [user, setUser] = React.useState<UsersDto | null>(null);
+  const [imageError, setImageError] = React.useState(false);
+  const defaultAvatar = "https://avatars.githubusercontent.com/u/74099030?v=4";
 
   React.useEffect(() => {
     const loadUserProfile = async () => {
@@ -22,30 +25,80 @@ const Profile = () => {
       }
 
       try {
-        const decoded: DecodedToken = jwtDecode(token);
-        const userId = parseInt(decoded.sub, 10);
-
-        const fetchedUser = await fetchUserById(userId);
-
-        console.log("Fetched User from backend:", fetchedUser); // 🔥 Debugging log
-
-        // If your backend returns fname/lname/phone directly, this works.
-        // If it still doesn't, your backend DTO is wrong and needs those fields.
-        setUser({
-          ...fetchedUser,
-          fname: fetchedUser.fname || "", // Make sure it never breaks if missing
-          lname: fetchedUser.lname || "",
-          phoneNumber: fetchedUser.phoneNumber || "",
-        });
+        // Use getCurrentUser instead of fetchUserById for better error handling
+        const currentUser = await getCurrentUser();
+        
+        if (currentUser) {
+          console.log("Fetched User from backend:", currentUser);
+          
+          // If your backend returns fname/lname/phone directly, this works.
+          setUser({
+            ...currentUser,
+            fname: currentUser.fname || "", // Make sure it never breaks if missing
+            lname: currentUser.lname || "",
+            phoneNumber: currentUser.phoneNumber || "",
+          });
+        } else {
+          // If getCurrentUser returns null, create a minimal user from token
+          const decoded: DecodedToken = jwtDecode(token);
+          const userId = parseInt(decoded.sub, 10);
+          
+          console.log("Creating minimal user from token:", decoded);
+          
+          // Create a minimal user object from the token data
+          setUser({
+            id: userId,
+            username: decoded.sub || "User",
+            email: decoded.email || "",
+            role: decoded.role as Role || Role.USER,
+            fname: "",
+            lname: "",
+            enabled: true,
+            lastLogin: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            imgUrl: "",
+            phoneNumber: ""
+          });
+          
+          // Show a toast but don't redirect to login
+          toast("Limited profile data available", { icon: "⚠️" });
+        }
       } catch (error) {
         console.error("Failed to load profile:", error);
+        
+        // Don't redirect to login on error, just show a message
         toast.error("Failed to load profile data");
-        navigate("/login");
       }
     };
 
     loadUserProfile();
   }, [navigate]);
+
+  // Handler for image load errors
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Get profile path based on current route and user role
+  const getProfileEditPath = () => {
+    // Get user role from token instead of just checking URL
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded: DecodedToken = jwtDecode(token);
+        const role = String(decoded?.role || "").trim();
+        const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+        
+        // Return the appropriate path based on role
+        return isAdmin ? '/admin/profile/edit' : '/profile/edit';
+      } catch (error) {
+        console.error('Error decoding token for profile path:', error);
+      }
+    }
+    
+    // Fallback to URL-based detection if token check fails
+    return location.pathname.includes('/admin') ? '/admin/profile/edit' : '/profile/edit';
+  };
 
   return (
     // screen
@@ -57,7 +110,7 @@ const Profile = () => {
             My Profile
           </h2>
           <button
-            onClick={() => navigate("/profile/edit")}
+            onClick={() => navigate(getProfileEditPath())}
             className="btn text-xs xl:text-sm dark:btn-neutral"
           >
             <HiOutlinePencil className="text-lg" /> Edit My Profile
@@ -70,10 +123,10 @@ const Profile = () => {
             <div className="w-24 xl:w-36 2xl:w-48 rounded-full">
               <img
                 src={
-                  user?.imgUrl ||
-                  "https://avatars.githubusercontent.com/u/74099030?v=4"
+                  (!imageError && user?.imgUrl) || defaultAvatar
                 }
                 alt="User Avatar"
+                onError={handleImageError}
               />
             </div>
           </div>

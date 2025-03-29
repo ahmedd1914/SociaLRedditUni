@@ -97,6 +97,7 @@ public class CommentService {
         if (!isAdmin && !comment.getUser().getId().equals(userId)) {
             throw new UnauthorizedActionException("You can only delete your own comments");
         }
+        // Set isDeleted to true instead of removing
         comment.setDeleted(true);
         commentRepository.save(comment);
     }
@@ -118,7 +119,16 @@ public class CommentService {
     }
 
     public List<CommentResponseDto> getAllComments() {
+        // Return all comments with their deletion status
         return commentRepository.findAll()
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<CommentResponseDto> getAllActiveComments() {
+        // Only fetch comments where isDeleted is false
+        return commentRepository.findByIsDeletedFalse()
                 .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -160,7 +170,7 @@ public class CommentService {
                 totalReactions,
                 reactionTypes,
                 (comment.getParentComment() != null) ? comment.getParentComment().getId() : null,
-                comment.isDeleted(),
+                comment.isDeleted(), // Make sure this is included
                 replies
         );
     }

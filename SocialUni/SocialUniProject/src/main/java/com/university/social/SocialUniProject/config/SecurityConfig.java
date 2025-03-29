@@ -50,7 +50,14 @@ public class SecurityConfig {
 
                 // 4. Configure route access
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/auth/**").permitAll()
+                        // Auth endpoints - explicitly allow access without authentication
+                        .requestMatchers("/auth/login").permitAll()
+                        .requestMatchers("/auth/signup").permitAll()
+                        .requestMatchers("/auth/verify").permitAll()
+                        .requestMatchers("/auth/resend").permitAll()
+                        .requestMatchers("/auth/logout").permitAll()
+                        
+                        // Admin endpoints require ADMIN role
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
 
@@ -82,14 +89,18 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",    // React dev server
-                "http://localhost:8080",   // If you have any self-calls
-                "https://app-backend.com"  // Example domain
+                "http://localhost:3000",    // React dev server alternative port
+                "http://localhost:8080",    // If you have any self-calls
+                "https://app-backend.com"   // Example domain
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        // If your frontend needs credentials (cookies, etc.), uncomment below:
-        // configuration.setAllowCredentials(true);
-
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        // Allow credentials for cookies/sessions
+        configuration.setAllowCredentials(true);
+        // Set max age for preflight requests
+        configuration.setMaxAge(3600L);
+        
         // Apply this CORS config to all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

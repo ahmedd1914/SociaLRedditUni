@@ -1,13 +1,16 @@
 package com.university.social.SocialUniProject.responses;
 
+import com.university.social.SocialUniProject.models.Comment;
 import com.university.social.SocialUniProject.enums.Visibility;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -38,5 +41,5 @@ public class CommentResponseDto {
         this.replies = replies;
     }
 
+    }
 
-}

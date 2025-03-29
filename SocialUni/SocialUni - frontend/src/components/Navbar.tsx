@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { HiBars3CenterLeft } from 'react-icons/hi2';
 import { DiReact } from 'react-icons/di';
 import { HiSearch, HiOutlineBell } from 'react-icons/hi';
@@ -9,8 +9,8 @@ import ChangeThemes from './ChangesThemes';
 import toast from 'react-hot-toast';
 import { menu } from './menu/data';
 import MenuItem from './menu/MenuItem';
-import { logoutUser, fetchUserById } from '../api/ApiCollection'; 
-import { DecodedToken, UsersDto } from '../api/interfaces';
+import { logoutUser, getCurrentUser } from '../api/ApiCollection'; 
+import { DecodedToken, UsersDto, Role } from '../api/interfaces';
 
 
 
@@ -19,8 +19,11 @@ const Navbar = () => {
   const element = document.getElementById('root');
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
   const [user, setUser] = React.useState<UsersDto | null>(null);
+  const [imageError, setImageError] = React.useState(false);
+  const defaultAvatar = "https://avatars.githubusercontent.com/u/74099030?v=4";
 
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
 
@@ -40,34 +43,111 @@ const Navbar = () => {
     const loadUserData = async () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        navigate('/login');
+        // Don't redirect to login, just set user to null
+        setUser(null);
         return;
       }
 
       try {
-        const decoded: DecodedToken = jwtDecode(token);
-        const userId = parseInt(decoded.sub, 10); // userId from token "sub"
-        const fetchedUser = await fetchUserById(userId);
-        setUser(fetchedUser);
-      } catch (err) {
-        console.error('Failed to load user data:', err);
-        toast.error('Failed to load user profile');
-        navigate('/login');
+        // Use the getCurrentUser function for a more graceful handling
+        const currentUser = await getCurrentUser();
+        
+        if (currentUser) {
+          setUser(currentUser);
+        } else {
+          // If getCurrentUser returns null, create a minimal user from token
+          const decoded: DecodedToken = jwtDecode(token);
+          const userId = parseInt(decoded.sub, 10);
+          
+          // Create a minimal user object from the token data
+          setUser({
+            id: userId,
+            username: decoded.sub || "User",
+            email: decoded.email || "",
+            role: decoded.role as Role || Role.USER,
+            fname: "",
+            lname: "",
+            enabled: true,
+            lastLogin: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            imgUrl: ""
+          });
+          
+          // Show a toast but don't redirect to login
+          toast.error('Limited profile data available');
+        }
+      } catch (error) {
+        console.error('Failed to load user data:', error);
+        toast.error('Authentication error');
+        setUser(null);
       }
     };
 
     loadUserData();
   }, [navigate]);
 
+  // Handle image loading errors
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   const handleLogout = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // If no token exists, just redirect to login
+      navigate('/login');
+      return;
+    }
+
     try {
-      await logoutUser();
+      // First, immediately clear token from localStorage to prevent further requests
       localStorage.removeItem('token');
+      
+      // Reset all auth-related state
+      setUser(null);
+      setImageError(false);
+      
+      // Show success message
+      toast.success('Logged out successfully');
+      
+      // Then, try to blacklist the token on server (but we don't wait for it)
+      logoutUser().catch(error => {
+        console.error('Background logout error:', error);
+        // We don't show this error to the user since they're already logged out locally
+      });
+      
+      // Immediately redirect to login page
       navigate('/login');
     } catch (err) {
-      console.error(err);
-      toast.error('Logout failed');
+      console.error('Logout error:', err);
+      
+      // Ensure token is removed even if there's an error
+      localStorage.removeItem('token');
+      
+      // Always redirect to login page
+      navigate('/login');
     }
+  };
+
+  // Helper function to determine profile path based on current route and user role
+  const getProfilePath = () => {
+    // Get user role from token instead of just checking URL
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded: DecodedToken = jwtDecode(token);
+        const role = String(decoded?.role || "").trim();
+        const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+        
+        // Return the appropriate path based on role
+        return isAdmin ? '/admin/profile' : '/profile';
+      } catch (error) {
+        console.error('Error decoding token for profile path:', error);
+      }
+    }
+    
+    // Fallback to URL-based detection if token check fails
+    return location.pathname.includes('/admin') ? '/admin/profile' : '/profile';
   };
 
   return (
@@ -121,10 +201,10 @@ const Navbar = () => {
         </div>
 
         {/* navbar logo */}
-        <Link to={'/admin/home'} className="flex items-center gap-1 xl:gap-2">
+        <Link to={'/home'} className="flex items-center gap-1 xl:gap-2">
           <DiReact className="text-3xl sm:text-4xl xl:text-4xl 2xl:text-6xl text-primary animate-spin-slow" />
           <span className="text-[16px] leading-[1.2] sm:text-lg xl:text-xl 2xl:text-2xl font-semibold text-base-content dark:text-neutral-200">
-            React Dashboard
+            Social Uni
           </span>
         </Link>
       </div>
@@ -155,51 +235,76 @@ const Navbar = () => {
           )}
         </button>
 
-        {/* notification */}
-        <button
-          onClick={() =>
-            toast('Gaada notif!', {
-              icon: '😠',
-            })
-          }
-          className="px-0 xl:px-auto btn btn-circle btn-ghost"
-        >
-          <HiOutlineBell className="text-xl 2xl:text-2xl 3xl:text-3xl" />
-        </button>
-
         {/* theme */}
         <div className="px-0 xl:px-auto btn btn-circle btn-ghost xl:mr-1">
           <ChangeThemes />
         </div>
 
-        {/* avatar dropdown */}
-        <div className="dropdown dropdown-end">
-          <div
-            tabIndex={0}
-            role="button"
-            className="btn btn-ghost btn-circle avatar"
-          >
-            <div className="w-9  rounded-full">
-              <img
-                src="https://avatars.githubusercontent.com/u/74099030?v=4"
-                alt="foto-cowok-ganteng"
-              />
-            </div>
-          </div>
-          <ul
-            tabIndex={0}
-            className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-40"
-          >
-            <Link to={'/profile'}>
-              <li>
-                <a className="justify-between">My Profile</a>
-              </li>
+        {/* Login/Register buttons for non-logged in users */}
+        {!user ? (
+          <div className="flex gap-2">
+            <Link 
+              to="/login" 
+              className="btn btn-sm btn-primary"
+            >
+              Sign In
             </Link>
-            <li onClick={handleLogout}>
-              <a>Log Out</a>
-            </li>
-          </ul>
-        </div>
+            <Link 
+              to="/register" 
+              className="hidden sm:flex btn btn-sm btn-outline btn-primary"
+            >
+              Register
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* notification - only for logged in users */}
+            <button
+              onClick={() => {
+                const notificationsPath = location.pathname.includes('/admin') 
+                  ? '/admin/notifications' 
+                  : '/notifications';
+                navigate(notificationsPath);
+              }}
+              className="px-0 xl:px-auto btn btn-circle btn-ghost"
+            >
+              <HiOutlineBell className="text-xl 2xl:text-2xl 3xl:text-3xl" />
+            </button>
+
+            {/* avatar dropdown - only for logged in users */}
+            <div className="dropdown dropdown-end">
+              <div
+                tabIndex={0}
+                role="button"
+                className="btn btn-ghost btn-circle avatar"
+              >
+                <div className="w-9 rounded-full">
+                  <img
+                    src={(!imageError && user?.imgUrl) || defaultAvatar}
+                    alt={user?.username || "User Avatar"}
+                    onError={handleImageError}
+                  />
+                </div>
+              </div>
+              <ul
+                tabIndex={0}
+                className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-40"
+              >
+                <li>
+                  <Link 
+                    to={getProfilePath()} 
+                    className="justify-between"
+                  >
+                    My Profile
+                  </Link>
+                </li>
+                <li onClick={handleLogout}>
+                  <button className="w-full text-left">Log Out</button>
+                </li>
+              </ul>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,3 @@
-
 // Visibility (e.g., for posts, groups, comments)
 export enum Visibility {
     PUBLIC = 'PUBLIC',
@@ -22,10 +21,9 @@ export enum Category {
 
 // EventStatus (for events)
 export enum EventStatus {
-    PLANNED = 'PLANNED',
-    ONGOING = 'ONGOING',
+    SCHEDULED = 'SCHEDULED',
     CANCELLED = 'CANCELLED',
-    FINISHED = 'FINISHED',
+    COMPLETED = 'COMPLETED',
 }
 
 // NotificationType (for notifications)
@@ -99,6 +97,7 @@ export interface CreateEventDto {
     groupId?: number;
     category?: Category;
     privacy?: EventPrivacy;
+    eventStatus?: EventStatus; 
 }
 
 /** CreateGroupDto.java */
@@ -188,6 +187,7 @@ export interface UpdateEventDto {
     category?: Category;
     status?: string;         // e.g., "PLANNED", "ONGOING", etc.
     privacy?: EventPrivacy;
+    statuis?: EventStatus;
 }
 
 /** VerifyUserDto.java */
@@ -203,6 +203,8 @@ export type UpdateUserDto = {
     username: string;
     email: string;
     imgUrl?: string;
+    role?: string;
+    enabled: boolean;
   };
 /* =========================
    RESPONSE DTOs
@@ -235,6 +237,7 @@ export interface EventResponseDto {
     groupId: number | null;
     category: Category;
     status: EventStatus;
+    privacy: EventPrivacy;
     createdAt: string;
     updatedAt: string;
 }
@@ -274,7 +277,8 @@ export interface PostResponseDto {
     id: number;
     title: string;
     content: string;
-    categoryName: string;
+    category: Category;
+    visibility: Visibility;
     username: string;
     createdAt: string;
     image: string;
@@ -312,7 +316,7 @@ export interface UsersDto {
 export interface UpdatePostDto {
     title?: string;
     content?: string;
-    categoryId?: number;
+    category?: Category;
     visibility?: Visibility;
     groupId?: number;
 }
@@ -359,24 +363,72 @@ export interface PostMetricsDto {
 }
 
 export interface DecodedToken {
-    sub: string;    // e.g. user ID
-    role: string;   // e.g. "ROLE_ADMIN" or "ROLE_USER"
+    sub: string;
+    id?: number;
+    email: string;
+    role: string;
     iat: number;
     exp: number;
-  }
-  export interface CreateUserDto {
+}
+
+export interface MessageResponseDto {
+    id: number;
+    sender: string;
+    content: string;
+    timestamp: string;
+    read: boolean;
+    groupId?: number;
+    groupName?: string;
+}
+
+export interface GroupMessageStats {
+    totalMessages: number;
+    activeUsers: number;
+    averageMessagesPerDay: number;
+    mostActiveUser: string;
+}
+
+export interface ReactionResponseDto {
+    id: number;
+    userId: number;
+    username: string;
+    postId: number;
+    postTitle: string;
+    type: string;
+    timestamp: string;
+}
+
+export interface ReactionStats {
+    totalReactions: number;
+    upvotes: number;
+    downvotes: number;
+    likes: number;
+    mostActivePost: {
+        id: number;
+        title: string;
+        reactionCount: number;
+    };
+    mostActiveUser: {
+        id: number;
+        username: string;
+        reactionCount: number;
+    };
+}
+
+export interface CreateUserDto {
     fname: string;
     lname: string;
     username: string;
     email: string;
     phoneNumber: string;
     password: string;
-  }
-  export interface UserActivity {
+}
+
+export interface UserActivity {
     id: number;
     type: 'POST' | 'COMMENT' | 'GROUP';
     title: string;
     content?: string;
     createdAt: string;
     entityId: number;
-  }
+}

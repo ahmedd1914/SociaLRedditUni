@@ -1,20 +1,23 @@
 import React, { ChangeEvent, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { fetchUserById, updateUserProfile } from "../api/ApiCollection";
 import { jwtDecode } from "jwt-decode";
-import { UpdateUserDto, UsersDto } from "../api/interfaces";
+import { Role, UpdateUserDto, UsersDto } from "../api/interfaces";
 
 const EditProfile = () => {
   const modalDelete = React.useRef<HTMLDialogElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string>(
     "https://avatars.githubusercontent.com/u/74099030?v=4"
   );
+  const [originalUser, setOriginalUser] = useState<UsersDto | null>(null);
+  const [imageError, setImageError] = useState(false);
 
   const [profile, setProfile] = useState<UpdateUserDto>({
     fname: "",
@@ -22,14 +25,39 @@ const EditProfile = () => {
     phoneNumber: "",
     username: "",
     email: "",
-    imgUrl: undefined,
+    imgUrl: "",
+    role: Role.USER,
+    enabled: true,
   });
 
   const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      // Check if file is an image
+      if (!file.type.match('image.*')) {
+        toast.error("Please select an image file");
+        return;
+      }
+      
+      // Check file size (limit to 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+      
+      // Clear any previous image error
+      setImageError(false);
+      
+      // Clean up old preview URL if exists
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+      
       setSelectedFile(file);
-      setPreview(URL.createObjectURL(file));
+      // Create a local preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPreview(previewUrl);
     }
   };
 
@@ -48,6 +76,7 @@ const EditProfile = () => {
 
     try {
       const user: UsersDto = await fetchUserById(userId);
+      setOriginalUser(user);
 
       setProfile({
         fname: user.fname ?? "",
@@ -55,7 +84,9 @@ const EditProfile = () => {
         phoneNumber: user.phoneNumber ?? "",
         username: user.username,
         email: user.email,
-        imgUrl: user.imgUrl ?? undefined,
+        imgUrl: user.imgUrl ?? "",
+        role: user.role,
+        enabled: user.enabled,
       });
 
       setPreview(
@@ -71,6 +102,27 @@ const EditProfile = () => {
     fetchUserData();
   }, []);
 
+  // Handle image load errors
+  const handleImageError = () => {
+    setImageError(true);
+    setPreview(originalUser?.imgUrl || "https://avatars.githubusercontent.com/u/74099030?v=4");
+  };
+  
+  // Clean up preview URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      // Revoke any blob URLs to prevent memory leaks
+      if (preview && preview.startsWith('blob:')) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
+  // Helper function to determine correct profile path
+  const getProfilePath = () => {
+    return location.pathname.includes('/admin') ? '/admin/profile' : '/profile';
+  };
+
   const handleUpdateProfile = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -84,14 +136,29 @@ const EditProfile = () => {
 
     try {
       const updatedProfile: UpdateUserDto = { ...profile };
+      
+      // Handle image updates
       if (selectedFile) {
-        const base64Image = await fileToBase64(selectedFile);
-        updatedProfile.imgUrl = base64Image;
+        // For file uploads, convert to base64 and send to backend
+        try {
+          const base64Image = await fileToBase64(selectedFile);
+          updatedProfile.imgUrl = base64Image;
+        } catch (error) {
+          console.error("Failed to process image:", error);
+          toast.error("Failed to process image. Please try another file or use a URL.");
+          return;
+        }
+      } else if (profile.imgUrl && profile.imgUrl !== originalUser?.imgUrl) {
+        // For direct URL input, just use the URL
+        updatedProfile.imgUrl = profile.imgUrl;
       }
+
       await updateUserProfile(userId, updatedProfile);
       toast.success("Profile updated successfully!");
-      navigate("/admin/profile");
+      
+      navigate(getProfilePath());
     } catch (err) {
+      console.error("Profile update error:", err);
       toast.error("Failed to update profile");
     }
   };
@@ -117,9 +184,7 @@ const EditProfile = () => {
           </h2>
           <div className="w-full xl:w-auto grid grid-cols-2 xl:flex gap-3">
             <button
-              onClick={() =>
-                navigate(`/admin/profile?refresh=${new Date().getTime()}`)
-              }
+              onClick={() => navigate(`${getProfilePath()}?refresh=${new Date().getTime()}`)}
               className="btn btn-block xl:w-auto dark:btn-neutral"
             >
               Discard Changes
@@ -146,10 +211,11 @@ const EditProfile = () => {
               <div className="w-24 xl:w-36 2xl:w-48 rounded-full">
                 <img
                   src={
-                    preview ||
+                    (!imageError && preview) ||
                     "https://avatars.githubusercontent.com/u/74099030?v=4"
                   }
                   alt="Profile"
+                  onError={handleImageError}
                 />
               </div>
             </div>
@@ -266,11 +332,21 @@ const EditProfile = () => {
                 </div>
                 <input
                   type="text"
-                  placeholder="Type here"
-                  value={profile.imgUrl}
-                  onChange={(e) =>
-                    setProfile({ ...profile, imgUrl: e.target.value })
-                  }
+                  placeholder="Enter image URL"
+                  value={profile.imgUrl || ""}
+                  onChange={(e) => {
+                    // When manually entering a URL, clear any selected file
+                    if (e.target.value && selectedFile) {
+                      setSelectedFile(null);
+                    }
+                    
+                    // Update preview if a valid URL is entered
+                    if (e.target.value && e.target.value.match(/^https?:\/\/.+/)) {
+                      setPreview(e.target.value);
+                    }
+                    
+                    setProfile({ ...profile, imgUrl: e.target.value });
+                  }}
                   className="input input-bordered w-full col-span-2 2xl:col-span-3"
                 />
               </div>

@@ -1,9 +1,12 @@
 package com.university.social.SocialUniProject.controllers.AdminControllers;
 
 import com.university.social.SocialUniProject.dto.UpdateCommentDto;
+import com.university.social.SocialUniProject.models.Comment;
+import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.CommentService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -35,6 +38,12 @@ public class AdminCommentController {
         CommentResponseDto comment = commentService.getCommentResponseById(commentId);
         return ResponseEntity.ok(comment);
     }
+    @GetMapping("/active_comments")
+    public ResponseEntity<List<CommentResponseDto>> getActiveComments() {
+        List<CommentResponseDto> comments = commentService.getAllActiveComments();
+        return ResponseEntity.ok(comments);
+    }
+
 
     // 3️⃣ Update a comment as admin
     @PutMapping("/{commentId}")
@@ -44,12 +53,17 @@ public class AdminCommentController {
         return ResponseEntity.ok(updatedComment);
     }
 
-    // 4️⃣ Delete a comment as admin
-    @DeleteMapping("/{commentId}")
-    public ResponseEntity<String> deleteComment(@PathVariable Long commentId, Authentication authentication) {
-        // Retrieve admin's ID from authentication context if needed
-        Long adminId = Long.parseLong(authentication.getName());
+   @DeleteMapping("/{commentId}")
+public ResponseEntity<String> deleteComment(@PathVariable Long commentId, Authentication authentication) {
+    try {
+        User user = (User) authentication.getPrincipal();
+        Long adminId = user.getId();
         commentService.deleteComment(adminId, commentId, true);
-        return ResponseEntity.ok("Comment deleted successfully.");
+        return ResponseEntity.ok("Comment marked as deleted successfully.");
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body("Failed to delete comment: " + e.getMessage());
     }
+}
+
 }

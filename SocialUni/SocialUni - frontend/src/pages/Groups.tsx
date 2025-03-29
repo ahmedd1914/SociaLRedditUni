@@ -1,87 +1,70 @@
-import React, { useState } from 'react';
-import { GridColDef } from '@mui/x-data-grid';
-import DataTable from '../components/DataTable';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import toast from 'react-hot-toast';
-import { fetchAllGroups, createGroup, deleteGroup } from '../api/ApiCollection';
+import React, { useState } from "react";
+import { GridColDef } from "@mui/x-data-grid";
+import DataTable from "../components/DataTable";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
+import { fetchAllGroups } from "../api/ApiCollection";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
-  HiOutlinePencilSquare,
-  HiOutlineEye,
-  HiOutlineTrash,
   HiPlus,
-} from 'react-icons/hi2';
-import { useNavigate } from 'react-router-dom';
-import { CreateGroupDto, GroupResponseDto, Visibility, Category } from '../api/interfaces';
-import AddData from '../components/AddData';
+} from "react-icons/hi2";
+import AddData from "../components/AddData";
 
 const Groups = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { isLoading, isError, isSuccess, data } = useQuery({
-    queryKey: ['allgroups'],
+  const { isLoading, isSuccess, data } = useQuery({
+    queryKey: ["allgroups"],
     queryFn: fetchAllGroups,
   });
 
-  const createGroupMutation = useMutation<GroupResponseDto, Error, CreateGroupDto>({
-    mutationFn: createGroup,
-    onSuccess: () => {
-      toast.success('Group created successfully!');
-      queryClient.invalidateQueries({ queryKey: ['allgroups'] });
-      setIsModalOpen(false);
-    },
-    onError: () => {
-      toast.error('Failed to create group');
-    },
-  });
-
-  const handleDelete = async (id: number) => {
-    const confirmed = window.confirm("Are you sure you want to delete this group?");
-    if (!confirmed) return;
-
-    try {
-      await deleteGroup(id, 1); // Assuming 1 is the adminId, replace with actual adminId
-      toast.success('Group deleted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['allgroups'] });
-    } catch (error) {
-      toast.error('Failed to delete group');
-    }
-  };
-
-  const handleCreateGroup = (newGroup: CreateGroupDto) => {
-    createGroupMutation.mutate(newGroup);
-  };
-
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', minWidth: 90 },
+    { field: "id", headerName: "ID", minWidth: 90 },
     {
-      field: 'name',
-      headerName: 'Name',
+      field: "name",
+      headerName: "Name",
       minWidth: 300,
       flex: 1,
+      renderCell: (params) => (
+        <div className="flex gap-3 items-center py-2">
+          <div className="w-20 h-12 sm:w-24 sm:h-14 xl:w-32 xl:h-[72px] rounded overflow-hidden">
+            <img
+              src={params.row.image || "https://placehold.co/720x400"}
+              alt="thumbnail"
+              className="object-cover w-full h-full"
+            />
+          </div>
+          <div className="flex flex-col items-start gap-0">
+            <span className="text-base font-medium dark:text-white">
+              {params.row.name}
+            </span>
+            <p className="text-[14px] line-clamp-2 text-neutral-400">
+              {params.row.description}
+            </p>
+          </div>
+        </div>
+      ),
     },
     {
-      field: 'description',
-      headerName: 'Description',
-      minWidth: 500,
-      flex: 1,
-    },
-    {
-      field: 'category',
-      headerName: 'Category',
+      field: "category",
+      headerName: "Category",
       minWidth: 150,
       flex: 1,
+      renderCell: (params) => (
+        <div className="flex gap-1 items-center">
+          <span className="text-base font-medium">{params.row.category}</span>
+        </div>
+      ),
     },
     {
-      field: 'visibility',
-      headerName: 'Visibility',
+      field: "visibility",
+      headerName: "Visibility",
       minWidth: 120,
       flex: 1,
       renderCell: (params) =>
-        params.row.visibility === 'PUBLIC' ? (
+        params.row.visibility === "PUBLIC" ? (
           <div className="flex gap-1 items-center">
             <HiOutlineGlobeAmericas className="text-lg" />
             <span>{params.row.visibility}</span>
@@ -94,42 +77,10 @@ const Groups = () => {
         ),
     },
     {
-      field: 'memberCount',
-      headerName: 'Members',
+      field: "memberCount",
+      headerName: "Members",
       minWidth: 100,
-      type: 'number',
-    },
-    {
-      field: 'actions',
-      headerName: 'Actions',
-      minWidth: 180,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          {/* View Group */}
-          <button
-            onClick={() => navigate(`/groups/${params.row.id}`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlineEye />
-          </button>
-
-          {/* Edit Group */}
-          <button
-            onClick={() => navigate(`/groups/${params.row.id}/edit`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlinePencilSquare />
-          </button>
-
-          {/* Delete Group */}
-          <button
-            onClick={() => handleDelete(params.row.id)}
-            className="btn btn-square btn-ghost text-red-500 hover:bg-red-100"
-          >
-            <HiOutlineTrash />
-          </button>
-        </div>
-      ),
+      type: "number",
     },
   ];
 
@@ -159,12 +110,27 @@ const Groups = () => {
         </div>
 
         {isLoading ? (
-          <DataTable slug="groups" columns={columns} rows={[]} includeActionColumn={false} />
+          <DataTable
+            slug="groups"
+            columns={columns}
+            rows={[]}
+            includeActionColumn={false}
+          />
         ) : isSuccess ? (
-          <DataTable slug="groups" columns={columns} rows={data} includeActionColumn={false} />
+          <DataTable
+            slug="groups"
+            columns={columns}
+            rows={data}
+            includeActionColumn={true}
+          />
         ) : (
           <>
-            <DataTable slug="groups" columns={columns} rows={[]} includeActionColumn={false} />
+            <DataTable
+              slug="groups"
+              columns={columns}
+              rows={[]}
+              includeActionColumn={false}
+            />
             <div className="w-full flex justify-center">
               Error while fetching groups!
             </div>

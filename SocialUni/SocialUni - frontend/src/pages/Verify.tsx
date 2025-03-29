@@ -1,25 +1,104 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { DiReact } from 'react-icons/di';
 import ChangeThemes from '../components/ChangesThemes';
 import toast from 'react-hot-toast';
-import { verifyUser } from '../api/ApiCollection';
+import { useAuth } from '../contexts/AuthContext';
+import { jwtDecode } from 'jwt-decode';
+import { resendVerificationCode } from '../api/ApiCollection';
 
 const Verify: React.FC = () => {
   const navigate = useNavigate();
+  const { verify, user } = useAuth();
   const [verificationCode, setVerificationCode] = useState('');
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Extract email from token when component mounts
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      const decoded = jwtDecode<{ email: string, exp: number }>(token);
+      
+      // Check if token is expired
+      if (decoded.exp * 1000 < Date.now()) {
+        // Token expired
+        toast.error("Your session has expired. Please log in again.");
+        localStorage.removeItem('token');
+        navigate('/login?expired=true');
+        return;
+      }
+      
+      // Set email from token
+      if (decoded.email) {
+        setEmail(decoded.email);
+      }
+    } catch (error) {
+      console.error("Token decode error:", error);
+      toast.error("Authentication error");
+      localStorage.removeItem('token');
+      navigate('/login');
+    }
+  }, [navigate]);
+
+  // Redirect if user is already verified
+  useEffect(() => {
+    if (user && user.isVerified) {
+      toast.success("Your account is already verified!");
+      if (user.role === 'ROLE_ADMIN' || user.role === 'ADMIN') {
+        navigate('/admin/home');
+      } else {
+        navigate('/home');
+      }
+    }
+  }, [user, navigate]);
 
   const handleVerify = async () => {
+    if (!verificationCode.trim()) {
+      toast.error('Please enter the verification code');
+      return;
+    }
+
+    setLoading(true);
+    
     try {
-      // If your backend needs an email too, you can prompt for that or store it in state
-      const response = await verifyUser({ email: '', verificationCode });
-      console.log('Verification successful:', response);
+      await verify({ email, verificationCode });
       toast.success('Your account has been verified!');
-      // Navigate to login or wherever makes sense after verification
-      navigate('/login');
+      // Navigation will be handled by the verify method in AuthContext
     } catch (error) {
       console.error('Verification failed:', error);
-      toast.error('Invalid verification code. Please try again.');
+      toast.error(error instanceof Error 
+        ? error.message
+        : 'Invalid verification code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!email) {
+      toast.error('Email is required to resend verification code');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await resendVerificationCode(email);
+      toast.success('A new verification code has been sent to your email.');
+    } catch (error) {
+      console.error('Error resending code:', error);
+      toast.error(error instanceof Error 
+        ? error.message 
+        : 'Failed to resend verification code. Please try again later.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,9 +121,16 @@ const Verify: React.FC = () => {
             Verify Your Account
           </span>
           <div className="w-full flex flex-col items-stretch gap-3">
+            {/* User Email Display */}
+            {email && (
+              <div className="text-center mb-2">
+                <p className="text-sm text-gray-500">Verifying account for:</p>
+                <p className="font-medium">{email}</p>
+              </div>
+            )}
+            
             {/* Verification Code Field */}
             <label className="input input-bordered min-w-full flex items-center gap-2">
-              {/* Icon (You can replace with any verification or key icon) */}
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 16 16"
@@ -61,18 +147,34 @@ const Verify: React.FC = () => {
                 onChange={(e) => setVerificationCode(e.target.value)}
               />
             </label>
+            
             {/* Verify Button */}
             <div
-              onClick={handleVerify}
-              className="btn btn-block btn-primary cursor-pointer"
+              onClick={!loading ? handleVerify : undefined}
+              className={`btn btn-block btn-primary cursor-pointer ${loading ? 'loading' : ''}`}
             >
-              Verify
+              {loading ? 'Verifying...' : 'Verify'}
             </div>
+            
             <div className="divider text-sm">OR</div>
+            
             <div className="w-full flex justify-center items-center gap-4">
-              {/* Example if you have a resend code function or route */}
-              <Link to="/resend" className="link link-primary font-semibold text-xs no-underline">
+              {/* Resend Code */}
+              <button 
+                onClick={handleResendCode}
+                className="link link-primary font-semibold text-xs no-underline"
+              >
                 Resend Verification Code
+              </button>
+            </div>
+            
+            {/* Back to Login */}
+            <div className="w-full flex justify-center items-center mt-3">
+              <Link 
+                to="/login" 
+                className="link font-semibold text-xs no-underline"
+              >
+                Back to Login
               </Link>
             </div>
           </div>

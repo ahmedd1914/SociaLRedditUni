@@ -5,6 +5,7 @@ import { DiReact } from "react-icons/di";
 import { jwtDecode } from "jwt-decode";
 import { registerUser } from "../api/ApiCollection";
 import { DecodedToken } from "../api/interfaces";
+import toast from "react-hot-toast";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -12,22 +13,96 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!username.trim()) {
+      newErrors.username = "Username is required";
+    } else if (username.length < 3) {
+      newErrors.username = "Username must be at least 3 characters";
+    }
+    
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Email is invalid";
+    }
+    
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    
+    if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSignup = async () => {
-    try {
-      const token = await registerUser({ username, email, password });
-      localStorage.setItem("token", token);
-      const decoded = jwtDecode<DecodedToken>(token);
+    if (!validateForm()) {
+      // Show validation errors
+      const errorMessage = Object.values(errors)[0];
+      toast.error(errorMessage);
+      return;
+    }
 
-      // Possibly redirect
-      if (decoded.role === "ROLE_ADMIN") {
-        navigate("/admin/home");
-      } else {
-        // Maybe require them to verify first, or go to a "verify" page
+    setLoading(true);
+    
+    try {
+      // Clear any existing token before registration
+      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
+      
+      // Register the user
+      const token = await registerUser({ username, email, password });
+      
+      // Verify token before storing
+      if (!token) {
+        throw new Error("Registration failed - no token received");
+      }
+      
+      // Store the new token
+      localStorage.setItem("token", token);
+      
+      try {
+        // Decode and check token
+        const decoded = jwtDecode<DecodedToken>(token);
+        
+        toast.success("Registration successful!");
+        
+        // Redirect based on role
+        if (decoded.role === "ROLE_ADMIN" || decoded.role === "ADMIN") {
+          navigate("/admin/home");
+        } else {
+          // Redirect to verification page
+          navigate("/verify");
+        }
+      } catch (decodeError) {
+        console.error("Token decode error:", decodeError);
+        toast.error("Registration successful, but there was an issue with authentication");
         navigate("/verify");
       }
     } catch (error) {
       console.error("Signup failed:", error);
+      
+      // Show error message
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Registration failed. Please try again.");
+      }
+      
+      // Clear any invalid token
+      localStorage.removeItem("token");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -151,10 +226,10 @@ const Register = () => {
 
             {/* Submit button */}
             <div
-              onClick={handleSignup}
-              className="btn btn-block btn-primary cursor-pointer"
+              onClick={!loading ? handleSignup : undefined}
+              className={`btn btn-block btn-primary cursor-pointer ${loading ? 'loading' : ''}`}
             >
-              Register
+              {loading ? 'Registering...' : 'Register'}
             </div>
 
             <div className="divider text-sm">OR</div>

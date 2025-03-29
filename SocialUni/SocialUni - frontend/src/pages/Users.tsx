@@ -8,6 +8,8 @@ import AddData from '../components/AddData';
 
 const Users = () => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const defaultAvatar = '/Portrait_Placeholder.png';
+  
   const { isLoading, isError, isSuccess, data } = useQuery({
     queryKey: ['allusers'],
     queryFn: fetchAllUsers,
@@ -20,21 +22,28 @@ const Users = () => {
       headerName: 'Name',
       minWidth: 220,
       flex: 1,
-      renderCell: (params) => (
-        <div className="flex gap-3 items-center">
-          <div className="avatar">
-            <div className="w-6 xl:w-9 rounded-full">
-              <img
-                src={params.row.img || '/Portrait_Placeholder.png'}
-                alt="user-picture"
-              />
+      renderCell: (params) => {
+        const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+          e.currentTarget.src = defaultAvatar;
+        };
+        
+        return (
+          <div className="flex gap-3 items-center">
+            <div className="avatar">
+              <div className="w-6 xl:w-9 rounded-full">
+                <img
+                  src={params.row.imgUrl || defaultAvatar}
+                  alt={params.row.username || "User"}
+                  onError={handleImageError}
+                />
+              </div>
             </div>
+            <span className="mb-0 pb-0 leading-none">
+              {params.row.username}
+            </span>
           </div>
-          <span className="mb-0 pb-0 leading-none">
-            {params.row.username}
-          </span>
-        </div>
-      ),
+        );
+      },
     },
     {
       field: 'email',

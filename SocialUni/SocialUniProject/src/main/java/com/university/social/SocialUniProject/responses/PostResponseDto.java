@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.responses;
 
+import com.university.social.SocialUniProject.enums.Category;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -15,7 +16,7 @@ public class PostResponseDto {
     private Long id;
     private String title;
     private String content;
-    private String categoryName;
+    private Category category;
     private String username;
     private LocalDateTime createdAt;
     private Long groupId;
@@ -23,11 +24,11 @@ public class PostResponseDto {
     private Map<String, Integer> reactionTypes;
     private List<CommentResponseDto> comments;
 
-    public PostResponseDto(Long id, String title, String content, String categoryName, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> comments, Long groupId) {
+    public PostResponseDto(Long id, String title, String content, Category category, String username, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, List<CommentResponseDto> comments, Long groupId) {
         this.id = id;
         this.title = title;
         this.content = content;
-        this.categoryName = categoryName;
+        this.category = category;
         this.username = username;
         this.createdAt = createdAt;
         this.reactionCount = reactionCount;

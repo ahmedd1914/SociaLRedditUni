@@ -2,44 +2,38 @@ import React, { useState } from "react";
 import { GridColDef } from "@mui/x-data-grid";
 import DataTable from "../components/DataTable";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
-import { fetchAllComments, deleteComment } from "../api/ApiCollection";
+import { fetchAllComments, fetchActiveComments } from "../api/ApiCollection";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
-  HiOutlinePencilSquare,
-  HiOutlineEye,
-  HiOutlineTrash,
   HiPlus,
+  HiOutlineAdjustmentsHorizontal,
 } from "react-icons/hi2";
-import { useNavigate } from "react-router-dom";
-import { CommentResponseDto, Visibility } from "../api/interfaces";
+import { Visibility } from "../api/interfaces";
 import AddData from "../components/AddData";
 
-const Comments = () => {
-  const navigate = useNavigate();
+interface CommentsProps {
+  showActiveOnly?: boolean;
+}
+
+const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly = false }) => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showActiveOnly, setShowActiveOnly] = useState(initialActiveOnly);
 
-  const { isLoading, isError, isSuccess, data } = useQuery({
-    queryKey: ["allcomments"],
-    queryFn: fetchAllComments,
+  const { isLoading, isSuccess, data } = useQuery({
+    queryKey: ["comments", showActiveOnly],
+    queryFn: async () => {
+      const response = showActiveOnly ? await fetchActiveComments() : await fetchAllComments();
+      // Transform the response to use consistent field name
+      const transformedData = response.map(comment => ({
+        ...comment,
+        isDeleted: comment.isDeleted // Map 'deleted' to 'isDeleted'
+      }));
+      console.log('Transformed Response:', transformedData);
+      return transformedData;
+    },
   });
-
-  const handleDelete = async (id: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this comment?"
-    );
-    if (!confirmed) return;
-
-    try {
-      await deleteComment(id);
-      toast.success("Comment deleted successfully!");
-      queryClient.invalidateQueries({ queryKey: ["allcomments"] });
-    } catch (error) {
-      toast.error("Failed to delete comment");
-    }
-  };
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },
@@ -89,6 +83,26 @@ const Comments = () => {
         ),
     },
     {
+      field: "isDeleted",
+      headerName: "Status",
+      minWidth: 120,
+      flex: 1,
+      renderCell: (params) => {
+        // Check for both 'isDeleted' and 'deleted' fields
+        const isDeleted = params.row.isDeleted || params.row.deleted;
+        
+        return (
+          <div className={`px-2 py-1 rounded-full text-sm ${
+            isDeleted
+              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+              : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+          }`}>
+            {isDeleted ? "NOT ACTIVE" : "Active"}
+          </div>
+        );
+      },
+    },
+    {
       field: "createdAt",
       headerName: "Created At",
       minWidth: 120,
@@ -115,38 +129,6 @@ const Comments = () => {
         </div>
       ),
     },
-    {
-      field: "actions",
-      headerName: "Actions",
-      minWidth: 180,
-      renderCell: (params) => (
-        <div className="flex items-center gap-2">
-          {/* View Comment */}
-          <button
-            onClick={() => navigate(`/comments/${params.row.id}`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlineEye />
-          </button>
-
-          {/* Edit Comment */}
-          <button
-            onClick={() => navigate(`/comments/${params.row.id}/edit`)}
-            className="btn btn-square btn-ghost"
-          >
-            <HiOutlinePencilSquare />
-          </button>
-
-          {/* Delete Comment */}
-          <button
-            onClick={() => handleDelete(params.row.id)}
-            className="btn btn-square btn-ghost text-red-500 hover:bg-red-100"
-          >
-            <HiOutlineTrash />
-          </button>
-        </div>
-      ),
-    },
   ];
 
   return (
@@ -164,14 +146,30 @@ const Comments = () => {
             )}
           </div>
 
-          {/* Create Comment Button */}
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="btn btn-primary flex items-center gap-2"
-          >
-            <HiPlus className="text-lg" />
-            Create Comment
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Filter Toggle Button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowActiveOnly(!showActiveOnly)}
+                className={`btn ${
+                  showActiveOnly ? "btn-primary" : "btn-ghost"
+                } flex items-center gap-2`}
+                title={showActiveOnly ? "Showing active comments" : "Showing all comments"}
+              >
+                <HiOutlineAdjustmentsHorizontal className="text-lg" />
+                {showActiveOnly ? "Active Only" : "All Comments"}
+              </button>
+            </div>
+
+            {/* Create Comment Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="btn btn-primary flex items-center gap-2"
+            >
+              <HiPlus className="text-lg" />
+              Create Comment
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -186,7 +184,7 @@ const Comments = () => {
             slug="comments"
             columns={columns}
             rows={data}
-            includeActionColumn={false}
+            includeActionColumn={true} // This enables the built-in actions
           />
         ) : (
           <>
