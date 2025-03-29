@@ -1,4 +1,3 @@
-
 // Visibility (e.g., for posts, groups, comments)
 export enum Visibility {
     PUBLIC = 'PUBLIC',
@@ -364,24 +363,72 @@ export interface PostMetricsDto {
 }
 
 export interface DecodedToken {
-    sub: string;    // e.g. user ID
-    role: string;   // e.g. "ROLE_ADMIN" or "ROLE_USER"
+    sub: string;
+    id?: number;
+    email: string;
+    role: string;
     iat: number;
     exp: number;
-  }
-  export interface CreateUserDto {
+}
+
+export interface MessageResponseDto {
+    id: number;
+    sender: string;
+    content: string;
+    timestamp: string;
+    read: boolean;
+    groupId?: number;
+    groupName?: string;
+}
+
+export interface GroupMessageStats {
+    totalMessages: number;
+    activeUsers: number;
+    averageMessagesPerDay: number;
+    mostActiveUser: string;
+}
+
+export interface ReactionResponseDto {
+    id: number;
+    userId: number;
+    username: string;
+    postId: number;
+    postTitle: string;
+    type: string;
+    timestamp: string;
+}
+
+export interface ReactionStats {
+    totalReactions: number;
+    upvotes: number;
+    downvotes: number;
+    likes: number;
+    mostActivePost: {
+        id: number;
+        title: string;
+        reactionCount: number;
+    };
+    mostActiveUser: {
+        id: number;
+        username: string;
+        reactionCount: number;
+    };
+}
+
+export interface CreateUserDto {
     fname: string;
     lname: string;
     username: string;
     email: string;
     phoneNumber: string;
     password: string;
-  }
-  export interface UserActivity {
+}
+
+export interface UserActivity {
     id: number;
     type: 'POST' | 'COMMENT' | 'GROUP';
     title: string;
     content?: string;
     createdAt: string;
     entityId: number;
-  }
+}

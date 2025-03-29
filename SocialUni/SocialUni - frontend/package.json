@@ -6,8 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:prod": "vite build --mode production",
+    "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "analyze": "vite build --mode analyze",
+    "clean": "rimraf dist",
+    "type-check": "tsc --noEmit",
+    "prepare": "npm run clean && npm run build"
   },
   "dependencies": {
     "@emotion/react": "^11.11.3",

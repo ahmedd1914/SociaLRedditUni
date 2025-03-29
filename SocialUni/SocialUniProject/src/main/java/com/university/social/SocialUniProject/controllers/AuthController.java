@@ -33,10 +33,17 @@ public class AuthController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<LoginResponse> authenticate(@RequestBody LoginUserDto loginUserDto) {
-        String jwtToken = authenticationService.authenticate(loginUserDto);
-        LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
-        System.out.println("Sending response to frontend: " + loginResponse);
-        return ResponseEntity.ok(loginResponse);
+        System.out.println("Login request received for email: " + loginUserDto.getEmail());
+        try {
+            String jwtToken = authenticationService.authenticate(loginUserDto);
+            LoginResponse loginResponse = new LoginResponse(jwtToken, jwtService.getExpirationTime());
+            System.out.println("Login successful. Sending response to frontend: " + loginResponse);
+            return ResponseEntity.ok(loginResponse);
+        } catch (Exception e) {
+            System.err.println("Authentication failed: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @PostMapping("/verify")
@@ -60,5 +67,10 @@ public class AuthController {
         String jwt = authHeader.replace("Bearer ", "");
         tokenBlacklistService.blacklistToken(jwt);
         return ResponseEntity.ok("Logged out successfully");
+    }
+
+    @GetMapping("/test")
+    public ResponseEntity<String> testConnection() {
+        return ResponseEntity.ok("Auth server is running");
     }
 }

@@ -8,6 +8,8 @@ import {
   HiOutlinePresentationChartBar,
   HiOutlineDocumentText,
   HiOutlineArrowLeftOnRectangle,
+  HiOutlineBell,
+  HiOutlineUserGroup,
 } from 'react-icons/hi2';
 import { IoSettingsOutline } from 'react-icons/io5';
 
@@ -38,7 +40,7 @@ export const menu = [
         // - GET /admin/profile
         // - PUT /admin/profile (update admin info)
         isLink: true,
-        url: '/profile',
+        url: '/admin/profile',
         icon: HiOutlineUser,
         label: 'profile',
       },
@@ -126,6 +128,16 @@ export const menu = [
         icon: HiOutlinePencilSquare,
         label: 'groups',
       },
+      {
+        // Group Join Requests
+        // - GET /admin/groups/{groupId}/join-requests?adminId=...
+        // - POST /admin/groups/{groupId}/approve/{userId}?adminId=...
+        // - DELETE /admin/groups/{groupId}/reject/{userId}
+        isLink: true,
+        url: '/admin/group-requests',
+        icon: HiOutlineUserGroup,
+        label: 'join requests',
+      },
       // {
       //   // AdminMessageController (Group Messages)
       //   // e.g.:
@@ -154,7 +166,7 @@ export const menu = [
         // - GET /admin/notifications/stats
         isLink: true,
         url: '/admin/notifications',
-        icon: IoSettingsOutline,
+        icon: HiOutlineBell,
         label: 'notifications',
       },
     ],

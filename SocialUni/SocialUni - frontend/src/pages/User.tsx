@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ const User: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [imageError, setImageError] = useState(false);
 
   const { isLoading, isError, data, isSuccess } = useQuery({
     queryKey: ["user", id],
@@ -30,6 +31,11 @@ const User: React.FC = () => {
     },
   });
 
+  // Reset image error state when user changes
+  useEffect(() => {
+    setImageError(false);
+  }, [id]);
+
   // Add new query for activities
   const { data: activities } = useQuery<UserActivity[]>({
     queryKey: ["userActivities", id],
@@ -38,6 +44,10 @@ const User: React.FC = () => {
     },
     enabled: !!data, // Only fetch activities after user data is loaded
   });
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
 
   const handleDelete = async () => {
     const confirmed = window.confirm(
@@ -124,11 +134,12 @@ const User: React.FC = () => {
             <div className="flex items-center gap-4 mb-6">
               <div className="avatar">
                 <div className="w-24 h-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2 overflow-hidden">
-                  {data.imgUrl ? (
+                  {data.imgUrl && !imageError ? (
                     <img
                       src={data.imgUrl}
                       alt={data.username}
                       className="w-full h-full object-cover"
+                      onError={handleImageError}
                     />
                   ) : (
                     <div className="bg-neutral-content w-full h-full flex items-center justify-center">

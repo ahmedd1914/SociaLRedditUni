@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ChangeThemes from '../components/ChangesThemes';
 import { DiReact } from 'react-icons/di';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { loginUser } from '../api/ApiCollection';
 import { DecodedToken } from '../api/interfaces';
@@ -9,32 +9,65 @@ import toast from 'react-hot-toast';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
+  // Check for expired session parameter
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('expired') === 'true') {
+      toast.error('Your session has expired. Please log in again.');
+    }
+  }, [location]);
 
   const handleLogin = async () => {
-    try {
-        const { token, expiresIn } = await loginUser({ email, password });  // Expect object
-
-        localStorage.setItem('token', token);
-        localStorage.setItem('expiresIn', expiresIn.toString());
-
-        const decoded = jwtDecode<DecodedToken>(token);
-        console.log('Decoded JWT:', decoded);
-
-        if (decoded.role === 'ADMIN') {
-            navigate('/admin/home');
-        } else {
-            navigate('/user/home');
-        }
-    } catch (err) {
-        console.error('Login failed:', err);
-        toast.error('Login failed! Please check your credentials.');
+    // Form validation
+    if (!email || !password) {
+      toast.error('Please enter both email and password');
+      return;
     }
-};
 
+    setLoading(true);
+    setErrorMessage('');
 
+    try {
+      const { token } = await loginUser({ email, password });
+      
+      // Decode the token
+      const decoded = jwtDecode<DecodedToken>(token);
+      
+      // Determine user role
+      const role = String(decoded.role).trim();
+      const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+
+      // Show success message
+      toast.success('Login successful!');
+
+      // Redirect based on role with a full page reload to ensure fresh state
+      const redirectPath = isAdmin ? '/admin/home' : '/home';
+      
+      // Use window.location for a full page reload instead of React Router navigation
+      window.location.href = redirectPath;
+      return; // Stop execution after redirect
+    } catch (err) {
+      console.error('Login failed:', err);
+      const errorMsg = err instanceof Error ? err.message : 'Login failed! Please check your credentials.';
+      setErrorMessage(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Enter key press
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
+  };
 
   return (
     <div className="w-full p-0 m-0">
@@ -91,8 +124,13 @@ const Login = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyPress={handleKeyPress}
               />
             </label>
+            {/* Error message display */}
+            {errorMessage && (
+              <div className="text-error text-sm mt-1">{errorMessage}</div>
+            )}
             <div className="flex items-center justify-between">
               <div className="form-control">
                 <label className="label cursor-pointer gap-2">
@@ -114,11 +152,12 @@ const Login = () => {
               </a>
             </div>
             <div
-              onClick={handleLogin}
-              className="btn btn-block btn-primary cursor-pointer"
+              onClick={!loading ? handleLogin : undefined}
+              className={`btn btn-block btn-primary cursor-pointer ${loading ? 'loading' : ''}`}
             >
-              Log In
+              {loading ? 'Logging in...' : 'Log In'}
             </div>
+            
             <div className="divider text-sm">OR</div>
             <div className="w-full flex justify-center items-center gap-4">
               <button className="btn btn-circle dark:btn-neutral">
