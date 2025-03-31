@@ -1,16 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
-import { 
-  fetchAllNotifications, 
-  markNotificationAsRead, 
-  bulkMarkNotificationsAsRead, 
-  deleteNotification,
-  bulkDeleteNotifications,
-  fetchNotificationStats
-} from "../api/ApiCollection";
-import { DecodedToken, NotificationResponseDto, NotificationType } from "../api/interfaces";
+import { API } from "../../api/api";
+import { DecodedToken, NotificationResponseDto, NotificationType, NotificationStatsDto } from "../../api/interfaces";
 import { HiOutlineBell, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineExclamationCircle } from "react-icons/hi2";
 import { FaComment, FaHeart, FaUserPlus, FaAt } from "react-icons/fa";
 
@@ -26,23 +18,23 @@ const Notifications = () => {
     isLoading, 
     isError, 
     error 
-  } = useQuery({
+  } = useQuery<NotificationResponseDto[]>({
     queryKey: ["notifications"],
-    queryFn: () => fetchAllNotifications(),
+    queryFn: () => API.fetchAllNotifications(),
   });
 
   // Fetch notification stats
   const { 
     data: notificationStats, 
     isLoading: statsLoading 
-  } = useQuery({
+  } = useQuery<NotificationStatsDto>({
     queryKey: ["notificationStats"],
-    queryFn: fetchNotificationStats,
+    queryFn: () => API.fetchNotificationStats(),
   });
 
   // Mark notification as read mutation
   const markAsReadMutation = useMutation({
-    mutationFn: (notificationId: number) => markNotificationAsRead(notificationId),
+    mutationFn: (notificationId: number) => API.markNotificationAsRead(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notificationStats"] });
@@ -56,7 +48,7 @@ const Notifications = () => {
 
   // Bulk mark as read mutation
   const bulkMarkAsReadMutation = useMutation({
-    mutationFn: (ids: number[]) => bulkMarkNotificationsAsRead(ids),
+    mutationFn: (ids: number[]) => API.bulkMarkNotificationsAsRead(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notificationStats"] });
@@ -71,7 +63,7 @@ const Notifications = () => {
 
   // Delete notification mutation
   const deleteNotificationMutation = useMutation({
-    mutationFn: (notificationId: number) => deleteNotification(notificationId),
+    mutationFn: (notificationId: number) => API.deleteNotification(notificationId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notificationStats"] });
@@ -85,7 +77,7 @@ const Notifications = () => {
 
   // Bulk delete notifications mutation
   const bulkDeleteMutation = useMutation({
-    mutationFn: (ids: number[]) => bulkDeleteNotifications(ids),
+    mutationFn: (ids: number[]) => API.bulkDeleteNotifications(ids),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
       queryClient.invalidateQueries({ queryKey: ["notificationStats"] });
@@ -103,7 +95,7 @@ const Notifications = () => {
     if (selectedNotifications.length === filteredNotifications.length) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(filteredNotifications.map(n => n.id));
+      setSelectedNotifications(filteredNotifications.map((n: NotificationResponseDto) => n.id));
     }
   };
 
@@ -133,7 +125,7 @@ const Notifications = () => {
   };
 
   // Filter notifications based on type and read status
-  const filteredNotifications = notifications.filter(notification => {
+  const filteredNotifications = notifications.filter((notification: NotificationResponseDto) => {
     if (filterType !== "ALL" && notification.notificationType !== filterType) {
       return false;
     }

@@ -3,18 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { HiOutlineXMark } from "react-icons/hi2";
-import {
-  fetchUserById,
-  fetchPostById,
-  fetchGroupById,
-  fetchCommentById,
-  fetchEventById,
-  updateUserProfile,
-  updatePost,
-  updateGroup,
-  updateComment,
-  updateEvent,
-} from "../api/ApiCollection";
+import { API } from "../api/api";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Category,
   Visibility,
@@ -67,8 +57,17 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const cleanSlug = slug.replace("admin/", "");
   const validSlugs = ["users", "posts", "groups", "comments", "events"];
+
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   // Form states
   const [userForm, setUserForm] = useState<UpdateUserDto>({
@@ -90,11 +89,16 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
     groupId: undefined,
   });
 
-  const [groupForm, setGroupForm] = useState<CreateGroupDto>({
+  const [groupForm, setGroupForm] = useState<GroupResponseDto>({
+    id: 0,
     name: "",
     description: "",
     visibility: Visibility.PUBLIC,
     category: Category.GENERAL,
+    memberCount: 0,
+    ownerId: 0,
+    adminIds: [],
+    memberIds: []
   });
 
   const [commentForm, setCommentForm] = useState<UpdateCommentDto>({
@@ -117,20 +121,23 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
     queryKey: [cleanSlug, id],
     queryFn: async () => {
       if (!id) throw new Error("No ID provided");
+      if (!user || user.role !== 'ADMIN') {
+        throw new Error("Unauthorized: Admin privileges required");
+      }
       console.log(`Fetching ${cleanSlug} with ID:`, id);
 
       try {
         switch (cleanSlug) {
           case "users":
-            return await fetchUserById(Number(id));
+            return await API.fetchUserById(Number(id));
           case "posts":
-            return await fetchPostById(Number(id));
+            return await API.fetchPostById(Number(id));
           case "groups":
-            return await fetchGroupById(Number(id));
+            return await API.fetchGroupById(Number(id));
           case "comments":
-            return await fetchCommentById(Number(id));
+            return await API.fetchCommentById(Number(id));
           case "events":
-            return await fetchEventById(Number(id));
+            return await API.fetchEventById(Number(id));
           default:
             throw new Error(`Invalid entity type: ${cleanSlug}`);
         }
@@ -139,7 +146,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
         throw err;
       }
     },
-    enabled: Boolean(id) && validSlugs.includes(cleanSlug),
+    enabled: Boolean(id) && validSlugs.includes(cleanSlug) && !!user && user.role === 'ADMIN',
   });
 
   // Update form when data is loaded
@@ -177,10 +184,15 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
         case "groups":
           if (isGroupResponse(data)) {
             setGroupForm({
+              id: data.id,
               name: data.name,
               description: data.description || "",
               visibility: data.visibility,
               category: data.category,
+              memberCount: data.memberCount,
+              ownerId: data.ownerId,
+              adminIds: data.adminIds,
+              memberIds: data.memberIds
             });
           }
           break;
@@ -215,25 +227,33 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!id) throw new Error("No ID provided");
-      const userId = 1; // Replace with actual userId from auth context
 
+      const isAdminRoute = slug.startsWith("admin/");
       switch (cleanSlug) {
         case "users":
-          return await updateUserProfile(Number(id), userForm);
+          return await API.updateUserProfile(Number(id), userForm);
         case "posts":
-          return await updatePost(Number(id), postForm);
+          return await API.updatePost(Number(id), postForm);
         case "groups":
-          return await updateGroup(Number(id), groupForm, userId);
+          // Convert GroupResponseDto to CreateGroupDto
+          const groupDto: CreateGroupDto = {
+            name: groupForm.name,
+            description: groupForm.description,
+            visibility: groupForm.visibility,
+            category: groupForm.category
+          };
+          return await API.updateGroup(Number(id), groupDto);
         case "comments":
-          return await updateComment(Number(id), commentForm);
+          return await API.updateComment(Number(id), commentForm);
         case "events":
-          return await updateEvent(Number(id), eventForm);
+          return await API.updateEvent(Number(id), eventForm);
         default:
           throw new Error(`Invalid entity type: ${cleanSlug}`);
       }
     },
     onSuccess: () => {
       toast.success(`${cleanSlug} updated successfully!`);
+      queryClient.invalidateQueries({ queryKey: [cleanSlug, id] });
       queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
 
       const isAdminRoute = slug.startsWith("admin/");

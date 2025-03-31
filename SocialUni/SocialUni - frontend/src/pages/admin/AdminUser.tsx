@@ -2,12 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchUserById,
-  deleteUser,
-  fetchUserActivity,
-} from "../api/ApiCollection";
-import { UserActivity } from "../api/interfaces";
+import { API } from "../../api/api";
+import { UserActivity } from "../../api/interfaces";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
@@ -21,14 +18,27 @@ const User: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [imageError, setImageError] = useState(false);
+
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const { isLoading, isError, data, isSuccess } = useQuery({
     queryKey: ["user", id],
     queryFn: async () => {
-      const user = await fetchUserById(Number(id));
-      return user;
+      if (!user || user.role !== 'ADMIN') {
+        throw new Error("Unauthorized: Admin privileges required");
+      }
+      const userData = await API.fetchUserById(Number(id));
+      return userData;
     },
+    enabled: !!user && user.role === 'ADMIN',
   });
 
   // Reset image error state when user changes
@@ -40,9 +50,12 @@ const User: React.FC = () => {
   const { data: activities } = useQuery<UserActivity[]>({
     queryKey: ["userActivities", id],
     queryFn: async (): Promise<UserActivity[]> => {
-      return (await fetchUserActivity(Number(id))) as UserActivity[];
+      if (!user || user.role !== 'ADMIN') {
+        throw new Error("Unauthorized: Admin privileges required");
+      }
+      return await API.fetchUserActivities(Number(id));
     },
-    enabled: !!data, // Only fetch activities after user data is loaded
+    enabled: !!data && !!user && user.role === 'ADMIN', // Only fetch activities after user data is loaded and user is admin
   });
 
   const handleImageError = () => {
@@ -56,7 +69,7 @@ const User: React.FC = () => {
     if (!confirmed) return;
 
     try {
-      await deleteUser(Number(id));
+      await API.deleteUser(Number(id));
       toast.success("User deleted successfully!");
       queryClient.invalidateQueries({ queryKey: ["allusers"] });
       navigate("/admin/users");

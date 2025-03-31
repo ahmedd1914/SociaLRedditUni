@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
-import { getCurrentUser } from "../api/ApiCollection";
+import { API } from "../api/api";
 import { DecodedToken, UsersDto, Role } from "../api/interfaces";
 
 const Profile = () => {
@@ -26,7 +26,7 @@ const Profile = () => {
 
       try {
         // Use getCurrentUser instead of fetchUserById for better error handling
-        const currentUser = await getCurrentUser();
+        const currentUser = await API.getCurrentUser();
         
         if (currentUser) {
           console.log("Fetched User from backend:", currentUser);

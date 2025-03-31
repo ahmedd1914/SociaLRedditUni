@@ -61,6 +61,9 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasAuthority("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
 
+                        // User endpoints
+                        .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
+
                         // Swagger endpoints
                         .requestMatchers(
                                 "/swagger-ui/**",

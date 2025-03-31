@@ -14,22 +14,17 @@ import {
   EventStatus,
 } from "../api/interfaces";
 // Import your API functions for each type:
-import {
-  createUser,
-  createPost,
-  createGroup,
-  createEvent,
-  createComment,
-} from "../api/ApiCollection";
+import { API } from "../api/api";
 
 interface AddDataProps {
   slug: string;
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   editId?: number | null;
+  onSuccess?: () => void;
 }
 
-const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
+const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess }) => {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(isOpen);
   const [preview, setPreview] = useState<string | null>(null);
@@ -98,32 +93,32 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
       switch (slug) {
         case "user":
           console.log("User Form:", userForm);
-          await createUser(userForm);
+          await API.createUser(userForm);
           toast.success("User created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allusers"] });
           break;
         case "post":
           console.log("Post Form:", postForm);
-          await createPost(postForm);
+          await API.createPost(postForm);
           toast.success("Post created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allposts"] });
           break;
         case "group":
           console.log("Group Form:", groupForm);
-          await createGroup(groupForm);
+          await API.createGroup(groupForm);
           toast.success("Group created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allgroups"] });
           break;
         case "event":
         case "events":
           console.log("Event Form:", eventForm);
-          await createEvent(eventForm);
+          await API.createEvent(eventForm);
           toast.success("Event created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allevents"] });
           break;
         case "comment":
           console.log("Comment Form:", commentForm);
-          await createComment(commentForm);
+          await API.createComment(commentForm);
           toast.success("Comment created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allcomments"] });
           break;
@@ -131,6 +126,9 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen }) => {
           throw new Error("Invalid slug");
       }
       setIsOpen(false);
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (error) {
       console.error("Error while creating data:", error);
       toast.error("Failed to create data");

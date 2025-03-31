@@ -23,4 +23,7 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByUserId(Long userId);
     void deleteByPost(Post post);
     List<Comment> findByIsDeletedFalse();
+    
+    @Query("SELECT COUNT(c) FROM Comment c WHERE c.isDeleted = false AND c.user.deleted = false")
+    long countActiveRecords();
 }

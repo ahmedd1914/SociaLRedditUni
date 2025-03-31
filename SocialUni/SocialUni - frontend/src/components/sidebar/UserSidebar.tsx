@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllGroups } from "../../api/ApiCollection";
+import { API } from "../../api/api";
 import { useAuth } from "../../contexts/AuthContext";
 import { Link } from 'react-router-dom';
 
@@ -37,19 +37,13 @@ const SORT_OPTIONS = [
 ];
 
 const UserSidebar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const [viewAllGroups, setViewAllGroups] = useState(false);
   
   // Fetch user groups
   const groupsQuery = useQuery({
     queryKey: ["sidebar-groups"],
-    queryFn: fetchAllGroups,
+    queryFn: API.fetchAllGroups,
   });
-
-  // Check if user is admin
-  const isAdmin = user?.role === "ROLE_ADMIN" || user?.role === "ADMIN";
 
   // If not logged in, show the guest sidebar
   if (!isAuthenticated) {

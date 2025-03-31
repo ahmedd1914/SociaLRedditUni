@@ -9,13 +9,13 @@ import ChangeThemes from './ChangesThemes';
 import toast from 'react-hot-toast';
 import { menu } from './menu/data';
 import MenuItem from './menu/MenuItem';
-import { logoutUser, getCurrentUser } from '../api/ApiCollection'; 
+import { API } from '../api/api'; 
 import { DecodedToken, UsersDto, Role } from '../api/interfaces';
 
 
 
 const Navbar = () => {
-  const [isFullScreen, setIsFullScreen] = React.useState(true);
+  const [isFullScreen, setIsFullScreen] = React.useState(false);
   const element = document.getElementById('root');
   const [isDrawerOpen, setDrawerOpen] = React.useState(false);
   const [user, setUser] = React.useState<UsersDto | null>(null);
@@ -27,17 +27,30 @@ const Navbar = () => {
 
   const toggleDrawer = () => setDrawerOpen(!isDrawerOpen);
 
-  const toggleFullScreen = () => {
-    setIsFullScreen((prev) => !prev);
+  const toggleFullScreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await element?.requestFullscreen();
+        setIsFullScreen(true);
+      } else {
+        await document.exitFullscreen();
+        setIsFullScreen(false);
+      }
+    } catch (err) {
+      console.error('Error toggling fullscreen:', err);
+    }
   };
 
   React.useEffect(() => {
-    if (isFullScreen) {
-      document.exitFullscreen();
-    } else {
-      element?.requestFullscreen({ navigationUI: 'auto' });
-    }
-  }, [element, isFullScreen]);
+    const handleFullscreenChange = () => {
+      setIsFullScreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   React.useEffect(() => {
     const loadUserData = async () => {
@@ -50,7 +63,7 @@ const Navbar = () => {
 
       try {
         // Use the getCurrentUser function for a more graceful handling
-        const currentUser = await getCurrentUser();
+        const currentUser = await API.getCurrentUser();
         
         if (currentUser) {
           setUser(currentUser);
@@ -111,7 +124,7 @@ const Navbar = () => {
       toast.success('Logged out successfully');
       
       // Then, try to blacklist the token on server (but we don't wait for it)
-      logoutUser().catch(error => {
+      API.logout().catch(error => {
         console.error('Background logout error:', error);
         // We don't show this error to the user since they're already logged out locally
       });
@@ -229,9 +242,9 @@ const Navbar = () => {
           className="hidden xl:inline-flex btn btn-circle btn-ghost"
         >
           {isFullScreen ? (
-            <RxEnterFullScreen className="xl:text-xl 2xl:text-2xl 3xl:text-3xl" />
-          ) : (
             <RxExitFullScreen className="xl:text-xl 2xl:text-2xl 3xl:text-3xl" />
+          ) : (
+            <RxEnterFullScreen className="xl:text-xl 2xl:text-2xl 3xl:text-3xl" />
           )}
         </button>
 

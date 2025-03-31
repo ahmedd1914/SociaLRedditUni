@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface ReactionRepository extends JpaRepository<Reaction, Long> {
@@ -27,5 +28,7 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     List<Object[]> findReactionTypeCountsByComment(@Param("commentId") Long commentId);
 
     List<Reaction> findByType(ReactionType type);
+
+    long countByReactedAtAfter(LocalDateTime date);
 
 }

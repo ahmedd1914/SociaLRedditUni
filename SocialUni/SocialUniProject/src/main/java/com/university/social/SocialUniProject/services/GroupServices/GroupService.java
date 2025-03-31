@@ -7,6 +7,7 @@ import com.university.social.SocialUniProject.dto.UserDto.UsersDto;
 import com.university.social.SocialUniProject.enums.NotificationType;
 import com.university.social.SocialUniProject.enums.Visibility;
 import com.university.social.SocialUniProject.enums.Category;
+import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.exceptions.UnauthorizedActionException;
 import com.university.social.SocialUniProject.models.Group;
@@ -85,8 +86,10 @@ public class GroupService {
         Group group = getGroupById(groupId);
         User user = getUserById(userId);
 
-        // Allow update only if the user is the owner or an admin of the group
-        if (!group.getOwner().getId().equals(userId) && !group.getAdmins().contains(user)) {
+        // Allow update if the user is the owner, an admin of the group, or a system admin
+        if (!group.getOwner().getId().equals(userId) && 
+            !group.getAdmins().contains(user) && 
+            !user.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
             throw new UnauthorizedActionException("You are not authorized to update this group.");
         }
 

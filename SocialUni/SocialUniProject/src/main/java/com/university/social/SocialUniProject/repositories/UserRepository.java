@@ -18,7 +18,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByRole(Role role);
     List<User> findByUsernameContainingAndRole(String username, Role role);
     Optional<User> findByUsername(String username);
-    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'ADMIN'")
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = 'ADMIN' AND u.deleted = false")
     long countByRole(Role role);
 
+    @Query("SELECT u FROM User u WHERE u.deleted = false")
+    List<User> findAllActive();
+
+    List<User> findTop10ByOrderByCreatedAtDesc();
 }

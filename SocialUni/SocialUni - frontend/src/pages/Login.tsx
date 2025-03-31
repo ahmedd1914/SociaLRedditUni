@@ -3,12 +3,11 @@ import ChangeThemes from '../components/ChangesThemes';
 import { DiReact } from 'react-icons/di';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { loginUser } from '../api/ApiCollection';
+import { API } from '../api/api';
 import { DecodedToken } from '../api/interfaces';
 import toast from 'react-hot-toast';
 
 const Login = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,7 +33,7 @@ const Login = () => {
     setErrorMessage('');
 
     try {
-      const { token } = await loginUser({ email, password });
+      const { token } = await API.login({ email, password });
       
       // Decode the token
       const decoded = jwtDecode<DecodedToken>(token);

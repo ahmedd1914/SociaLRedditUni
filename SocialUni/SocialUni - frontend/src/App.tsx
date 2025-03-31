@@ -1,14 +1,12 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import {
   Routes,
   Route,
   Outlet,
   Navigate,
-  BrowserRouter as Router,
 } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Menu from "./components/menu/Menu";
 import AdminMenu from "./components/menu/AdminMenu";
 import UserSidebar from "./components/sidebar/UserSidebar";
 import Error from "./pages/Error";
@@ -17,28 +15,28 @@ import { useAuth } from "./contexts/AuthContext";
 import toast, { Toaster } from 'react-hot-toast';
 
 // Lazy loaded components for better performance
-const AdminHome = lazy(() => import("./pages/AdminHome"));
-const Users = lazy(() => import("./pages/Users"));
+const AdminHome = lazy(() => import("./pages/admin/AdminHome"));
+const Users = lazy(() => import("./pages/admin/AdminUsers"));
 const Profile = lazy(() => import("./pages/Profile"));
-const Posts = lazy(() => import("./pages/Posts"));
+const Posts = lazy(() => import("./pages/admin/AdminPosts"));
 const EditProfile = lazy(() => import("./pages/EditProfile"));
-const User = lazy(() => import("./pages/User"));
+const User = lazy(() => import("./pages/admin/AdminUser"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const Verify = lazy(() => import("./pages/Verify"));
-const Groups = lazy(() => import("./pages/Groups"));
-const Comments = lazy(() => import("./pages/Comments"));
+const Groups = lazy(() => import("./pages/admin/AdminGroups"));
+const Comments = lazy(() => import("./pages/admin/AdminComments"));
 const EditData = lazy(() => import("./components/EditData"));
 const Home = lazy(() => import("./pages/Home"));
-const Events = lazy(() => import("./pages/Events"));
-const Notifications = lazy(() => import("./pages/Notifications"));
-const GroupRequests = lazy(() => import("./pages/GroupRequests"));
+const Events = lazy(() => import("./pages/admin/AdminEvents"));
+const Notifications = lazy(() => import("./pages/admin/AdminNotifications"));
+const GroupRequests = lazy(() => import("./pages/admin/AdminGroupRequests"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const GroupPage = lazy(() => import("./pages/GroupPage"));
 // New admin components
-const AdminMessages = lazy(() => import("./pages/AdminMessages"));
-const AdminReactions = lazy(() => import("./pages/AdminReactions"));
-const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminReactions = lazy(() => import("./pages/admin/AdminReactions"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 
 // Loading component for Suspense fallback
 const Loading = () => (
@@ -49,7 +47,7 @@ const Loading = () => (
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
     return <Loading />;

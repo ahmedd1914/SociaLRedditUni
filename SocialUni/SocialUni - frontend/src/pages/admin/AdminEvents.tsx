@@ -1,37 +1,44 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { GridColDef } from "@mui/x-data-grid";
-import DataTable from "../components/DataTable";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
-import { fetchAllEvents, deleteEvent } from "../api/ApiCollection";
+import DataTable from "../../components/DataTable";
+import { useQuery } from "@tanstack/react-query";
+import { API } from "../../api/api";
 import { HiPlus, HiOutlineGlobeAmericas, HiOutlineLockClosed } from "react-icons/hi2";
-import { EventStatus, EventPrivacy, Category } from "../api/interfaces";
-import AddData from "../components/AddData";
+import { EventStatus, EventPrivacy, EventResponseDto } from "../../api/interfaces";
+import AddData from "../../components/AddData";
 import { Dialog } from "@mui/material";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 const Events = () => {
-  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const { isLoading, isSuccess, data } = useQuery({
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const { isLoading, isSuccess, data, error } = useQuery<EventResponseDto[]>({
     queryKey: ["allevents"],
-    queryFn: fetchAllEvents,
+    queryFn: () => API.fetchAllEvents(),
+    enabled: !!user && user.role === 'ADMIN',
+    retry: false,
   });
 
-  const handleDelete = async (id: number) => {
-    const confirmed = window.confirm("Are you sure you want to delete this event?");
-    if (!confirmed) return;
-
-    try {
-      await deleteEvent(id);
-      toast.success("Event deleted successfully!");
-      queryClient.invalidateQueries({ queryKey: ["allevents"] });
-    } catch (error) {
-      toast.error("Failed to delete event");
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch events");
+      console.error("Error fetching events:", error);
     }
-  };
+  }, [error]);
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },

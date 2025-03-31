@@ -168,8 +168,12 @@ export interface RegisterUserDto {
 /** RequestDto.java */
 export interface RequestDto {
     id: number;
+    userId: number;
     username: string;
-    email: string;
+    groupId: number;
+    groupName: string;
+    requestDate: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
 
 /** UpdateCommentDto.java */
@@ -291,11 +295,12 @@ export interface PostResponseDto {
 /** ReactionResponseDto.java */
 export interface ReactionResponseDto {
     id: number;
-    type: string;            // e.g., "LIKE", "LOVE", etc.
     userId: number;
+    username: string;
     postId: number | null;
-    commentId: number | null;
-    reactedAt: string;
+    postTitle: string;
+    type: string;
+    timestamp: string;
 }
 
 /** UsersDto.java */
@@ -330,13 +335,15 @@ export interface ChatMessageDto {
 
 export interface MessageStatsDto {
     totalMessages: number;
-    // add any other stats your backend returns
+    deletedForEveryone: number;
+    messagesBySender: { [key: string]: number };
 }
 
 export interface NotificationStatsDto {
     totalNotifications: number;
     unreadCount: number;
-    // add any other stats
+    recentNotificationsCount: number;
+    notificationsByType: Record<string, number>;
 }
 
 export interface PendingJoinRequestDto {
@@ -345,8 +352,9 @@ export interface PendingJoinRequestDto {
 }
 export interface ReactionStatsDto {
     totalReactions: number;
-    mostUsedReaction: string;
-    // Add any other fields your backend sends
+    mostCommonReaction: string;
+    recentReactionsCount: number;
+    reactionsByType: Record<string, number>;
 }
 export interface PostSummary {
     id: number;
@@ -392,7 +400,7 @@ export interface ReactionResponseDto {
     id: number;
     userId: number;
     username: string;
-    postId: number;
+    postId: number | null;
     postTitle: string;
     type: string;
     timestamp: string;
@@ -431,4 +439,29 @@ export interface UserActivity {
     content?: string;
     createdAt: string;
     entityId: number;
+}
+
+export interface UserResponseDto {
+    id: number;
+    fname: string;
+    lname: string;
+    username: string;
+    email: string;
+    phoneNumber?: string;
+    role: Role;
+    enabled: boolean;
+    lastLogin: string;
+    imgUrl?: string;
+    createdAt: string;
+}
+
+export interface AdminStats {
+    totalUsers: number;
+    totalPosts: number;
+    totalComments: number;
+    totalGroups: number;
+    totalEvents: number;
+    totalMessages: number;
+    totalGroupRequests: number;
+    recentUsers: UserResponseDto[];
 }

@@ -11,18 +11,7 @@ import {
 import toast from "react-hot-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { Dialog } from "@mui/material";
-import {
-  fetchUserById,
-  fetchPostById,
-  fetchGroupById,
-  fetchCommentById,
-  fetchEventById,
-  deleteUser,
-  deletePost,
-  deleteComment,
-  deleteGroup,
-  deleteEvent,
-} from "../api/ApiCollection";
+import { API } from "../api/api";
 
 interface DataTableProps {
   columns: GridColDef[];
@@ -31,6 +20,7 @@ interface DataTableProps {
   includeActionColumn: boolean;
   onEdit?: (id: number) => void;
   onView?: (id: number) => void;
+  onDelete?: (id: number) => void;
 }
 
 const DataTable: React.FC<DataTableProps> = ({
@@ -38,6 +28,9 @@ const DataTable: React.FC<DataTableProps> = ({
   rows,
   slug,
   includeActionColumn,
+  onEdit,
+  onView,
+  onDelete,
 }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -54,15 +47,15 @@ const DataTable: React.FC<DataTableProps> = ({
       if (!selectedId) return null;
       switch (cleanSlug) {
         case "users":
-          return await fetchUserById(selectedId);
+          return await API.fetchUserById(selectedId);
         case "posts":
-          return await fetchPostById(selectedId);
+          return await API.fetchPostById(selectedId);
         case "groups":
-          return await fetchGroupById(selectedId);
+          return await API.fetchGroupById(selectedId);
         case "comments":
-          return await fetchCommentById(selectedId);
+          return await API.fetchCommentById(selectedId);
         case "events":
-          return await fetchEventById(selectedId);
+          return await API.fetchEventById(selectedId);
         default:
           return null;
       }
@@ -138,27 +131,31 @@ const DataTable: React.FC<DataTableProps> = ({
     );
     if (!confirmed) return;
     try {
-      switch (cleanSlug) {
-        case "users":
-          await deleteUser(id);
-          break;
-        case "posts":
-          await deletePost(id);
-          break;
-        case "comments":
-          await deleteComment(id);
-          break;
-        case "groups":
-          await deleteGroup(id);
-          break;
-        case "events":
-          await deleteEvent(id);
-          break;
-        default:
-          throw new Error("Invalid entity type");
+      if (onDelete) {
+        await onDelete(id);
+      } else {
+        switch (cleanSlug) {
+          case "users":
+            await API.deleteUser(id);
+            break;
+          case "posts":
+            await API.deletePost(id);
+            break;
+          case "comments":
+            await API.deleteComment(id);
+            break;
+          case "groups":
+            await API.deleteGroup(id);
+            break;
+          case "events":
+            await API.deleteEvent(id);
+            break;
+          default:
+            throw new Error("Invalid entity type");
+        }
+        toast.success(`${entityName} deleted successfully!`);
+        queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
       }
-      toast.success(`${entityName} deleted successfully!`);
-      queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
     } catch (error) {
       console.error(`Error deleting ${cleanSlug}:`, error);
       toast.error(`Failed to delete ${cleanSlug}`);
@@ -178,7 +175,11 @@ const DataTable: React.FC<DataTableProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleViewDetails(params.row);
+              if (onView) {
+                onView(params.row.id);
+              } else {
+                handleViewDetails(params.row);
+              }
             }}
             className="btn btn-square btn-ghost"
             title={`View ${cleanSlug} details`}
@@ -188,7 +189,11 @@ const DataTable: React.FC<DataTableProps> = ({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              navigate(`${basePath}/${cleanSlug}/${params.row.id}/edit`);
+              if (onEdit) {
+                onEdit(params.row.id);
+              } else {
+                navigate(`${basePath}/${cleanSlug}/${params.row.id}/edit`);
+              }
             }}
             className="btn btn-square btn-ghost"
             title={`Edit ${cleanSlug}`}

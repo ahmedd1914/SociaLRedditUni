@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { CiUser, CiBellOn } from "react-icons/ci";
 import { HiOutlineHome, HiOutlineTrendingUp } from "react-icons/hi";
-import { MdOutlineExplore, MdGroup } from "react-icons/md";
+import {  MdGroup } from "react-icons/md";
 import { BsCalendar3, BsNewspaper } from "react-icons/bs";
 import { IoBookOutline } from "react-icons/io5";
 import { TbMessages } from "react-icons/tb";
 import { useAuth } from "../../contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllGroups } from "../../api/ApiCollection";
+import { API } from "../../api/api";
 
 const Menu = () => {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const Menu = () => {
   // Fetch groups for sidebar
   const groupsQuery = useQuery({
     queryKey: ["groups"],
-    queryFn: fetchAllGroups,
+    queryFn: API.fetchAllGroups,
   });
 
   useEffect(() => {

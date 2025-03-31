@@ -1,4 +1,7 @@
-import axios, { AxiosError, AxiosHeaders, AxiosRequestConfig } from 'axios';
+/// <reference types="vite/client" />
+
+import axios from 'axios';
+import type { InternalAxiosRequestConfig, AxiosError } from 'axios';
 
 // Get API URL from environment variables with fallback
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -27,13 +30,9 @@ export class ApiError extends Error {
 
 // Add request interceptor for authentication
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
-    if (token) {
-      // Ensure headers object exists
-      if (!config.headers) {
-        config.headers = new AxiosHeaders();
-      }
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -45,14 +44,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Type guard for AxiosError
     if (axios.isAxiosError(error)) {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
-        // You could also trigger a redirect to login page
       }
       
-      // Return a structured error object
       return Promise.reject(
         new ApiError(
           error.response?.data?.message || error.message || 'Unknown error',
@@ -72,23 +68,25 @@ export interface ApiResponse<T> {
   headers: Record<string, string>;
 }
 
+interface ErrorResponse {
+  message?: string;
+}
+
 // Helper method for error handling
 export const handleApiError = (error: unknown): never => {
-  // Type guard for AxiosError
   const isAxiosErr = (err: unknown): err is AxiosError => {
     return axios.isAxiosError(err);
   };
 
   if (isAxiosErr(error)) {
-    // Handle axios errors
+    const errorData = error.response?.data as ErrorResponse;
     throw new ApiError(
-      error.response?.data?.message || error.message || 'Unknown error',
+      errorData?.message || error.message || 'Unknown error',
       error.response?.status || 500,
       error.response?.data
     );
   }
   
-  // Handle non-axios errors
   throw error instanceof Error 
     ? error 
     : new Error('Unknown error occurred');
@@ -113,7 +111,7 @@ export async function fetchApi<T>(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await response.json().catch(() => ({ message: 'Request failed' } as ErrorResponse));
       throw new ApiError(
         errorData.message || 'Request failed',
         response.status,

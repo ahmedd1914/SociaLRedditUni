@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { MdThumbUp, MdDelete, MdVisibility, MdThumbDown, MdOutlineBarChart } from 'react-icons/md';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchAllReactionsAdmin, deleteReactionAsAdmin, getReactionStats } from '../api/ApiCollection';
-import { ReactionResponseDto, ReactionStats } from '../api/interfaces';
+import { API } from '../../api/api';
+import { ReactionResponseDto, ReactionStatsDto } from '../../api/interfaces';
 import toast from 'react-hot-toast';
 
 const AdminReactions = () => {
@@ -17,7 +17,7 @@ const AdminReactions = () => {
     isError 
   } = useQuery<ReactionResponseDto[]>({
     queryKey: ['adminReactions'],
-    queryFn: fetchAllReactionsAdmin
+    queryFn: API.fetchAllReactions
   });
 
   // Fetch reaction statistics
@@ -25,15 +25,15 @@ const AdminReactions = () => {
     data: stats,
     isLoading: statsLoading,
     isError: statsError
-  } = useQuery<ReactionStats>({
+  } = useQuery<ReactionStatsDto>({
     queryKey: ['reactionStats'],
-    queryFn: getReactionStats,
+    queryFn: API.fetchReactionStats,
     enabled: showStats
   });
 
   // Delete reaction mutation
   const deleteReactionMutation = useMutation({
-    mutationFn: (reactionId: number) => deleteReactionAsAdmin(reactionId),
+    mutationFn: (reactionId: number) => API.deleteReaction(reactionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminReactions'] });
       queryClient.invalidateQueries({ queryKey: ['reactionStats'] });
@@ -126,48 +126,20 @@ const AdminReactions = () => {
           ) : stats ? (
             <div>
               <h2 className="text-lg font-semibold mb-3">Reaction Statistics</h2>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="stat bg-base-200 rounded-lg p-3">
-                  <div className="stat-title">Total</div>
+                  <div className="stat-title">Total Reactions</div>
                   <div className="stat-value text-2xl">{stats.totalReactions}</div>
                 </div>
                 <div className="stat bg-base-200 rounded-lg p-3">
-                  <div className="stat-title">Upvotes</div>
-                  <div className="stat-value text-2xl text-success">{stats.upvotes}</div>
-                </div>
-                <div className="stat bg-base-200 rounded-lg p-3">
-                  <div className="stat-title">Downvotes</div>
-                  <div className="stat-value text-2xl text-error">{stats.downvotes}</div>
-                </div>
-                <div className="stat bg-base-200 rounded-lg p-3">
-                  <div className="stat-title">Likes</div>
-                  <div className="stat-value text-2xl text-primary">{stats.likes}</div>
-                </div>
-                <div className="stat bg-base-200 rounded-lg p-3">
-                  <div className="stat-title">Other</div>
+                  <div className="stat-title">Most Used Reaction</div>
                   <div className="stat-value text-2xl">
-                    {stats.totalReactions - stats.upvotes - stats.downvotes - stats.likes}
+                    <span className={`badge ${getReactionBadgeColor(stats.mostUsedReaction)}`}>
+                      {getReactionIcon(stats.mostUsedReaction)} {stats.mostUsedReaction}
+                    </span>
                   </div>
                 </div>
               </div>
-              {stats.mostActivePost && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-base-200 rounded-lg p-3">
-                    <div className="text-sm opacity-70">Most Active Post</div>
-                    <div className="font-semibold">{stats.mostActivePost.title}</div>
-                    <div className="text-sm">
-                      {stats.mostActivePost.reactionCount} reactions
-                    </div>
-                  </div>
-                  <div className="bg-base-200 rounded-lg p-3">
-                    <div className="text-sm opacity-70">Most Active User</div>
-                    <div className="font-semibold">{stats.mostActiveUser.username}</div>
-                    <div className="text-sm">
-                      {stats.mostActiveUser.reactionCount} reactions
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           ) : (
             <div className="text-center p-4">No statistics available</div>

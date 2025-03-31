@@ -1,13 +1,13 @@
 import * as React from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
-import { fetchTrendingPosts } from '../../api/ApiCollection';
+import { API } from '../../api/api';
 import { PostResponseDto } from '../../api/interfaces'; // adjust path as needed
 
 const TopDealsBox: React.FC = () => {
     const { isLoading, isError, data, error } = useQuery<PostResponseDto[]>({
         queryKey: ['trendingPosts'],
-        queryFn: fetchTrendingPosts,
+        queryFn: API.fetchTrendingPosts,
     });
 
     if (isLoading) {

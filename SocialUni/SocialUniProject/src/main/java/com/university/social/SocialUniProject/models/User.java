@@ -52,6 +52,7 @@ public class User implements UserDetails {
     private LocalDateTime verificationCodeExpiresAt;
 
     private boolean enabled;
+    private boolean deleted;
     // A user can join many groups
     @ManyToMany(mappedBy = "members")
     @ToString.Exclude

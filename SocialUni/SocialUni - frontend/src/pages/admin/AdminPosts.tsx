@@ -1,43 +1,64 @@
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
 import { GridColDef } from "@mui/x-data-grid";
-import DataTable from "../components/DataTable";
+import DataTable from "../../components/DataTable";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import toast from "react-hot-toast";
-import { fetchAllPosts, deletePost } from "../api/ApiCollection";
+import { API } from "../../api/api";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
-  HiOutlinePencilSquare,
-  HiOutlineEye,
-  HiOutlineTrash,
   HiPlus,
 } from "react-icons/hi2";
+import AddData from "../../components/AddData";
+import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import AddData from "../components/AddData";
+import toast from "react-hot-toast";
 
 const Posts = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { isLoading, isSuccess, data } = useQuery({
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["allposts"],
-    queryFn: fetchAllPosts,
+    queryFn: () => API.fetchAllPosts(),
+    enabled: !!user && user.role === 'ADMIN',
+    retry: false,
   });
 
-  const handleDelete = async (id: number) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this post?"
-    );
-    if (!confirmed) return;
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch posts");
+      console.error("Error fetching posts:", error);
+    }
+  }, [error]);
 
+  // Function to handle post deletion
+  const handleDelete = async (postId: number) => {
     try {
-      await deletePost(id);
+      await API.deletePost(postId);
       toast.success("Post deleted successfully!");
+      // Invalidate both admin and regular posts queries to ensure UI is updated
       queryClient.invalidateQueries({ queryKey: ["allposts"] });
+      queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
     } catch (error) {
+      console.error("Error deleting post:", error);
       toast.error("Failed to delete post");
     }
+  };
+
+  // Function to handle post edit
+  const handleEdit = async (postId: number) => {
+    navigate(`/admin/posts/${postId}/edit`);
   };
 
   const columns: GridColDef[] = [
@@ -173,6 +194,8 @@ const Posts = () => {
             columns={columns}
             rows={data}
             includeActionColumn={true}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ) : (
           <>
@@ -191,7 +214,16 @@ const Posts = () => {
 
       {/* Create Post Modal */}
       {isModalOpen && (
-        <AddData slug="post" isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+        <AddData 
+          slug="post" 
+          isOpen={isModalOpen} 
+          setIsOpen={setIsModalOpen}
+          onSuccess={() => {
+            // Invalidate both admin and regular posts queries to ensure UI is updated
+            queryClient.invalidateQueries({ queryKey: ["allposts"] });
+            queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
+          }}
+        />
       )}
     </div>
   );

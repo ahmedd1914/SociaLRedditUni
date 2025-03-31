@@ -1,39 +1,79 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GridColDef } from "@mui/x-data-grid";
-import DataTable from "../components/DataTable";
+import DataTable from "../../components/DataTable";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchAllComments, fetchActiveComments } from "../api/ApiCollection";
+import { API } from "../../api/api";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
   HiPlus,
   HiOutlineAdjustmentsHorizontal,
 } from "react-icons/hi2";
-import { Visibility } from "../api/interfaces";
-import AddData from "../components/AddData";
+import { Visibility, CommentResponseDto } from "../../api/interfaces";
+import AddData from "../../components/AddData";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 interface CommentsProps {
   showActiveOnly?: boolean;
 }
 
 const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly = false }) => {
-  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showActiveOnly, setShowActiveOnly] = useState(initialActiveOnly);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { isLoading, isSuccess, data } = useQuery({
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["comments", showActiveOnly],
     queryFn: async () => {
-      const response = showActiveOnly ? await fetchActiveComments() : await fetchAllComments();
-      // Transform the response to use consistent field name
-      const transformedData = response.map(comment => ({
+      const response = await API.fetchAllComments();
+      const transformedData = response.map((comment: CommentResponseDto) => ({
         ...comment,
-        isDeleted: comment.isDeleted // Map 'deleted' to 'isDeleted'
+        isDeleted: comment.isDeleted
       }));
-      console.log('Transformed Response:', transformedData);
-      return transformedData;
+      return showActiveOnly ? transformedData.filter(comment => !comment.isDeleted) : transformedData;
     },
+    enabled: !!user && user.role === 'ADMIN',
+    retry: false,
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch comments");
+      console.error("Error fetching comments:", error);
+    }
+  }, [error]);
+
+  // Function to handle comment deletion
+  const handleDelete = async (commentId: number) => {
+    try {
+      await API.deleteComment(commentId);
+      toast.success("Comment deleted successfully!");
+      // Invalidate both comments and posts queries to ensure UI is updated
+      queryClient.invalidateQueries({ queryKey: ["comments"] });
+      queryClient.invalidateQueries({ queryKey: ["allposts"] });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  // Function to handle comment edit
+  const handleEdit = async (commentId: number) => {
+    navigate(`/admin/comments/${commentId}/edit`);
+  };
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },
@@ -184,7 +224,9 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
             slug="comments"
             columns={columns}
             rows={data}
-            includeActionColumn={true} // This enables the built-in actions
+            includeActionColumn={true}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ) : (
           <>
@@ -207,6 +249,11 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
           slug="comment"
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
+          onSuccess={() => {
+            // Invalidate both comments and posts queries to ensure UI is updated
+            queryClient.invalidateQueries({ queryKey: ["comments"] });
+            queryClient.invalidateQueries({ queryKey: ["allposts"] });
+          }}
         />
       )}
     </div>

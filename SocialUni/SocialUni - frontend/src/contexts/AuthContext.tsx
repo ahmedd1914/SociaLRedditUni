@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useState, useEffect, useCallback, useContext } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { loginUser, logoutUser, registerUser, verifyUser } from '../api/ApiCollection';
+import { API } from '../api/api';
 import { LoginUserDto, RegisterUserDto, VerifyUserDto } from '../api/interfaces';
 import { toast } from 'react-hot-toast';
 
@@ -150,7 +150,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (loginData: LoginUserDto): Promise<void> => {
     setIsLoading(true);
     try {
-      const response = await loginUser(loginData);
+      const response = await API.login(loginData);
       localStorage.setItem('token', response.token);
       
       // Decode the token to check if user is admin
@@ -183,7 +183,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (registerData: RegisterUserDto): Promise<void> => {
     setIsLoading(true);
     try {
-      const token = await registerUser(registerData);
+      const token = await API.register(registerData);
       localStorage.setItem('token', token);
       checkAuth();
       navigate('/verify');
@@ -200,7 +200,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      await logoutUser();
+      await API.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -249,7 +249,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       // Proceed with verification since token is valid
-      await verifyUser(verifyData);
+      await API.verifyAccount(verifyData.verificationCode);
       
       // Check auth and get user details
       checkAuth();

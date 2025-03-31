@@ -3,6 +3,7 @@ package com.university.social.SocialUniProject.repositories;
 import com.university.social.SocialUniProject.models.Message;
 import com.university.social.SocialUniProject.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -21,5 +22,8 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findBySender_IdAndReceiver_IdOrSender_IdAndReceiver_IdOrderBySentAtAsc(
             Long senderId1, Long receiverId1, Long senderId2, Long receiverId2);
+
+    @Query("SELECT COUNT(m) FROM Message m WHERE m.deletedForAll = false AND m.sender.deleted = false")
+    long countActiveRecords();
 
 }

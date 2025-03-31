@@ -2,19 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import toast from "react-hot-toast";
-import { 
-  fetchAllGroups, 
-  getPendingJoinRequests, 
-  approveJoinRequest, 
-  rejectJoinRequest,
-  fetchGroupById
-} from "../api/ApiCollection";
+import { API } from "../../api/api";
 import { 
   DecodedToken, 
   GroupResponseDto, 
-  PendingJoinRequestDto,
+  RequestDto,
   UsersDto 
-} from "../api/interfaces";
+} from "../../api/interfaces";
 import { 
   HiOutlineUserGroup, 
   HiOutlineExclamationCircle, 
@@ -24,11 +18,10 @@ import {
   HiAdjustmentsHorizontal
 } from "react-icons/hi2";
 import { MdPersonAdd, MdCheck, MdClose, MdSearch } from 'react-icons/md';
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-interface GroupJoinRequest {
-  id: number;
-  userId: number;
-  username: string;
+interface GroupJoinRequest extends RequestDto {
   groupId: number;
   groupName: string;
   requestDate: string;
@@ -42,12 +35,23 @@ const GroupRequests = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   // Get user info from token
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       toast.error("You need to login first");
+      navigate('/login');
       return;
     }
 
@@ -58,19 +62,30 @@ const GroupRequests = () => {
     } catch (error) {
       console.error("Failed to decode token:", error);
       toast.error("Authentication error");
+      navigate('/login');
     }
-  }, []);
+  }, [navigate]);
 
   // Fetch all groups
   const { 
     data: groups = [], 
     isLoading: groupsLoading, 
-    isError: groupsError 
+    isError: groupsError,
+    error: groupsErrorObj
   } = useQuery({
     queryKey: ["groups"],
-    queryFn: fetchAllGroups,
+    queryFn: () => API.fetchAllGroups(),
     enabled: !!currentUserId,
+    retry: false,
   });
+
+  // Show error toast if groups query fails
+  useEffect(() => {
+    if (groupsErrorObj) {
+      toast.error("Failed to fetch groups");
+      console.error("Error fetching groups:", groupsErrorObj);
+    }
+  }, [groupsErrorObj]);
 
   // Fetch the selected group details
   const { 
@@ -78,7 +93,7 @@ const GroupRequests = () => {
     isLoading: selectedGroupLoading,
   } = useQuery({
     queryKey: ["group", selectedGroupId],
-    queryFn: () => fetchGroupById(selectedGroupId!),
+    queryFn: () => API.fetchGroupById(selectedGroupId!),
     enabled: !!selectedGroupId && !!currentUserId,
   });
 
@@ -99,38 +114,34 @@ const GroupRequests = () => {
     refetch: refetchRequests
   } = useQuery({
     queryKey: ["groupRequests", selectedGroupId],
-    queryFn: () => getPendingJoinRequests(selectedGroupId!, currentUserId!),
+    queryFn: () => API.getPendingJoinRequests(selectedGroupId!, currentUserId!),
     enabled: !!selectedGroupId && !!currentUserId && canManageRequests,
   });
 
   // Approve request mutation
   const approveMutation = useMutation({
-    mutationFn: ({ groupId, userId }: { groupId: number; userId: number }) => 
-      approveJoinRequest(groupId, userId, currentUserId!),
+    mutationFn: (requestId: number) => API.approveJoinRequest(selectedGroupId!, requestId, currentUserId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groupRequests"] });
       queryClient.invalidateQueries({ queryKey: ["group"] });
       toast.success("Request approved successfully");
       refetchRequests();
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to approve request");
-      console.error(error);
     }
   });
 
   // Reject request mutation
   const rejectMutation = useMutation({
-    mutationFn: ({ groupId, userId }: { groupId: number; userId: number }) => 
-      rejectJoinRequest(groupId, userId),
+    mutationFn: (requestId: number) => API.rejectJoinRequest(selectedGroupId!, requestId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["groupRequests"] });
       toast.success("Request rejected");
       refetchRequests();
     },
-    onError: (error) => {
+    onError: () => {
       toast.error("Failed to reject request");
-      console.error(error);
     }
   });
 
@@ -143,13 +154,13 @@ const GroupRequests = () => {
   // Handle approve request
   const handleApprove = (userId: number) => {
     if (!selectedGroupId || !currentUserId) return;
-    approveMutation.mutate({ groupId: selectedGroupId, userId });
+    approveMutation.mutate(userId);
   };
 
   // Handle reject request
   const handleReject = (userId: number) => {
     if (!selectedGroupId) return;
-    rejectMutation.mutate({ groupId: selectedGroupId, userId });
+    rejectMutation.mutate(userId);
   };
 
   // Filter groups where user is admin or owner
@@ -164,13 +175,13 @@ const GroupRequests = () => {
   }, [groups, currentUserId, isAdmin]);
 
   // Filter and search requests
-  const filteredRequests = pendingRequests.filter(request => {
+  const filteredRequests = (pendingRequests as GroupJoinRequest[]).filter(request => {
     // Filter by status
     if (filterStatus !== 'ALL' && request.status !== filterStatus) {
       return false;
     }
     
-    // Search term
+    // Filter by search
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       return (
@@ -187,6 +198,23 @@ const GroupRequests = () => {
       <div className="flex items-center mb-6">
         <MdPersonAdd className="text-2xl mr-2 text-primary" />
         <h1 className="text-2xl font-bold">Group Join Requests</h1>
+      </div>
+
+      {/* Group Selection */}
+      <div className="mb-6">
+        <select
+          className="select select-bordered w-full max-w-xs"
+          value={selectedGroupId || ''}
+          onChange={handleGroupChange}
+          disabled={groupsLoading}
+        >
+          <option value="">Select a group</option>
+          {managedGroups.map(group => (
+            <option key={group.id} value={group.id}>
+              {group.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Filters and search */}
@@ -251,7 +279,7 @@ const GroupRequests = () => {
                 <tr key={request.id}>
                   <td>
                     <div className="font-medium">{request.username}</div>
-                    <div className="text-sm text-gray-500">ID: {request.userId}</div>
+                    <div className="text-sm text-gray-500">ID: {request.id}</div>
                   </td>
                   <td>
                     <div className="font-medium">{request.groupName}</div>
@@ -271,16 +299,16 @@ const GroupRequests = () => {
                     {request.status === 'PENDING' && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => handleApprove(request.userId)}
+                          onClick={() => handleApprove(request.id)}
                           className="btn btn-sm btn-success btn-circle"
-                          disabled={!isAdmin || approveMutation.isPending}
+                          disabled={!canManageRequests || approveMutation.isPending}
                         >
                           <MdCheck />
                         </button>
                         <button
-                          onClick={() => handleReject(request.userId)}
+                          onClick={() => handleReject(request.id)}
                           className="btn btn-sm btn-error btn-circle"
-                          disabled={!isAdmin || rejectMutation.isPending}
+                          disabled={!canManageRequests || rejectMutation.isPending}
                         >
                           <MdClose />
                         </button>
@@ -294,9 +322,9 @@ const GroupRequests = () => {
         )}
       </div>
 
-      {!isAdmin && (
+      {!canManageRequests && (
         <div className="alert alert-warning mt-4">
-          <p>Note: Only administrators can approve or reject group join requests.</p>
+          <p>Note: Only group administrators and owners can manage join requests.</p>
         </div>
       )}
     </div>

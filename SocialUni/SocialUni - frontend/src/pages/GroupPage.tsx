@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchGroupById, fetchPostsByGroup, joinGroup } from '../api/ApiCollection';
+import { API } from '../api/api';
 import { FaUsers, FaShieldAlt, FaUserPlus, FaHeart, FaComment } from 'react-icons/fa';
 import { MdPublic, MdLock } from 'react-icons/md';
 import { useAuth } from '../contexts/AuthContext';
@@ -113,14 +113,14 @@ const GroupPage = () => {
   // Fetch group data
   const { data: group, isLoading: groupLoading, error: groupError } = useQuery({
     queryKey: ['group', groupIdNum],
-    queryFn: () => fetchGroupById(groupIdNum),
+    queryFn: () => API.fetchGroupById(groupIdNum),
     enabled: !!groupIdNum && groupIdNum > 0,
   });
 
   // Fetch group posts
   const { data: posts, isLoading: postsLoading } = useQuery({
     queryKey: ['groupPosts', groupIdNum],
-    queryFn: () => fetchPostsByGroup(groupIdNum),
+    queryFn: () => API.fetchPostsByGroup(groupIdNum),
     enabled: !!groupIdNum && groupIdNum > 0 && !!group,
   });
 
@@ -133,7 +133,7 @@ const GroupPage = () => {
     setIsJoining(true);
 
     try {
-      await joinGroup({ groupId: groupIdNum });
+      await API.joinGroup(groupIdNum);
       toast.success(`Successfully joined ${group?.name}`);
       // Refetch group data to update members
     } catch (error) {

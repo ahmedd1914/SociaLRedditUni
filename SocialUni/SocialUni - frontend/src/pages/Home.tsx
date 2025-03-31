@@ -3,13 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import { DecodedToken } from "../api/interfaces";
-import {
-  fetchAllPosts,
-  fetchTrendingPosts,
-  fetchAllGroups,
-  fetchPostsByDateRange,
-  filterPostsByCategory,
-} from "../api/ApiCollection";
+import { API } from "../api/api";
 import { HiOutlineTrendingUp, HiOutlineFire, HiOutlineFilter } from "react-icons/hi";
 import { BsBookmark, BsCalendar3, BsArrowDown, BsArrowUp } from "react-icons/bs";
 import { FaRegCommentAlt, FaRegThumbsUp, FaRegThumbsDown } from "react-icons/fa";
@@ -114,28 +108,28 @@ const Home = () => {
   // For guests, we'll show a limited version with prompts to login
   const allPostsQuery = useQuery({
     queryKey: ["allposts"],
-    queryFn: fetchAllPosts,
+    queryFn: API.fetchAllPosts,
     enabled: true // Always fetch public posts
   });
 
   // Fetch trending posts
   const trendingPostsQuery = useQuery({
     queryKey: ["trendingposts"],
-    queryFn: fetchTrendingPosts,
+    queryFn: API.fetchTrendingPosts,
     enabled: activeTab === "trending",
   });
 
   // Fetch groups for sidebar - only if logged in
   const groupsQuery = useQuery({
     queryKey: ["groups"],
-    queryFn: fetchAllGroups,
+    queryFn: API.fetchAllGroups,
     enabled: isLoggedIn, // Only fetch if logged in
   });
 
   // Fetch posts by category if a category is selected
   const categoryPostsQuery = useQuery({
     queryKey: ["categoryPosts", selectedCategory],
-    queryFn: () => filterPostsByCategory(selectedCategory),
+    queryFn: () => API.filterPostsByCategory(selectedCategory),
     enabled: !!selectedCategory,
   });
   
@@ -168,7 +162,7 @@ const Home = () => {
     queryKey: ["dateRangePosts", timeFilter],
     queryFn: () => {
       const { start, end } = getDateRange();
-      return fetchPostsByDateRange(start, end);
+      return API.fetchPostsByDateRange(start, end);
     },
     enabled: timeFilter !== "all" && !selectedCategory,
   });

@@ -5,32 +5,70 @@ import com.university.social.SocialUniProject.exceptions.ResourceNotFoundExcepti
 import com.university.social.SocialUniProject.responses.UserResponseDto;
 import com.university.social.SocialUniProject.enums.Role;
 import com.university.social.SocialUniProject.models.User;
-import com.university.social.SocialUniProject.repositories.UserRepository;
+import com.university.social.SocialUniProject.repositories.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.university.social.SocialUniProject.dto.AdminStatsDto;
+import com.university.social.SocialUniProject.dto.NotificationStatsDto;
+import com.university.social.SocialUniProject.dto.ReactionStatsDto;
+import com.university.social.SocialUniProject.dto.UserDto.UsersDto;
+import com.university.social.SocialUniProject.enums.NotificationType;
+import com.university.social.SocialUniProject.enums.ReactionType;
+
 @Service
+@Transactional
 public class AdminService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final GroupRepository groupRepository;
+    private final EventRepository eventRepository;
+    private final MessageRepository messageRepository;
+    private final NotificationRepository notificationRepository;
+    private final ReactionRepository reactionRepository;
+    private final GroupRequestRepository groupRequestRepository;
 
-    public AdminService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AdminService(
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            PostRepository postRepository,
+            CommentRepository commentRepository,
+            GroupRepository groupRepository,
+            EventRepository eventRepository,
+            MessageRepository messageRepository,
+            NotificationRepository notificationRepository,
+            ReactionRepository reactionRepository,
+            GroupRequestRepository groupRequestRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
+        this.groupRepository = groupRepository;
+        this.eventRepository = eventRepository;
+        this.messageRepository = messageRepository;
+        this.notificationRepository = notificationRepository;
+        this.reactionRepository = reactionRepository;
+        this.groupRequestRepository = groupRequestRepository;
     }
 
     // 1️⃣ View All Users
     public List<UserResponseDto> getAllUsers() {
-        List<User> users = (List<User>) userRepository.findAll(); // Cast Iterable to List
-        return users.stream().map(this::mapToDto).collect(Collectors.toList());
+        return userRepository.findAllActive()
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
     // 7️⃣ Get Single User
@@ -39,6 +77,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         return mapToDto(user);
     }
+
     public UserResponseDto createUser(CreateUserDto dto) {
         User user = new User();
         user.setUsername(dto.getUsername());
@@ -62,6 +101,7 @@ public class AdminService {
         // Map the user to a response DTO
         return UserResponseDto.fromEntity(user);
     }
+
     // 2️⃣ Search & Filter Users
     public List<UserResponseDto> searchUsers(String username, Role role) {
         List<User> users;
@@ -167,7 +207,90 @@ public class AdminService {
             throw new RuntimeException("Cannot delete the last admin.");
         }
 
-        userRepository.deleteById(userId);
+        // Soft delete the user
+        user.setDeleted(true);
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    public AdminStatsDto getAdminStats() {
+        AdminStatsDto stats = new AdminStatsDto();
+        
+        // Count only active users (not deleted)
+        stats.setTotalUsers(userRepository.findAllActive().size());
+        
+        // Count all active posts
+        stats.setTotalPosts(postRepository.countActiveRecords());
+        
+        // Count all active comments
+        stats.setTotalComments(commentRepository.countActiveRecords());
+        
+        // Count all active groups
+        stats.setTotalGroups(groupRepository.countActiveRecords());
+        
+        // Count all active events
+        stats.setTotalEvents(eventRepository.count());
+        
+        // Count all active messages
+        stats.setTotalMessages(messageRepository.countActiveRecords());
+        
+        // Count pending group requests
+        stats.setTotalGroupRequests(groupRequestRepository.countByStatus("PENDING"));
+        
+        // Get recent users (last 10)
+        List<User> recentUsers = userRepository.findTop10ByOrderByCreatedAtDesc();
+        List<UsersDto> userDtos = recentUsers.stream()
+                .map(user -> UsersDto.fromEntity(user))
+                .collect(Collectors.toList());
+        stats.setRecentUsers(userDtos);
+        
+        return stats;
+    }
+
+    public NotificationStatsDto getNotificationStats() {
+        NotificationStatsDto stats = new NotificationStatsDto();
+        stats.setTotalNotifications(notificationRepository.count());
+        stats.setUnreadCount(notificationRepository.countByIsReadFalse());
+        
+        // Count notifications from last 24 hours
+        LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
+        stats.setRecentNotificationsCount(notificationRepository.countByCreatedAtAfter(yesterday));
+        
+        // Count by notification type
+        Map<String, Long> notificationsByType = notificationRepository.findAll().stream()
+                .collect(Collectors.groupingBy(
+                        notification -> notification.getNotificationType().name(),
+                        Collectors.counting()
+                ));
+        stats.setNotificationsByType(notificationsByType);
+        
+        return stats;
+    }
+
+    public ReactionStatsDto getReactionStats() {
+        ReactionStatsDto stats = new ReactionStatsDto();
+        stats.setTotalReactions(reactionRepository.count());
+        
+        // Count reactions from last 24 hours
+        LocalDateTime yesterday = LocalDateTime.now().minusDays(1);
+        stats.setRecentReactionsCount(reactionRepository.countByReactedAtAfter(yesterday));
+        
+        // Count by reaction type
+        Map<String, Long> reactionsByType = reactionRepository.findAll().stream()
+                .collect(Collectors.groupingBy(
+                        reaction -> reaction.getType().name(),
+                        Collectors.counting()
+                ));
+        stats.setReactionsByType(reactionsByType);
+        
+        // Find most common reaction
+        String mostCommon = reactionsByType.entrySet().stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse("NONE");
+        stats.setMostCommonReaction(mostCommon);
+        
+        return stats;
     }
 
     // ---------- Private Conversion Method ----------

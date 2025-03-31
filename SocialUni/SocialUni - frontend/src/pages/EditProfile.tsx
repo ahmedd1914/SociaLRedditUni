@@ -2,7 +2,7 @@ import React, { ChangeEvent, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import { useNavigate, useLocation } from "react-router-dom";
-import { fetchUserById, updateUserProfile } from "../api/ApiCollection";
+import { fetchUserById, updateUserProfile } from "../api/api";
 import { jwtDecode } from "jwt-decode";
 import { Role, UpdateUserDto, UsersDto } from "../api/interfaces";
 

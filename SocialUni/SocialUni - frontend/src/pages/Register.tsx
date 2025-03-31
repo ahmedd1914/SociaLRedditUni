@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import ChangeThemes from "../components/ChangesThemes";
 import { DiReact } from "react-icons/di";
 import { jwtDecode } from "jwt-decode";
-import { registerUser } from "../api/ApiCollection";
+import { API } from "../api/api";
 import { DecodedToken } from "../api/interfaces";
 import toast from "react-hot-toast";
 
@@ -61,7 +61,7 @@ const Register = () => {
       sessionStorage.removeItem("token");
       
       // Register the user
-      const token = await registerUser({ username, email, password });
+      const token = await API.register({ username, email, password });
       
       // Verify token before storing
       if (!token) {

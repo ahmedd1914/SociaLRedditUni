@@ -10,7 +10,7 @@ import ThemeProvider from './contexts/ThemeProvider.tsx';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext.tsx';
 // Import ApiCollection to ensure interceptors are initialized
-import './api/ApiCollection';
+import './api/api.ts';
 
 // Create a client with better caching and error handling
 const queryClient = new QueryClient({

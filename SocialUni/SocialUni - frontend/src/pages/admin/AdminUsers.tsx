@@ -1,19 +1,42 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { GridColDef } from '@mui/x-data-grid';
-import DataTable from '../components/DataTable';
-import { fetchAllUsers } from '../api/ApiCollection';
+import DataTable from '../../components/DataTable';
+import { API } from '../../api/api';
 import { useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import AddData from '../components/AddData';
+import AddData from '../../components/AddData';
+import { UserResponseDto } from '../../api/interfaces';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Users = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const defaultAvatar = '/Portrait_Placeholder.png';
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
-  const { isLoading, isError, isSuccess, data } = useQuery({
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const { isLoading, isError, isSuccess, data, error } = useQuery<UserResponseDto[]>({
     queryKey: ['allusers'],
-    queryFn: fetchAllUsers,
+    queryFn: () => API.fetchAllUsers(),
+    enabled: !!user && user.role === 'ADMIN',
+    retry: false,
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch users");
+      console.error("Error fetching users:", error);
+    }
+  }, [error]);
 
   const columns: GridColDef[] = [
     { field: 'id', headerName: 'ID', width: 90 },

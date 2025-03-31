@@ -5,7 +5,7 @@ import ChangeThemes from '../components/ChangesThemes';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
-import { resendVerificationCode } from '../api/ApiCollection';
+import { API } from '../api/api';
 
 const Verify: React.FC = () => {
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ const Verify: React.FC = () => {
 
     setLoading(true);
     try {
-      await resendVerificationCode(email);
+      await API.resendVerificationCode(email);
       toast.success('A new verification code has been sent to your email.');
     } catch (error) {
       console.error('Error resending code:', error);

@@ -1,24 +1,67 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GridColDef } from "@mui/x-data-grid";
-import DataTable from "../components/DataTable";
+import DataTable from "../../components/DataTable";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { fetchAllGroups } from "../api/ApiCollection";
+import { API } from "../../api/api";
 import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
   HiPlus,
 } from "react-icons/hi2";
-import AddData from "../components/AddData";
+import AddData from "../../components/AddData";
+import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Groups = () => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
-  const { isLoading, isSuccess, data } = useQuery({
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to access this page");
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["allgroups"],
-    queryFn: fetchAllGroups,
+    queryFn: () => API.fetchAllGroups(),
+    enabled: !!user && user.role === 'ADMIN',
+    retry: false,
   });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to fetch groups");
+      console.error("Error fetching groups:", error);
+    }
+  }, [error]);
+
+  // Function to handle group deletion
+  const handleDelete = async (groupId: number) => {
+    try {
+      await API.deleteGroup(groupId);
+      toast.success("Group deleted successfully!");
+      // Invalidate both the specific group query and the groups list query
+      queryClient.invalidateQueries({ queryKey: ["groups", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["allgroups"] });
+    } catch (error: any) {
+      console.error("Error deleting group:", error);
+      toast.error(error.response?.data?.message || "Failed to delete group");
+    }
+  };
+
+  // Function to handle group edit
+  const handleEdit = async (groupId: number) => {
+    // Invalidate the specific group query before navigating
+    await queryClient.invalidateQueries({ queryKey: ["allgroups"] });
+    navigate(`/admin/groups/${groupId}/edit`);
+  };
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },
@@ -122,6 +165,8 @@ const Groups = () => {
             columns={columns}
             rows={data}
             includeActionColumn={true}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ) : (
           <>
@@ -140,7 +185,15 @@ const Groups = () => {
 
       {/* Create Group Modal */}
       {isModalOpen && (
-        <AddData slug="group" isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
+        <AddData 
+          slug="group" 
+          isOpen={isModalOpen} 
+          setIsOpen={setIsModalOpen}
+          onSuccess={() => {
+            // Invalidate groups query to ensure UI is updated
+            queryClient.invalidateQueries({ queryKey: ["allgroups"] });
+          }}
+        />
       )}
     </div>
   );

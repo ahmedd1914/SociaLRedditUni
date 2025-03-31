@@ -4,6 +4,7 @@ import com.university.social.SocialUniProject.models.Notification;
 import com.university.social.SocialUniProject.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.time.LocalDateTime;
 
 import java.util.List;
 
@@ -15,4 +16,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     // Get all notifications for a user, ordered by creation date
     List<Notification> findByRecipientOrderByCreatedAtDesc(User recipient);
+
+    long countByIsReadFalse();
+    long countByCreatedAtAfter(LocalDateTime date);
 }

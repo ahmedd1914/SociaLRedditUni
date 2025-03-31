@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { MdMessage, MdDelete, MdVisibility, MdOutlineBarChart } from 'react-icons/md';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchGroupChatMessages, deleteMessageAsAdmin, getGroupMessageStats } from '../api/ApiCollection';
+import { API } from '../../api/api';
 import { jwtDecode } from 'jwt-decode';
-import { DecodedToken, MessageResponseDto, GroupMessageStats } from '../api/interfaces';
+import { DecodedToken, MessageResponseDto, GroupMessageStats, MessageStatsDto } from '../../api/interfaces';
 import toast from 'react-hot-toast';
 
 interface Group {
@@ -45,7 +45,7 @@ const AdminMessages = () => {
     isError: messagesError 
   } = useQuery({
     queryKey: ['groupMessages', selectedGroupId],
-    queryFn: () => fetchGroupChatMessages(selectedGroupId as number),
+    queryFn: () => API.fetchGroupChatMessages(selectedGroupId as number),
     enabled: !!selectedGroupId
   });
 
@@ -54,15 +54,15 @@ const AdminMessages = () => {
     data: stats, 
     isLoading: statsLoading,
     isError: statsError
-  } = useQuery<GroupMessageStats>({
+  } = useQuery<MessageStatsDto>({
     queryKey: ['groupStats', selectedGroupId],
-    queryFn: () => getGroupMessageStats(selectedGroupId as number),
+    queryFn: () => API.getGroupMessageStats(selectedGroupId as number),
     enabled: !!selectedGroupId && showStats
   });
 
   // Delete message mutation
   const deleteMessageMutation = useMutation({
-    mutationFn: (messageId: number) => deleteMessageAsAdmin(messageId, getAdminId()),
+    mutationFn: (messageId: number) => API.deleteMessageAsAdmin(messageId, getAdminId()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['groupMessages', selectedGroupId] });
       toast.success('Message deleted successfully');
@@ -162,16 +162,16 @@ const AdminMessages = () => {
                         <div className="stat-value text-2xl">{stats.totalMessages}</div>
                       </div>
                       <div className="stat bg-base-200 rounded-lg p-3">
-                        <div className="stat-title">Active Users</div>
-                        <div className="stat-value text-2xl">{stats.activeUsers}</div>
+                        <div className="stat-title">Deleted Messages</div>
+                        <div className="stat-value text-2xl">{stats.deletedForEveryone}</div>
                       </div>
                       <div className="stat bg-base-200 rounded-lg p-3">
-                        <div className="stat-title">Avg. Messages/Day</div>
-                        <div className="stat-value text-2xl">{stats.averageMessagesPerDay.toFixed(1)}</div>
-                      </div>
-                      <div className="stat bg-base-200 rounded-lg p-3">
-                        <div className="stat-title">Most Active User</div>
-                        <div className="stat-value text-xl truncate">{stats.mostActiveUser}</div>
+                        <div className="stat-title">Messages by Sender</div>
+                        <div className="stat-value text-xl truncate">
+                          {Object.entries(stats.messagesBySender || {}).map(([sender, count]) => (
+                            <div key={sender}>{sender}: {count}</div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : (
@@ -205,20 +205,20 @@ const AdminMessages = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {(messages as MessageResponseDto[]).map((message) => (
-                        <tr key={message.id}>
-                          <td>{message.sender}</td>
+                      {messages.map((message) => (
+                        <tr key={message.senderId}>
+                          <td>{message.senderId}</td>
                           <td className="max-w-xs truncate">{message.content}</td>
-                          <td>{formatDate(message.timestamp)}</td>
+                          <td>{formatDate(message.sentAt)}</td>
                           <td className="flex gap-2">
                             <button
-                              onClick={() => handleViewMessage(message)}
+                              onClick={() => handleViewMessage(message as unknown as MessageResponseDto)}
                               className="btn btn-sm btn-primary btn-circle"
                             >
                               <MdVisibility />
                             </button>
                             <button
-                              onClick={() => handleDeleteMessage(message.id)}
+                              onClick={() => handleDeleteMessage(message.senderId)}
                               className="btn btn-sm btn-error btn-circle"
                             >
                               <MdDelete />

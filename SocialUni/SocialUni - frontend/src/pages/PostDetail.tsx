@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchPostById, fetchAllGroups, createComment } from '../api/ApiCollection';
+import { API } from '../api/api';
 import { FaRegCommentAlt } from 'react-icons/fa';
 import { BsBookmark, BsShare } from 'react-icons/bs';
 import { useAuth } from '../contexts/AuthContext';
@@ -21,14 +21,14 @@ const PostDetail = () => {
   // Fetch post data
   const { data: post, isLoading, error } = useQuery({
     queryKey: ['post', postIdNum],
-    queryFn: () => fetchPostById(postIdNum),
+    queryFn: () => API.fetchPostById(postIdNum),
     enabled: !!postIdNum && postIdNum > 0,
   });
 
   // Fetch groups for reference
   const groupsQuery = useQuery({
     queryKey: ['groups'],
-    queryFn: fetchAllGroups,
+    queryFn: API.fetchAllGroups,
   });
 
   const handleSubmitComment = async () => {
@@ -46,7 +46,7 @@ const PostDetail = () => {
         visibility: Visibility.PUBLIC,
       };
 
-      await createComment(commentDto);
+      await API.createComment(commentDto);
       toast.success('Comment added successfully');
       setCommentContent('');
       // Refetch post data to show the new comment

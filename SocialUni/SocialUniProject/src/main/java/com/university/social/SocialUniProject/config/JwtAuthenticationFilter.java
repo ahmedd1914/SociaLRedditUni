@@ -53,14 +53,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+        String path = request.getRequestURI();
+        System.out.println("JWT Filter processing request: " + path);
 
-        System.out.println("JWT Filter processing request: " + request.getRequestURI());
+        // Special logging for /users/me endpoint
+        boolean isUserMeEndpoint = path.equals("/users/me");
+        if (isUserMeEndpoint) {
+            System.out.println("Processing /users/me request");
+        }
 
         final String authHeader = request.getHeader("Authorization");
 
         // 1) Check if we have a Bearer token
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.out.println("No valid Authorization header found.");
+            System.out.println((isUserMeEndpoint ? "[/users/me] " : "") + "No valid Authorization header found.");
             filterChain.doFilter(request, response);
             return;
         }
@@ -68,19 +74,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             // 2) Extract the JWT from the header
             final String jwt = authHeader.substring(7);
-            System.out.println("Extracted JWT: " + jwt);
+            if (isUserMeEndpoint) {
+                System.out.println("[/users/me] Extracted JWT: " + jwt.substring(0, Math.min(jwt.length(), 10)) + "...");
+            }
 
             // 3) Check if token is blacklisted
             if (tokenBlacklistService.isTokenBlacklisted(jwt)) {
-                System.out.println("❌ Token is blacklisted. Skipping authentication.");
-                // Do NOT set authentication in the context
+                System.out.println((isUserMeEndpoint ? "[/users/me] " : "") + "❌ Token is blacklisted. Skipping authentication.");
                 filterChain.doFilter(request, response);
                 return;
             }
 
             // 4) Extract user ID from JWT
             final String userId = jwtService.extractUserId(jwt);
-            System.out.println("Extracted UserId: " + userId);
+            if (isUserMeEndpoint) {
+                System.out.println("[/users/me] Extracted UserId: " + userId);
+            }
 
             // 5) Check if there's already authentication
             Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
@@ -89,13 +98,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 6) Load the user by ID
                 User user = userService.loadUserById(Long.parseLong(userId));
 
-                System.out.println("🔍 Comparing JWT UserId vs Database UserId:");
-                System.out.println("🔍 JWT UserId: " + userId);
-                System.out.println("🔍 Database UserId: " + user.getId());
+                if (isUserMeEndpoint) {
+                    System.out.println("[/users/me] 🔍 User details:");
+                    System.out.println("[/users/me] - Username: " + user.getUsername());
+                    System.out.println("[/users/me] - Authorities: " + user.getAuthorities());
+                }
 
                 // 7) Validate token correctness (expiry, signature, user match, etc.)
                 if (jwtService.isTokenValid(jwt, user)) {
-                    System.out.println("✅ JWT is valid for user: " + user.getUsername());
+                    if (isUserMeEndpoint) {
+                        System.out.println("[/users/me] ✅ JWT is valid for user: " + user.getUsername());
+                    }
 
                     // 8) Build an authentication token and set it in security context
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -105,12 +118,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    
+                    if (isUserMeEndpoint) {
+                        System.out.println("[/users/me] ✅ Authentication set in SecurityContext");
+                    }
                 } else {
-                    System.out.println("❌ JWT is invalid for user: " + userId);
+                    if (isUserMeEndpoint) {
+                        System.out.println("[/users/me] ❌ JWT is invalid for user: " + userId);
+                    }
                 }
             }
         } catch (Exception exception) {
-            System.out.println("JWT Authentication Failed: " + exception.getMessage());
+            System.out.println((isUserMeEndpoint ? "[/users/me] " : "") + "JWT Authentication Failed: " + exception.getMessage());
             handlerExceptionResolver.resolveException(request, response, null, exception);
             return;
         }
