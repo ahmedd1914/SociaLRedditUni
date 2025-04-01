@@ -24,6 +24,8 @@ import {
 
 interface EditDataProps {
   slug: string;
+  onClose?: () => void;
+  id?: string;
 }
 
 // Type guards
@@ -53,8 +55,9 @@ const isEventResponse = (data: unknown): data is EventResponseDto => {
   );
 };
 
-const EditData: React.FC<EditDataProps> = ({ slug }) => {
-  const { id } = useParams<{ id: string }>();
+const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
+  const { id: routeId } = useParams<{ id: string }>();
+  const id = propId || routeId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -104,6 +107,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
   const [commentForm, setCommentForm] = useState<UpdateCommentDto>({
     content: "",
     mediaUrl: "",
+    visibility: Visibility.PUBLIC,
   });
 
   const [eventForm, setEventForm] = useState<UpdateEventDto>({
@@ -113,7 +117,8 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
     location: "",
     category: Category.GENERAL,
     privacy: EventPrivacy.PUBLIC,
-    status: EventStatus.SCHEDULED
+    status: EventStatus.SCHEDULED,
+    groupId: undefined
   });
 
   // Data fetching
@@ -201,6 +206,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
             setCommentForm({
               content: data.content,
               mediaUrl: data.mediaUrl || "",
+              visibility: data.visibility,
             });
           }
           break;
@@ -213,7 +219,8 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
               location: data.location,
               category: data.category,
               privacy: data.privacy,
-              status: data.status
+              status: data.status,
+              groupId: data.groupId ?? undefined
             });
           }
           break;
@@ -244,6 +251,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
           };
           return await API.updateGroup(Number(id), groupDto);
         case "comments":
+          console.log("Updating comment with data:", commentForm);
           return await API.updateComment(Number(id), commentForm);
         case "events":
           return await API.updateEvent(Number(id), eventForm);
@@ -253,12 +261,22 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
     },
     onSuccess: () => {
       toast.success(`${cleanSlug} updated successfully!`);
+      
+      // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: [cleanSlug, id] });
       queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
+      queryClient.invalidateQueries({ queryKey: ["allevents"] });
+      queryClient.invalidateQueries({ queryKey: ["allposts"] });
+      queryClient.invalidateQueries({ queryKey: ["comments"] });
 
-      const isAdminRoute = slug.startsWith("admin/");
-      const basePath = isAdminRoute ? `/admin/${cleanSlug}` : `/${cleanSlug}`;
-      navigate(basePath);
+      // Close modal if onClose is provided, otherwise navigate
+      if (onClose) {
+        onClose();
+      } else {
+        const isAdminRoute = slug.startsWith("admin/");
+        const basePath = isAdminRoute ? `/admin/${cleanSlug}` : `/${cleanSlug}`;
+        navigate(basePath);
+      }
     },
     onError: (error: Error) => {
       console.error(`Error updating ${cleanSlug}:`, error);
@@ -595,13 +613,14 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
             <div className="form-control w-full">
               <label className="label">
                 <span className="label-text">Visibility</span>
+                <span className="label-text-alt">Who can see this comment?</span>
               </label>
               <select
-                value={commentForm.mediaUrl}
+                value={commentForm.visibility}
                 onChange={(e) =>
                   setCommentForm({
                     ...commentForm,
-                    mediaUrl: e.target.value,
+                    visibility: e.target.value as Visibility,
                   })
                 }
                 className="select select-bordered w-full"
@@ -609,6 +628,22 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 <option value={Visibility.PUBLIC}>Public</option>
                 <option value={Visibility.PRIVATE}>Private</option>
               </select>
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Media URL (optional)</span>
+                <span className="label-text-alt">Link to any media attached to the comment</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter media URL"
+                value={commentForm.mediaUrl}
+                onChange={(e) =>
+                  setCommentForm({ ...commentForm, mediaUrl: e.target.value })
+                }
+                className="input input-bordered w-full"
+              />
             </div>
 
             <button
@@ -632,6 +667,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 value={eventForm.name}
                 onChange={(e) => setEventForm({ ...eventForm, name: e.target.value })}
                 className="input input-bordered w-full"
+                required
               />
             </div>
 
@@ -655,6 +691,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 value={eventForm.date}
                 onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
                 className="input input-bordered w-full"
+                required
               />
             </div>
 
@@ -678,6 +715,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 value={eventForm.category}
                 onChange={(e) => setEventForm({ ...eventForm, category: e.target.value as Category })}
                 className="select select-bordered w-full"
+                required
               >
                 {Object.values(Category).map((category) => (
                   <option key={category} value={category}>{category}</option>
@@ -693,9 +731,11 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 value={eventForm.privacy}
                 onChange={(e) => setEventForm({ ...eventForm, privacy: e.target.value as EventPrivacy })}
                 className="select select-bordered w-full"
+                required
               >
-                <option value={EventPrivacy.PUBLIC}>Public</option>
-                <option value={EventPrivacy.PRIVATE}>Private</option>
+                {Object.values(EventPrivacy).map((priv) => (
+                  <option key={priv} value={priv}>{priv}</option>
+                ))}
               </select>
             </div>
 
@@ -707,6 +747,7 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
                 value={eventForm.status}
                 onChange={(e) => setEventForm({ ...eventForm, status: e.target.value as EventStatus })}
                 className="select select-bordered w-full"
+                required
               >
                 {Object.values(EventStatus).map((status) => (
                   <option key={status} value={status}>{status}</option>
@@ -714,7 +755,31 @@ const EditData: React.FC<EditDataProps> = ({ slug }) => {
               </select>
             </div>
 
-            <button type="submit" className="btn btn-primary mt-4">
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Group ID (Optional)</span>
+                <span className="label-text-alt">Leave empty if this is a public event</span>
+              </label>
+              <input
+                type="number"
+                placeholder="Enter group ID"
+                value={eventForm.groupId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEventForm({
+                    ...eventForm,
+                    groupId: val === "" ? undefined : parseInt(val, 10),
+                  });
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="btn btn-primary mt-4"
+              disabled={!eventForm.name || !eventForm.date}
+            >
               Update Event
             </button>
           </form>

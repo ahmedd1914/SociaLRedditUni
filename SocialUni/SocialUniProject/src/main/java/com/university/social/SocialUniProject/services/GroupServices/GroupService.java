@@ -140,7 +140,7 @@ public class GroupService {
             // Notify user that they joined successfully
             notificationService.createNotification(new CreateNotificationDto(
                     "You have successfully joined the group '" + group.getName() + "'.",
-                    NotificationType.GROUP_JOINED,
+                    NotificationType.GROUP_MEMBER_ADDED,
                     user.getId(),
                     null,
                     null
@@ -222,7 +222,7 @@ public class GroupService {
             if (!adminId.equals(userId)) { // Avoid self-notification
                 notificationService.createNotification(new CreateNotificationDto(
                         user.getUsername() + " left your group " + group.getName(),
-                        NotificationType.GROUP_LEAVE,
+                        NotificationType.GROUP_MEMBER_LEFT,
                         adminId,
                         null,
                         null
@@ -360,7 +360,7 @@ public class GroupService {
         // Notify the user about their removal
         notificationService.createNotification(new CreateNotificationDto(
                 "You have been removed from group '" + group.getName() + "'.",
-                NotificationType.GROUP_REMOVED,
+                NotificationType.GROUP_MEMBER_REMOVED,
                 user.getId(),
                 null,
                 null
@@ -380,7 +380,7 @@ public class GroupService {
         // Notify the user about being added to the group
         notificationService.createNotification(new CreateNotificationDto(
                 "You have been added to group '" + group.getName() + "'.",
-                NotificationType.GROUP_ADDED,
+                NotificationType.GROUP_MEMBER_ADDED,
                 user.getId(),
                 null,
                 null

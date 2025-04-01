@@ -28,10 +28,86 @@ export enum EventStatus {
 
 // NotificationType (for notifications)
 export enum NotificationType {
-    COMMENT = 'COMMENT',
-    LIKE = 'LIKE',
-    FOLLOW = 'FOLLOW',
-    MENTION = 'MENTION',
+    // User-related
+    USER_REGISTERED = "USER_REGISTERED",
+    USER_UPDATED = "USER_UPDATED",
+    USER_DELETED = "USER_DELETED",
+    USER_BLOCKED = "USER_BLOCKED",
+    USER_UNBLOCKED = "USER_UNBLOCKED",
+    USER_REPORTED = "USER_REPORTED",
+    USER_VERIFIED = "USER_VERIFIED",
+    USER_ROLE_CHANGED = "USER_ROLE_CHANGED",
+
+    // Post-related
+    POST_CREATED = "POST_CREATED",
+    POST_UPDATED = "POST_UPDATED",
+    POST_DELETED = "POST_DELETED",
+    POST_UPDATED_BY_ADMIN = "POST_UPDATED_BY_ADMIN",
+    POST_DELETED_BY_ADMIN = "POST_DELETED_BY_ADMIN",
+    POST_REPORTED = "POST_REPORTED",
+    POST_APPROVED = "POST_APPROVED",
+    POST_REJECTED = "POST_REJECTED",
+    POST_ARCHIVED = "POST_ARCHIVED",
+    POST_UNARCHIVED = "POST_UNARCHIVED",
+    POST_PINNED = "POST_PINNED",
+    POST_UNPINNED = "POST_UNPINNED",
+
+    // Comment-related
+    COMMENT_CREATED = "COMMENT_CREATED",
+    COMMENT_UPDATED = "COMMENT_UPDATED",
+    COMMENT_DELETED = "COMMENT_DELETED",
+    COMMENT_REPORTED = "COMMENT_REPORTED",
+    COMMENT_APPROVED = "COMMENT_APPROVED",
+    COMMENT_REJECTED = "COMMENT_REJECTED",
+    COMMENT_HIDDEN = "COMMENT_HIDDEN",
+    COMMENT_UNHIDDEN = "COMMENT_UNHIDDEN",
+    COMMENT_LIKED = "COMMENT_LIKED",
+    COMMENT_REPLIED = "COMMENT_REPLIED",
+
+    // Event-related
+    EVENT_CREATED = "EVENT_CREATED",
+    EVENT_UPDATED = "EVENT_UPDATED",
+    EVENT_DELETED = "EVENT_DELETED",
+    EVENT_RSVP = "EVENT_RSVP",
+    EVENT_INVITATION = "EVENT_INVITATION",
+    EVENT_CANCELLED = "EVENT_CANCELLED",
+    EVENT_POSTPONED = "EVENT_POSTPONED",
+    EVENT_REPORTED = "EVENT_REPORTED",
+    EVENT_APPROVED = "EVENT_APPROVED",
+    EVENT_REJECTED = "EVENT_REJECTED",
+    EVENT_STARTING_SOON = "EVENT_STARTING_SOON",
+    EVENT_COMPLETED = "EVENT_COMPLETED",
+
+    // Group-related
+    GROUP_CREATED = "GROUP_CREATED",
+    GROUP_UPDATED = "GROUP_UPDATED",
+    GROUP_DELETED = "GROUP_DELETED",
+    GROUP_JOIN_REQUEST = "GROUP_JOIN_REQUEST",
+    GROUP_JOIN_APPROVED = "GROUP_JOIN_APPROVED",
+    GROUP_JOIN_REJECTED = "GROUP_JOIN_REJECTED",
+    GROUP_LEFT = "GROUP_LEFT",
+    GROUP_REMOVED = "GROUP_REMOVED",
+    GROUP_ROLE_CHANGED = "GROUP_ROLE_CHANGED",
+    GROUP_SETTINGS_UPDATED = "GROUP_SETTINGS_UPDATED",
+    GROUP_REPORTED = "GROUP_REPORTED",
+    GROUP_ARCHIVED = "GROUP_ARCHIVED",
+    GROUP_UNARCHIVED = "GROUP_UNARCHIVED",
+
+    // System notifications
+    SYSTEM_ANNOUNCEMENT = "SYSTEM_ANNOUNCEMENT",
+    SYSTEM_UPDATE = "SYSTEM_UPDATE",
+    SYSTEM_MAINTENANCE = "SYSTEM_MAINTENANCE",
+    SYSTEM_ERROR = "SYSTEM_ERROR",
+    SYSTEM_WARNING = "SYSTEM_WARNING",
+    SYSTEM_INFO = "SYSTEM_INFO",
+
+    // Admin notifications
+    ADMIN_ACTION_REQUIRED = "ADMIN_ACTION_REQUIRED",
+    ADMIN_REPORT_RECEIVED = "ADMIN_REPORT_RECEIVED",
+    ADMIN_USER_REPORTED = "ADMIN_USER_REPORTED",
+    ADMIN_CONTENT_REPORTED = "ADMIN_CONTENT_REPORTED",
+    ADMIN_ACTION_COMPLETED = "ADMIN_ACTION_COMPLETED",
+    ADMIN_ACTION_FAILED = "ADMIN_ACTION_FAILED"
 }
 
 // ReactionType (for reactions)
@@ -180,6 +256,7 @@ export interface RequestDto {
 export interface UpdateCommentDto {
     content: string;         // NotBlank
     mediaUrl?: string;
+    visibility?: Visibility;  // Optional since it's not in backend DTO
 }
 
 /** UpdateEventDto.java */
@@ -189,9 +266,9 @@ export interface UpdateEventDto {
     date?: string;           // ISO string (or Date if parsed)
     location?: string;
     category?: Category;
-    status?: string;         // e.g., "PLANNED", "ONGOING", etc.
+    status?: EventStatus;    // Changed from string to EventStatus
     privacy?: EventPrivacy;
-    statuis?: EventStatus;
+    groupId?: number;        // Added groupId field
 }
 
 /** VerifyUserDto.java */
@@ -228,6 +305,7 @@ export interface CommentResponseDto {
     parentCommentId: number | null;
     isDeleted: boolean;
     replies: CommentResponseDto[];
+    postId: number;          // Added postId field
 }
 
 /** EventResponseDto.java */
@@ -272,8 +350,9 @@ export interface NotificationResponseDto {
     notificationType: NotificationType;
     isRead: boolean;
     createdAt: string;
-    relatedPostId: number | null;
-    relatedCommentId: number | null;
+    relatedPostId?: number;
+    relatedCommentId?: number;
+    metadata?: Record<string, any>;
 }
 
 /** PostResponseDto.java */
@@ -295,12 +374,18 @@ export interface PostResponseDto {
 /** ReactionResponseDto.java */
 export interface ReactionResponseDto {
     id: number;
-    userId: number;
-    username: string;
-    postId: number | null;
-    postTitle: string;
     type: string;
     timestamp: string;
+    userId: number;
+    username: string;
+    postId?: number;
+    postTitle?: string;
+    postAuthorUsername?: string;
+    postContent?: string;
+    commentId?: number;
+    commentContent?: string;
+    commentAuthorId?: number;
+    commentAuthorUsername?: string;
 }
 
 /** UsersDto.java */
@@ -341,9 +426,22 @@ export interface MessageStatsDto {
 
 export interface NotificationStatsDto {
     totalNotifications: number;
-    unreadCount: number;
-    recentNotificationsCount: number;
+    readNotifications: number;
+    unreadNotifications: number;
+    notificationsLast24Hours: number;
+    notificationsLast7Days: number;
+    notificationsLast30Days: number;
     notificationsByType: Record<string, number>;
+    notificationsByRecipient: Record<string, number>;
+    readRateByType: Record<string, number>;
+}
+
+export interface NotificationFilterParams {
+    type?: NotificationType;
+    isRead?: boolean;
+    startDate?: string;
+    endDate?: string;
+    searchTerm?: string;
 }
 
 export interface PendingJoinRequestDto {
@@ -394,16 +492,6 @@ export interface GroupMessageStats {
     activeUsers: number;
     averageMessagesPerDay: number;
     mostActiveUser: string;
-}
-
-export interface ReactionResponseDto {
-    id: number;
-    userId: number;
-    username: string;
-    postId: number | null;
-    postTitle: string;
-    type: string;
-    timestamp: string;
 }
 
 export interface ReactionStats {

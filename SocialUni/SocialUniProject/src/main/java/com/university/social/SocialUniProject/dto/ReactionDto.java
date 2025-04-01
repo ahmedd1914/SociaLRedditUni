@@ -4,15 +4,18 @@ import com.university.social.SocialUniProject.enums.ReactionType;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
 public class ReactionDto {
     @NotNull(message = "Reaction type cannot be null")
     private ReactionType type;
 
     private Long postId;
     private Long commentId;
+    private Long userId;
 
 
 //    public @NotNull(message = "Reaction type cannot be null") ReactionType getType() {

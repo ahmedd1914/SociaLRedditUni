@@ -2,6 +2,7 @@ package com.university.social.SocialUniProject.dto;
 
 import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.enums.EventPrivacy;
+import com.university.social.SocialUniProject.enums.EventStatus;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -13,7 +14,7 @@ public class UpdateEventDto {
     private LocalDateTime date;
     private String location;
     private Category category;
-    // Optionally, allow changing status
-    private String status;
+    private EventStatus status;
     private EventPrivacy privacy;
+    private Long groupId;
 }

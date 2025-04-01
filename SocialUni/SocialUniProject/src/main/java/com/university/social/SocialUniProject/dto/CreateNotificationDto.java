@@ -1,17 +1,20 @@
 package com.university.social.SocialUniProject.dto;
 
 import com.university.social.SocialUniProject.enums.NotificationType;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateNotificationDto {
     private String message;
     private NotificationType notificationType;
     private Long recipientId;
     private Long relatedPostId;
     private Long relatedCommentId;
+    private String metadata;
 
     public CreateNotificationDto(String message, NotificationType notificationType, Long id, Long postId, Long commentId) {
         this.message = message;

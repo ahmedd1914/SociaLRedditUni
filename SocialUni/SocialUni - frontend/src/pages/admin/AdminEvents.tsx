@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { GridColDef } from "@mui/x-data-grid";
 import DataTable from "../../components/DataTable";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { API } from "../../api/api";
 import { HiPlus, HiOutlineGlobeAmericas, HiOutlineLockClosed } from "react-icons/hi2";
 import { EventStatus, EventPrivacy, EventResponseDto } from "../../api/interfaces";
@@ -10,12 +10,15 @@ import { Dialog } from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import EditData from "../../components/EditData";
 
 const Events = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
@@ -39,6 +42,30 @@ const Events = () => {
       console.error("Error fetching events:", error);
     }
   }, [error]);
+
+  // Function to handle event deletion
+  const handleDelete = async (eventId: number) => {
+    try {
+      await API.deleteEvent(eventId);
+      toast.success("Event deleted successfully!");
+      queryClient.invalidateQueries({ queryKey: ["allevents"] });
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast.error("Failed to delete event");
+    }
+  };
+
+  // Function to handle event edit
+  const handleEdit = (eventId: number) => {
+    setSelectedEvent(eventId);
+    setIsEditModalOpen(true);
+  };
+
+  // Function to handle edit modal close
+  const handleEditModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedEvent(null);
+  };
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", minWidth: 90 },
@@ -162,6 +189,8 @@ const Events = () => {
             columns={columns}
             rows={data}
             includeActionColumn={true}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
           />
         ) : (
           <>
@@ -178,7 +207,7 @@ const Events = () => {
         )}
       </div>
 
-      {/* Create/Edit Event Modal */}
+      {/* Create Event Modal */}
       <Dialog
         open={isModalOpen}
         onClose={() => {
@@ -194,6 +223,22 @@ const Events = () => {
             isOpen={isModalOpen}
             setIsOpen={setIsModalOpen}
             editId={selectedEvent}
+          />
+        </div>
+      </Dialog>
+
+      {/* Edit Event Modal */}
+      <Dialog
+        open={isEditModalOpen}
+        onClose={handleEditModalClose}
+        maxWidth="md"
+        fullWidth
+      >
+        <div className="p-6 bg-base-100">
+          <EditData
+            slug="events"
+            onClose={handleEditModalClose}
+            id={selectedEvent?.toString()}
           />
         </div>
       </Dialog>

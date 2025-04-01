@@ -335,8 +335,8 @@ public class PostService {
 
         return new CommentResponseDto(
                 comment.getId(),
-                comment.getContent(),
                 comment.getUser().getUsername(),
+                comment.getContent(),
                 comment.getMediaUrl(),
                 comment.getVisibility(),
                 comment.getCreatedAt(),
@@ -344,7 +344,8 @@ public class PostService {
                 reactionTypes,
                 (comment.getParentComment() != null) ? comment.getParentComment().getId() : null,
                 comment.isDeleted(),
-                replies
+                replies,
+                comment.getPost().getId()
         );
     }
 }

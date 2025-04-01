@@ -4,12 +4,14 @@ import com.university.social.SocialUniProject.dto.UpdateEventDto;
 import com.university.social.SocialUniProject.responses.EventResponseDto;
 import com.university.social.SocialUniProject.services.EventService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/admin/events")
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminEventController {
 
     private final EventService eventService;
@@ -22,8 +24,15 @@ public class AdminEventController {
     @GetMapping
     public ResponseEntity<List<EventResponseDto>> getAllEvents() {
         // For simplicity, you could combine public and group events
-        List<EventResponseDto> events = eventService.getPublicEvents();
+        List<EventResponseDto> events = eventService.getAllEvents();
         return ResponseEntity.ok(events);
+    }
+
+    // Admin can view a specific event
+    @GetMapping("/{eventId}")
+    public ResponseEntity<EventResponseDto> getEventById(@PathVariable Long eventId) {
+        EventResponseDto event = eventService.getEventById(eventId);
+        return ResponseEntity.ok(event);
     }
 
     // Admin can update any event without restrictions
@@ -31,7 +40,7 @@ public class AdminEventController {
     public ResponseEntity<EventResponseDto> updateEventByAdmin(@PathVariable Long eventId,
                                                                @RequestBody UpdateEventDto dto) {
         // Admin bypasses permission checks in the service layer (if implemented)
-        EventResponseDto response = eventService.updateEvent(eventId, dto, eventService.getEventByIdDto(eventId).getOrganizerId());
+        EventResponseDto response = eventService.updateEventAsAdmin(eventId, dto);
         return ResponseEntity.ok(response);
     }
 
@@ -39,7 +48,7 @@ public class AdminEventController {
     @DeleteMapping("/{eventId}")
     public ResponseEntity<Void> deleteEventByAdmin(@PathVariable Long eventId) {
         // Admin deletion logic could be separate if needed.
-        eventService.deleteEvent(eventId, eventService.getEventByIdDto(eventId).getOrganizerId());
+        eventService.deleteEventAsAdmin(eventId);
         return ResponseEntity.ok().build();
     }
 }

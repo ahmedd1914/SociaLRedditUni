@@ -1,14 +1,15 @@
 package com.university.social.SocialUniProject.responses;
 
-
 import com.university.social.SocialUniProject.enums.NotificationType;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class NotificationResponseDto {
     private Long id;
     private String message;
@@ -17,6 +18,5 @@ public class NotificationResponseDto {
     private LocalDateTime createdAt;
     private Long relatedPostId;
     private Long relatedCommentId;
-
-
+    private String metadata;
 }

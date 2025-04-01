@@ -26,8 +26,9 @@ public class CommentResponseDto {
     private Long parentCommentId; // If it's a reply
     private boolean isDeleted;
     private List<CommentResponseDto> replies;
+    private Long postId;
 
-    public CommentResponseDto(Long id, String username, String content, String mediaUrl, Visibility visibility, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, Long parentCommentId, boolean isDeleted, List<CommentResponseDto> replies) {
+    public CommentResponseDto(Long id, String username, String content, String mediaUrl, Visibility visibility, LocalDateTime createdAt, int reactionCount, Map<String, Integer> reactionTypes, Long parentCommentId, boolean isDeleted, List<CommentResponseDto> replies, Long postId) {
         this.id = id;
         this.username = username;
         this.content = content;
@@ -39,6 +40,7 @@ public class CommentResponseDto {
         this.parentCommentId = parentCommentId;
         this.isDeleted = isDeleted;
         this.replies = replies;
+        this.postId = postId;
     }
 
     }

@@ -27,9 +27,10 @@ public class AdminNotificationController {
             @RequestParam(required = false) Long recipientId,
             @RequestParam(required = false) Boolean isRead,
             @RequestParam(required = false) String type,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        List<NotificationResponseDto> notifications = notificationService.getAllNotifications(search, recipientId, isRead, type, page, size);
+        List<NotificationResponseDto> notifications = notificationService.getAllNotifications(search, recipientId, isRead, type, category, page, size);
         return ResponseEntity.ok(notifications);
     }
 

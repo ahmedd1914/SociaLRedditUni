@@ -3,9 +3,12 @@ package com.university.social.SocialUniProject.services.UserServices;
 import com.university.social.SocialUniProject.dto.UserDto.LoginUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.RegisterUserDto;
 import com.university.social.SocialUniProject.dto.UserDto.VerifyUserDto;
+import com.university.social.SocialUniProject.dto.CreateNotificationDto;
 import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.repositories.UserRepository;
+import com.university.social.SocialUniProject.services.NotificationService;
+import com.university.social.SocialUniProject.enums.NotificationType;
 import jakarta.mail.MessagingException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,19 +27,22 @@ public class AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final JwtService jwtService;
+    private final NotificationService notificationService;
 
     public AuthenticationService(
             UserRepository userRepository,
             AuthenticationManager authenticationManager,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            JwtService jwtService
+            JwtService jwtService,
+            NotificationService notificationService
     ) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.jwtService = jwtService;
+        this.notificationService = notificationService;
     }
 
     /**
@@ -64,6 +70,15 @@ public class AuthenticationService {
         user.setCreatedAt(LocalDateTime.now());
         // Persist user in DB
         user = userRepository.save(user);
+
+        // Create welcome notification
+        notificationService.createNotification(new CreateNotificationDto(
+                "Welcome to SocialUni! Please verify your email to get started.",
+                NotificationType.USER_REGISTERED,
+                user.getId(),
+                null,
+                null
+        ));
 
         // Return JWT containing userId + role
         return jwtService.generateTokenForUser(user);

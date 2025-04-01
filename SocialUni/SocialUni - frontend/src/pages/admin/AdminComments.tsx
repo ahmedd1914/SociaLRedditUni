@@ -9,11 +9,12 @@ import {
   HiPlus,
   HiOutlineAdjustmentsHorizontal,
 } from "react-icons/hi2";
-import { Visibility, CommentResponseDto } from "../../api/interfaces";
+import { Visibility, CommentResponseDto, PostResponseDto } from "../../api/interfaces";
 import AddData from "../../components/AddData";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { format } from "date-fns";
 
 interface CommentsProps {
   showActiveOnly?: boolean;
@@ -22,6 +23,10 @@ interface CommentsProps {
 const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly = false }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showActiveOnly, setShowActiveOnly] = useState(initialActiveOnly);
+  const [selectedPost, setSelectedPost] = useState<PostResponseDto | null>(null);
+  const [selectedParentComment, setSelectedParentComment] = useState<CommentResponseDto | null>(null);
+  const [isPostModalOpen, setIsPostModalOpen] = useState(false);
+  const [isParentModalOpen, setIsParentModalOpen] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -37,12 +42,19 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
   const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["comments", showActiveOnly],
     queryFn: async () => {
-      const response = await API.fetchAllComments();
+      const response = showActiveOnly 
+        ? await API.fetchActiveComments()
+        : await API.fetchAllComments();
       const transformedData = response.map((comment: CommentResponseDto) => ({
         ...comment,
-        isDeleted: comment.isDeleted
+        isDeleted: comment.isDeleted || false,
+        postId: comment.postId || null,
+        parentCommentId: comment.parentCommentId || null,
+        reactionCount: comment.reactionCount || 0,
+        reactionTypes: comment.reactionTypes || {},
+        replies: comment.replies || []
       }));
-      return showActiveOnly ? transformedData.filter(comment => !comment.isDeleted) : transformedData;
+      return transformedData;
     },
     enabled: !!user && user.role === 'ADMIN',
     retry: false,
@@ -72,7 +84,31 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
 
   // Function to handle comment edit
   const handleEdit = async (commentId: number) => {
-    navigate(`/admin/comments/${commentId}/edit`);
+    navigate(`/admin/comments/${commentId}/edit`, {
+      state: { from: '/admin/comments' }
+    });
+  };
+
+  const handleViewPost = async (postId: number) => {
+    try {
+      const post = await API.fetchPostById(postId);
+      setSelectedPost(post);
+      setIsPostModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching post:", error);
+      toast.error("Failed to fetch post details");
+    }
+  };
+
+  const handleViewParentComment = async (commentId: number) => {
+    try {
+      const comment = await API.fetchCommentById(commentId);
+      setSelectedParentComment(comment);
+      setIsParentModalOpen(true);
+    } catch (error) {
+      console.error("Error fetching parent comment:", error);
+      toast.error("Failed to fetch parent comment details");
+    }
   };
 
   const columns: GridColDef[] = [
@@ -85,16 +121,6 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
       renderCell: (params) => (
         <div className="flex flex-col items-start gap-0">
           <p className="text-[14px] line-clamp-2">{params.row.content}</p>
-          {params.row.mediaUrl && (
-            <a
-              href={params.row.mediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary"
-            >
-              View Media
-            </a>
-          )}
         </div>
       ),
     },
@@ -109,18 +135,21 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
       headerName: "Visibility",
       minWidth: 120,
       flex: 1,
-      renderCell: (params) =>
-        params.row.visibility === Visibility.PUBLIC ? (
+      renderCell: (params) => {
+        const visibility = params.row.visibility;
+        if (!visibility) return null;
+        return visibility === Visibility.PUBLIC ? (
           <div className="flex gap-1 items-center">
             <HiOutlineGlobeAmericas className="text-lg" />
-            <span>{params.row.visibility}</span>
+            <span>Public</span>
           </div>
         ) : (
           <div className="flex gap-1 items-center">
             <HiOutlineLockClosed className="text-lg" />
-            <span>{params.row.visibility}</span>
+            <span>Private</span>
           </div>
-        ),
+        );
+      },
     },
     {
       field: "isDeleted",
@@ -158,14 +187,35 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
       headerName: "Post ID",
       minWidth: 100,
       type: "number",
+      renderCell: (params) => (
+        <div className="flex items-center gap-2">
+          <span>{params.row.postId || 'N/A'}</span>
+          {params.row.postId && (
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={() => handleViewPost(params.row.postId)}
+            >
+              View Post
+            </button>
+          )}
+        </div>
+      ),
     },
     {
       field: "parentCommentId",
       headerName: "Parent Comment",
       minWidth: 120,
       renderCell: (params) => (
-        <div>
-          {params.row.parentCommentId ? params.row.parentCommentId : "N/A"}
+        <div className="flex items-center gap-2">
+          <span>{params.row.parentCommentId || 'N/A'}</span>
+          {params.row.parentCommentId && (
+            <button
+              className="btn btn-xs btn-ghost"
+              onClick={() => handleViewParentComment(params.row.parentCommentId)}
+            >
+              View Parent
+            </button>
+          )}
         </div>
       ),
     },
@@ -190,7 +240,10 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
             {/* Filter Toggle Button */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setShowActiveOnly(!showActiveOnly)}
+                onClick={() => {
+                  setShowActiveOnly(!showActiveOnly);
+                  queryClient.invalidateQueries({ queryKey: ["comments"] });
+                }}
                 className={`btn ${
                   showActiveOnly ? "btn-primary" : "btn-ghost"
                 } flex items-center gap-2`}
@@ -243,6 +296,113 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
         )}
       </div>
 
+      {/* Post Details Modal */}
+      {isPostModalOpen && selectedPost && (
+        <dialog open className="modal modal-bottom sm:modal-middle">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Post Details</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="font-semibold">Title:</span> {selectedPost.title}
+              </div>
+              <div>
+                <span className="font-semibold">Content:</span>
+                <p className="mt-1 whitespace-pre-wrap">{selectedPost.content}</p>
+              </div>
+              <div>
+                <span className="font-semibold">Author:</span> {selectedPost.username}
+              </div>
+              <div>
+                <span className="font-semibold">Created:</span> {format(new Date(selectedPost.createdAt), 'PPpp')}
+              </div>
+              <div>
+                <span className="font-semibold">Category:</span> {selectedPost.category}
+              </div>
+              <div>
+                <span className="font-semibold">Visibility:</span>
+                <div className="flex gap-1 items-center mt-1">
+                  {selectedPost.visibility === Visibility.PUBLIC ? (
+                    <>
+                      <HiOutlineGlobeAmericas className="text-lg" />
+                      <span>Public</span>
+                    </>
+                  ) : (
+                    <>
+                      <HiOutlineLockClosed className="text-lg" />
+                      <span>Private</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div>
+                <span className="font-semibold">Reactions:</span> {selectedPost.reactionCount}
+              </div>
+            </div>
+            <div className="modal-action">
+              <button className="btn" onClick={() => setIsPostModalOpen(false)}>Close</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => window.open(`/posts/${selectedPost.id}`, '_blank')}
+              >
+                Open in New Tab
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setIsPostModalOpen(false)}>close</button>
+          </form>
+        </dialog>
+      )}
+
+      {/* Parent Comment Details Modal */}
+      {isParentModalOpen && selectedParentComment && (
+        <dialog open className="modal modal-bottom sm:modal-middle">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Parent Comment Details</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="font-semibold">Content:</span>
+                <p className="mt-1 whitespace-pre-wrap">{selectedParentComment.content}</p>
+              </div>
+              <div>
+                <span className="font-semibold">Author:</span> {selectedParentComment.username}
+              </div>
+              <div>
+                <span className="font-semibold">Created:</span> {format(new Date(selectedParentComment.createdAt), 'PPpp')}
+              </div>
+              <div>
+                <span className="font-semibold">Reactions:</span> {selectedParentComment.reactionCount}
+              </div>
+              {selectedParentComment.mediaUrl && (
+                <div>
+                  <span className="font-semibold">Media:</span>
+                  <a 
+                    href={selectedParentComment.mediaUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="ml-2 text-primary hover:underline"
+                  >
+                    View Media
+                  </a>
+                </div>
+              )}
+            </div>
+            <div className="modal-action">
+              <button className="btn" onClick={() => setIsParentModalOpen(false)}>Close</button>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => window.open(`/comments/${selectedParentComment.id}`, '_blank')}
+              >
+                Open in New Tab
+              </button>
+            </div>
+          </div>
+          <form method="dialog" className="modal-backdrop">
+            <button onClick={() => setIsParentModalOpen(false)}>close</button>
+          </form>
+        </dialog>
+      )}
+
       {/* Create Comment Modal */}
       {isModalOpen && (
         <AddData
@@ -250,7 +410,6 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
           isOpen={isModalOpen}
           setIsOpen={setIsModalOpen}
           onSuccess={() => {
-            // Invalidate both comments and posts queries to ensure UI is updated
             queryClient.invalidateQueries({ queryKey: ["comments"] });
             queryClient.invalidateQueries({ queryKey: ["allposts"] });
           }}

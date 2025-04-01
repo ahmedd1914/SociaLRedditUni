@@ -1,4 +1,4 @@
-package com.university.social.SocialUniProject.services.PostServices;
+package com.university.social.SocialUniProject.services;
 
 import com.university.social.SocialUniProject.dto.CreateCommentDto;
 import com.university.social.SocialUniProject.dto.UpdateCommentDto;
@@ -138,6 +138,9 @@ public class CommentService {
         Comment comment = getCommentById(commentId);
         comment.setContent(updateDto.getContent());
         comment.setMediaUrl(updateDto.getMediaUrl());
+        if (updateDto.getVisibility() != null) {
+            comment.setVisibility(updateDto.getVisibility());
+        }
         commentRepository.save(comment);
         return convertToDto(comment);
     }
@@ -171,7 +174,8 @@ public class CommentService {
                 reactionTypes,
                 (comment.getParentComment() != null) ? comment.getParentComment().getId() : null,
                 comment.isDeleted(), // Make sure this is included
-                replies
+                replies,
+                comment.getPost().getId()
         );
     }
 }

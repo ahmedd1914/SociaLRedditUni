@@ -99,7 +99,7 @@ public class EventService {
         event.setLocation(dto.getLocation());
         event.setCategory(dto.getCategory());
         if (dto.getStatus() != null) {
-            event.setStatus(EventStatus.valueOf(dto.getStatus()));
+            event.setStatus(dto.getStatus());
         }
         event.setUpdatedAt(LocalDateTime.now());
         Event updatedEvent = eventRepository.save(event);
@@ -219,6 +219,61 @@ public class EventService {
         return eventRepository.findByGroupId(groupId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    // Admin methods
+    public List<EventResponseDto> getAllEvents() {
+        List<Event> events = eventRepository.findAll();
+        return events.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public EventResponseDto getEventById(Long eventId) {
+        Event event = findEventById(eventId);
+        return convertToDto(event);
+    }
+
+    public EventResponseDto updateEventAsAdmin(Long eventId, UpdateEventDto dto) {
+        Event event = eventRepository.findById(eventId)
+            .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        if (dto.getName() != null) {
+            event.setName(dto.getName());
+        }
+        if (dto.getDescription() != null) {
+            event.setDescription(dto.getDescription());
+        }
+        if (dto.getDate() != null) {
+            event.setDate(dto.getDate());
+        }
+        if (dto.getLocation() != null) {
+            event.setLocation(dto.getLocation());
+        }
+        if (dto.getCategory() != null) {
+            event.setCategory(dto.getCategory());
+        }
+        if (dto.getStatus() != null) {
+            event.setStatus(dto.getStatus());
+        }
+        if (dto.getPrivacy() != null) {
+            event.setPrivacy(dto.getPrivacy());
+        }
+        if (dto.getGroupId() != null) {
+            Group group = groupRepository.findById(dto.getGroupId())
+                .orElseThrow(() -> new ResourceNotFoundException("Group not found"));
+            event.setGroup(group);
+        } else {
+            event.setGroup(null);
+        }
+
+        Event updatedEvent = eventRepository.save(event);
+        return convertToDto(updatedEvent);
+    }
+
+    public void deleteEventAsAdmin(Long eventId) {
+        Event event = findEventById(eventId);
+        eventRepository.delete(event);
     }
 
     // --- Conversion Method ---

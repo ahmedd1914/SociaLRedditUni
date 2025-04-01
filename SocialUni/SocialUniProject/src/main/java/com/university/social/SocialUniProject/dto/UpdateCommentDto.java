@@ -1,5 +1,6 @@
 package com.university.social.SocialUniProject.dto;
 
+import com.university.social.SocialUniProject.enums.Visibility;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -13,9 +14,12 @@ public class UpdateCommentDto {
 
     private String mediaUrl;
 
-    public UpdateCommentDto(String content, String mediaUrl) {
+    private Visibility visibility;
+
+    public UpdateCommentDto(String content, String mediaUrl, Visibility visibility) {
         this.content = content;
         this.mediaUrl = mediaUrl;
+        this.visibility = visibility;
     }
 
 //    public @NotBlank(message = "Comment content cannot be empty") String getContent() {

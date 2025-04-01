@@ -4,7 +4,7 @@ import com.university.social.SocialUniProject.dto.UpdateCommentDto;
 import com.university.social.SocialUniProject.models.Comment;
 import com.university.social.SocialUniProject.models.User;
 import com.university.social.SocialUniProject.responses.CommentResponseDto;
-import com.university.social.SocialUniProject.services.PostServices.CommentService;
+import com.university.social.SocialUniProject.services.CommentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

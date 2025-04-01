@@ -20,6 +20,7 @@ import {
   // Notifications
   NotificationResponseDto,
   NotificationStatsDto,
+  NotificationType,
   // Posts
   PostResponseDto,
   UpdatePostDto,
@@ -48,6 +49,7 @@ import {
   RequestDto,
   GroupMessageStats,
 } from "./interfaces";
+import { NotificationFilterParams } from '../types/notification';
 
 // Get API URL from environment variables with fallback
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
@@ -390,8 +392,33 @@ export class API {
   static async fetchAllComments(): Promise<CommentResponseDto[]> {
     try {
       const { data } = await this.instance.get<CommentResponseDto[]>("/admin/comments");
-      return data;
+      return data.map(comment => ({
+        ...comment,
+        postId: comment.postId || 0,
+        parentCommentId: comment.parentCommentId || null,
+        reactionCount: comment.reactionCount || 0,
+        reactionTypes: comment.reactionTypes || {},
+        replies: comment.replies || []
+      }));
     } catch (error) {
+      console.error('Error fetching comments:', error);
+      return handleApiError(error);
+    }
+  }
+
+  static async fetchActiveComments(): Promise<CommentResponseDto[]> {
+    try {
+      const { data } = await this.instance.get<CommentResponseDto[]>("/admin/comments/active_comments");
+      return data.map(comment => ({
+        ...comment,
+        postId: comment.postId || 0,
+        parentCommentId: comment.parentCommentId || null,
+        reactionCount: comment.reactionCount || 0,
+        reactionTypes: comment.reactionTypes || {},
+        replies: comment.replies || []
+      }));
+    } catch (error) {
+      console.error('Error fetching active comments:', error);
       return handleApiError(error);
     }
   }
@@ -1035,50 +1062,82 @@ export class API {
     }
   }
 
+  // Fetch filtered notifications
+  static async fetchFilteredNotifications(params: NotificationFilterParams): Promise<NotificationResponseDto[]> {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      // Add category filter if it's not ALL
+      if (params.category && params.category !== "ALL") {
+        queryParams.append('category', params.category);
+      }
+      
+      // Add type filter if it's not ALL
+      if (params.type && params.type !== "ALL") {
+        queryParams.append('type', params.type);
+      }
+      
+      // Add read status filter
+      if (params.isRead !== undefined) {
+        queryParams.append('isRead', params.isRead.toString());
+      }
+      
+      // Add date range filters
+      if (params.startDate) queryParams.append('startDate', params.startDate);
+      if (params.endDate) queryParams.append('endDate', params.endDate);
+      
+      // Add search term filter
+      if (params.searchTerm) queryParams.append('searchTerm', params.searchTerm);
+
+      // Add pagination parameters
+      queryParams.append('page', params.page?.toString() || '0');
+      queryParams.append('size', params.size?.toString() || '50');
+
+      // Add sort parameters
+      queryParams.append('sort', 'createdAt,desc');
+
+      const { data } = await this.instance.get<NotificationResponseDto[]>(`/admin/notifications?${queryParams.toString()}`);
+      return data;
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      throw error;
+    }
+  }
+
   /* ================= REACTION API ================= */
   static async fetchAllReactions(): Promise<ReactionResponseDto[]> {
     try {
       const { data } = await this.instance.get<ReactionResponseDto[]>("/admin/reactions");
       return data;
     } catch (error) {
+      console.error('Error fetching reactions:', error);
       return handleApiError(error);
     }
   }
 
-  static async fetchReactionById(reactionId: number): Promise<ReactionResponseDto> {
+  static async fetchPostDetails(postId: number): Promise<PostResponseDto> {
     try {
-      const { data } = await this.instance.get<ReactionResponseDto>(`/admin/reactions/${reactionId}`);
+      const { data } = await this.instance.get<PostResponseDto>(`/admin/posts/${postId}`);
       return data;
     } catch (error) {
+      console.error('Error fetching post details:', error);
       return handleApiError(error);
     }
   }
 
-  static async deleteReaction(reactionId: number): Promise<{ success: boolean; message: string }> {
+  static async fetchCommentDetails(commentId: number): Promise<CommentResponseDto> {
     try {
-      const { data } = await this.instance.delete<{ success: boolean; message: string }>(
-        `/admin/reactions/${reactionId}`
-      );
-      return data;
+      const { data } = await this.instance.get<CommentResponseDto>(`/admin/comments/${commentId}`);
+      return {
+        ...data,
+        postId: data.postId || 0,
+        parentCommentId: data.parentCommentId || null,
+        reactionCount: data.reactionCount || 0,
+        reactionTypes: data.reactionTypes || {},
+        replies: data.replies || []
+      };
     } catch (error) {
-      return handleApiError(error);
-    }
-  }
-
-  static async fetchReactionsByType(type: string): Promise<ReactionResponseDto[]> {
-    try {
-      const { data } = await this.instance.get<ReactionResponseDto[]>(`/admin/reactions/search?type=${type}`);
-      return data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  }
-
-  static async fetchReactionStats(): Promise<ReactionStatsDto> {
-    try {
-      const { data } = await this.instance.get<ReactionStatsDto>("/admin/reactions/stats");
-      return data;
-    } catch (error) {
+      console.error('Error fetching comment details:', error);
       return handleApiError(error);
     }
   }
@@ -1201,4 +1260,4 @@ export class API {
   }
 }
 
-export default api;
+export default API;

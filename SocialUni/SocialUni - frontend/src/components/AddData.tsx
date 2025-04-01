@@ -115,6 +115,7 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
           await API.createEvent(eventForm);
           toast.success("Event created successfully!");
           queryClient.invalidateQueries({ queryKey: ["allevents"] });
+          queryClient.invalidateQueries({ queryKey: ["allposts"] });
           break;
         case "comment":
           console.log("Comment Form:", commentForm);
@@ -444,6 +445,25 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
                 ))}
               </select>
             </div>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Group ID (Optional)</span>
+                <span className="label-text-alt">Leave empty if this is a public event</span>
+              </label>
+              <input
+                type="number"
+                placeholder="Enter group ID"
+                value={eventForm.groupId ?? ""}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setEventForm({
+                    ...eventForm,
+                    groupId: val === "" ? undefined : parseInt(val, 10),
+                  });
+                }}
+                className="input input-bordered w-full"
+              />
+            </div>
             <button
               type="submit"
               className="btn btn-primary mt-4"
@@ -497,6 +517,40 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
                     parentCommentId: val === "" ? null : parseInt(val, 10),
                   });
                 }}
+                className="input input-bordered w-full"
+              />
+            </div>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Visibility</span>
+                <span className="label-text-alt">Who can see this comment?</span>
+              </label>
+              <select
+                value={commentForm.visibility}
+                onChange={(e) =>
+                  setCommentForm({
+                    ...commentForm,
+                    visibility: e.target.value as Visibility,
+                  })
+                }
+                className="select select-bordered w-full"
+              >
+                <option value={Visibility.PUBLIC}>Public</option>
+                <option value={Visibility.PRIVATE}>Private</option>
+              </select>
+            </div>
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Media URL (optional)</span>
+                <span className="label-text-alt">Link to any media attached to the comment</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Enter media URL"
+                value={commentForm.mediaUrl}
+                onChange={(e) =>
+                  setCommentForm({ ...commentForm, mediaUrl: e.target.value })
+                }
                 className="input input-bordered w-full"
               />
             </div>

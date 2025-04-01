@@ -20,6 +20,33 @@ public class EventController {
         this.eventService = eventService;
     }
 
+    // Admin endpoints
+    @GetMapping("/admin")
+    public ResponseEntity<List<EventResponseDto>> getAllEvents() {
+        List<EventResponseDto> events = eventService.getAllEvents();
+        return ResponseEntity.ok(events);
+    }
+
+    @GetMapping("/admin/{eventId}")
+    public ResponseEntity<EventResponseDto> getEventById(@PathVariable Long eventId) {
+        EventResponseDto event = eventService.getEventById(eventId);
+        return ResponseEntity.ok(event);
+    }
+
+    @PutMapping("/admin/{eventId}")
+    public ResponseEntity<EventResponseDto> updateEventAsAdmin(@PathVariable Long eventId,
+                                                             @RequestBody UpdateEventDto dto) {
+        EventResponseDto response = eventService.updateEventAsAdmin(eventId, dto);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/admin/{eventId}")
+    public ResponseEntity<Void> deleteEventAsAdmin(@PathVariable Long eventId) {
+        eventService.deleteEventAsAdmin(eventId);
+        return ResponseEntity.ok().build();
+    }
+
+    // Regular user endpoints
     @PostMapping("/create")
     public ResponseEntity<EventResponseDto> createEvent(@RequestBody CreateEventDto dto) {
         Long userId = SecurityUtils.getAuthenticatedUserId();

@@ -19,7 +19,10 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.university.social.SocialUniProject.utils.SecurityUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -131,14 +134,25 @@ public class ReactionService {
         ReactionResponseDto dto = new ReactionResponseDto();
         dto.setId(reaction.getId());
         dto.setType(reaction.getType().name());
-        dto.setUserId(reaction.getUser().getId());
+        
+        // Properly fetch user details from the reaction
+        User reactionUser = reaction.getUser();
+        if (reactionUser != null) {
+            dto.setUserId(reactionUser.getId());
+            dto.setUsername(reactionUser.getUsername());
+        }
+        
         if (reaction.getPost() != null) {
             dto.setPostId(reaction.getPost().getId());
+            dto.setPostTitle(reaction.getPost().getTitle());
         }
         if (reaction.getComment() != null) {
             dto.setCommentId(reaction.getComment().getId());
+            dto.setCommentContent(reaction.getComment().getContent());
+            dto.setCommentAuthorId(reaction.getComment().getUser().getId());
+            dto.setCommentAuthorUsername(reaction.getComment().getUser().getUsername());
         }
-        dto.setReactedAt(reaction.getReactedAt());
+        dto.setTimestamp(reaction.getReactedAt());
         return dto;
     }
 
@@ -156,9 +170,64 @@ public class ReactionService {
 
     public void deleteReactionByAdmin(Long reactionId) {
         Reaction reaction = reactionRepository.findById(reactionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Reaction not found with ID: " + reactionId));
+                .orElseThrow(() -> new ResourceNotFoundException("Reaction not found"));
         reactionRepository.delete(reaction);
-        logger.info("Admin deleted reaction {}.", reactionId);
+    }
+
+    public ReactionResponseDto addReactionAsAdmin(ReactionDto reactionDto) {
+        // Get the user from the provided userId or fallback to authenticated user
+        Long userId = reactionDto.getUserId() != null ? 
+            reactionDto.getUserId() : 
+            SecurityUtils.getAuthenticatedUserId();
+            
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Check for existing reaction
+        Optional<Reaction> existingReaction;
+        if (reactionDto.getPostId() != null) {
+            Post post = postRepository.findById(reactionDto.getPostId())
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found"));
+            existingReaction = reactionRepository.findByUserAndPost(user, post);
+            
+            if (existingReaction.isPresent()) {
+                // Update existing reaction
+                Reaction reaction = existingReaction.get();
+                reaction.setType(reactionDto.getType());
+                reaction.setReactedAt(LocalDateTime.now());
+                return convertToDto(reactionRepository.save(reaction));
+            } else {
+                // Create new reaction
+                Reaction newReaction = new Reaction();
+                newReaction.setType(reactionDto.getType());
+                newReaction.setUser(user);
+                newReaction.setPost(post);
+                newReaction.setReactedAt(LocalDateTime.now());
+                return convertToDto(reactionRepository.save(newReaction));
+            }
+        } else if (reactionDto.getCommentId() != null) {
+            Comment comment = commentRepository.findById(reactionDto.getCommentId())
+                .orElseThrow(() -> new ResourceNotFoundException("Comment not found"));
+            existingReaction = reactionRepository.findByUserAndComment(user, comment);
+            
+            if (existingReaction.isPresent()) {
+                // Update existing reaction
+                Reaction reaction = existingReaction.get();
+                reaction.setType(reactionDto.getType());
+                reaction.setReactedAt(LocalDateTime.now());
+                return convertToDto(reactionRepository.save(reaction));
+            } else {
+                // Create new reaction
+                Reaction newReaction = new Reaction();
+                newReaction.setType(reactionDto.getType());
+                newReaction.setUser(user);
+                newReaction.setComment(comment);
+                newReaction.setReactedAt(LocalDateTime.now());
+                return convertToDto(reactionRepository.save(newReaction));
+            }
+        } else {
+            throw new IllegalArgumentException("Either postId or commentId must be provided");
+        }
     }
 
     public List<ReactionResponseDto> getReactionsByType(ReactionType type) {
@@ -166,6 +235,16 @@ public class ReactionService {
                 .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    public ReactionResponseDto updateReactionAsAdmin(Long reactionId, ReactionType type) {
+        Reaction reaction = reactionRepository.findById(reactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reaction not found with ID: " + reactionId));
+        
+        reaction.setType(type);
+        reaction = reactionRepository.save(reaction);
+        
+        return convertToDto(reaction);
     }
 
     public java.util.Map<String, Object> getReactionStatistics() {

@@ -134,7 +134,7 @@ const Posts = () => {
     },
     {
       field: "reactionCount",
-      headerName: "Likes",
+      headerName: "Reactions",
       minWidth: 80,
       type: "number",
     },

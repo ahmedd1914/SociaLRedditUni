@@ -28,27 +28,31 @@ public class Notification {
     @EqualsAndHashCode.Include
     private Long id;
 
+    @Column(nullable = false)
     private String message;  // e.g. "User X commented on your post"
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "notification_type", nullable = false, length = 100)
+    @Column(nullable = false)
     private NotificationType notificationType; // e.g. COMMENT, NEW_POST
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    private boolean isRead = false;
-
-    // Recipient of this notification
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "recipient_id", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_notification_recipient"))
+    @JoinColumn(name = "recipient_id", nullable = false)
     private User recipient;
 
-    // Optional references to related items
+    @Column(name = "related_post_id")
     private Long relatedPostId;
+
+    @Column(name = "related_comment_id")
     private Long relatedCommentId;
+
+    @Column(nullable = false)
+    private boolean isRead = false;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(columnDefinition = "json")
+    private String metadata;
 
     // Optional convenience constructor (if needed)
     public Notification(String message, NotificationType notificationType, User recipient,
