@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { HiOutlineChatAlt } from 'react-icons/hi';
 import { BsBookmark } from 'react-icons/bs';
 import { PostResponseDto, UsersDto, ReactionResponseDto } from '../../../api/interfaces';
+import { Role } from '../../../api/interfaces';
 import API from '../../../api/api';
 import { toast } from 'react-hot-toast';
 import ReactionButton from './ReactionButton';
@@ -24,7 +25,15 @@ const PostCard: React.FC<PostCardProps> = ({
   onCommentClick, 
   isAuthenticated: propIsAuthenticated 
 }) => {
-  const { isAuthenticated: authIsAuthenticated, user } = useAuth();
+  // Safely use the auth context with a try-catch to handle the case when it's not available
+  let authContext;
+  try {
+    authContext = useAuth();
+  } catch (error) {
+    // If useAuth throws an error, we'll use the prop value instead
+    console.warn('AuthContext not available, using prop value for authentication');
+  }
+  
   const navigate = useNavigate();
   const commentCount = post.comments?.length || 0;
   const [userProfile, setUserProfile] = useState<UsersDto | null>(initialUserProfile || null);
@@ -33,37 +42,62 @@ const PostCard: React.FC<PostCardProps> = ({
   const [postExists, setPostExists] = useState(true);
   const [profileError, setProfileError] = useState(false);
   const [reactionError, setReactionError] = useState(false);
-  const isAuthenticated = propIsAuthenticated ?? authIsAuthenticated;
+  
+  // Use the prop value if provided, otherwise use the context value if available
+  const isAuthenticated = propIsAuthenticated ?? authContext?.isAuthenticated ?? false;
+  const user = authContext?.user;
 
   // Memoize the fetchUserProfile function to prevent unnecessary re-renders
   const fetchUserProfile = useCallback(async () => {
-    // Only fetch if authenticated and we don't have the profile yet and no errors
-    if (!isAuthenticated || userProfile || !postExists || profileError) {
+    // Skip API call if:
+    // 1. Already have profile
+    // 2. Post doesn't exist
+    // 3. Had a previous error
+    // 4. Already loading
+    // 5. Username matches current user
+    if (userProfile || 
+        !postExists || 
+        profileError || 
+        loadingProfile ||
+        post.username === user?.username) {
       return;
     }
     
     setLoadingProfile(true);
     try {
-      const user = await API.fetchUserProfileByUsername(post.username);
-      setUserProfile(user);
-      setProfileError(false);
-    } catch (error: any) {
-      if (error?.status === 404) {
-        setPostExists(false);
-      } else if (error?.status === 403) {
+      const fetchedProfile = await API.fetchPublicUserProfile(post.username);
+      if (fetchedProfile) {
+        // Convert the public profile to match our component's needs
+        setUserProfile({
+          id: 0, // Not needed for display
+          username: fetchedProfile.username,
+          email: '', // Not needed for display
+          role: Role.USER, // Not needed for display
+          fname: fetchedProfile.firstName,
+          lname: fetchedProfile.lastName,
+          enabled: true, // Not needed for display
+          lastLogin: '', // Not needed for display
+          createdAt: '', // Not needed for display
+          imgUrl: fetchedProfile.imageUrl
+        });
+        setProfileError(false);
+      } else {
+        // If user profile is null, set profile error to prevent further attempts
         setProfileError(true);
-      } else if (error?.status !== 403) {
-        console.error('Error fetching user profile:', error);
       }
+    } catch (error: any) {
+      // Silently handle errors for user profile endpoints
+      setProfileError(true);
+      setUserProfile(null);
     } finally {
       setLoadingProfile(false);
     }
-  }, [post.username, isAuthenticated, userProfile, postExists, profileError]);
+  }, [post.username, userProfile, postExists, profileError, loadingProfile, user?.username]);
 
   // Memoize the fetchUserReaction function to prevent unnecessary re-renders
   const fetchUserReaction = useCallback(async () => {
     // Only fetch if authenticated and post exists and no errors
-    if (!isAuthenticated || !postExists || reactionError) {
+    if (!isAuthenticated || !postExists || reactionError || userReaction !== null) {
       return;
     }
 
@@ -74,41 +108,53 @@ const PostCard: React.FC<PostCardProps> = ({
         setReactionError(false);
       }
     } catch (error: any) {
+      // Silently handle errors for reaction endpoints
       if (error?.status === 404) {
         setPostExists(false);
       } else if (error?.status === 403) {
         setReactionError(true);
-      } else if (error?.status !== 403) {
-        console.error('Error fetching user reaction:', error);
       }
       setUserReaction(null);
     }
-  }, [post.id, isAuthenticated, postExists, reactionError]);
+  }, [post.id, isAuthenticated, postExists, reactionError, userReaction]);
 
   // Check if post exists on mount
   useEffect(() => {
     const checkPostExists = async () => {
-      if (!postExists) return;
+      if (!post.id) return;
       
       try {
         // Try to fetch the post to check if it exists
-        await API.fetchPublicPostById(post.id);
-        setPostExists(true);
+        const publicPost = await API.fetchPublicPostById(post.id);
+        setPostExists(publicPost !== null);
       } catch (error: any) {
-        if (error?.status === 404) {
-          setPostExists(false);
-        }
+        setPostExists(false);
       }
     };
     
     checkPostExists();
-  }, [post.id, postExists]);
+  }, [post.id]);
 
   // Fetch user profile and reaction when component mounts or dependencies change
   useEffect(() => {
-    fetchUserProfile();
-    fetchUserReaction();
-  }, [fetchUserProfile, fetchUserReaction]);
+    // Only fetch if:
+    // 1. We don't have the profile yet
+    // 2. No profile errors
+    // 3. Post exists
+    // 4. Not the current user's profile
+    if (!userProfile && !profileError && postExists && post.username !== user?.username) {
+      fetchUserProfile();
+    }
+    
+    // Only fetch reaction if:
+    // 1. User is authenticated
+    // 2. Post exists
+    // 3. No reaction errors
+    // 4. No reaction yet
+    if (isAuthenticated && postExists && !reactionError && userReaction === null) {
+      fetchUserReaction();
+    }
+  }, [fetchUserProfile, fetchUserReaction, userProfile, userReaction, profileError, reactionError, postExists, post.username, user?.username, isAuthenticated]);
 
   const handleCommentClick = () => {
     if (!postExists) {
@@ -220,12 +266,12 @@ const PostCard: React.FC<PostCardProps> = ({
         {isAuthenticated && (
           <button 
             className="flex items-center gap-2 hover:bg-gray-100 px-3 py-1 rounded-lg transition-colors duration-200 ml-auto"
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               if (!postExists) {
+                e.preventDefault();
                 toast.error('This post is no longer available');
-                return;
               }
-              // Save functionality implementation
             }}
           >
             <BsBookmark className="w-4 h-4" />

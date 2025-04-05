@@ -38,83 +38,72 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
-                // 1. Enable CORS with our custom configuration
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        http
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                // Auth endpoints
+                .requestMatchers(
+                    "/auth/login",
+                    "/auth/signup",
+                    "/auth/verify",
+                    "/auth/resend",
+                    "/auth/logout"
+                ).permitAll()
+                
+                // Public endpoints
+                .requestMatchers(HttpMethod.GET, "/posts/public/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/posts/trending").permitAll()
+                .requestMatchers(HttpMethod.GET, "/admin/posts/trending").permitAll()
+                .requestMatchers(HttpMethod.GET, "/users/profile/*/public").permitAll()
+                .requestMatchers(HttpMethod.GET, "/users/{id}").authenticated()
 
-                // 2. Disable CSRF for token-based authentication
-                .csrf(csrf -> csrf.disable())
+                // Swagger endpoints
+                .requestMatchers(
+                    "/swagger-ui/**",
+                    "/v3/api-docs/**",
+                    "/swagger-resources/**",
+                    "/configuration/ui",
+                    "/configuration/security",
+                    "/webjars/**"
+                ).permitAll()
 
-                // 3. Use stateless sessions
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Admin endpoints
+                .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
-                // 4. Configure route access
-                .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints - explicitly allow access without authentication
-                        .requestMatchers("/auth/login").permitAll()
-                        .requestMatchers("/auth/signup").permitAll()
-                        .requestMatchers("/auth/verify").permitAll()
-                        .requestMatchers("/auth/resend").permitAll()
-                        .requestMatchers("/auth/logout").permitAll()
-                        
-                        // Public endpoints
-                        .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/posts/public/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/posts/trending").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/admin/posts/trending").permitAll()
+                // User endpoints
+                .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
 
-                        // Reaction endpoints
-                        .requestMatchers(HttpMethod.POST, "/reactions/react").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/reactions/user/post/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/reactions/user/post/**").authenticated()
+                // Reaction endpoints
+                .requestMatchers(HttpMethod.POST, "/reactions/react").authenticated()
+                .requestMatchers(HttpMethod.GET, "/reactions/user/post/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/reactions/user/post/**").authenticated()
 
-                        // Admin endpoints require ADMIN role
-                        .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+                // All other requests need authentication
+                .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider)
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-                        // User endpoints
-                        .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
-
-                        // Swagger endpoints
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/swagger-resources/**",
-                                "/configuration/ui",
-                                "/configuration/security",
-                                "/webjars/**"
-                        ).permitAll()
-
-                        // All other endpoints require authentication
-                        .anyRequest().authenticated()
-                )
-
-                // 5. Apply authentication provider and JWT filter
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-
-                // 6. Build the configuration
-                .build();
+        return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        // Adjust these as needed for your frontends
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",    // React dev server
-                "http://localhost:3000",    // React dev server alternative port
-                "http://localhost:8080",    // If you have any self-calls
-                "https://app-backend.com"   // Example domain
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "http://localhost:8080",
+                "https://app-backend.com"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
         configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
-        // Allow credentials for cookies/sessions
         configuration.setAllowCredentials(true);
-        // Set max age for preflight requests
         configuration.setMaxAge(3600L);
         
-        // Apply this CORS config to all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

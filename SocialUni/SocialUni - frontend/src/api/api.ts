@@ -229,41 +229,30 @@ const handleApiError = (error: unknown): never => {
 // Response interceptor for global error handling
 api.interceptors.response.use(
   (response) => {
-    // Only log responses for non-reaction endpoints and non-GET requests
-    // This will significantly reduce console noise for reaction operations
-    const url = response.config.url || '';
-    const method = response.config.method || '';
-    
-    // Skip logging for reaction endpoints and GET requests
-    if (ENABLE_LOGGING && !url.includes('/reactions/') && method !== 'GET') {
-      console.log('Response:', {
-        url: response.config.url,
-        status: response.status,
-        data: response.data
-      });
-    }
-    
     return response;
   },
   (error) => {
     if (isAxiosError(error)) {
-      // Only log errors that aren't 403 or 404 to reduce console noise
+      const url = error.config?.url || '';
+      
+      // Completely suppress all errors for reaction endpoints
+      if (url.includes('/reactions/')) {
+    return Promise.reject(error);
+  }
+      
+      // Only log errors that aren't 403 or 404
       if (ENABLE_LOGGING && error.response?.status !== 403 && error.response?.status !== 404) {
-        // Skip logging for reaction endpoints
-        const url = error.config?.url || '';
-        if (!url.includes('/reactions/')) {
-          console.error('Response error:', {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message,
-            headers: error.response?.headers,
-            config: {
-              url: error.config?.url,
-              method: error.config?.method,
-              headers: error.config?.headers
-            }
-          });
-        }
+        console.error('Response error:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+          headers: error.response?.headers,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            headers: error.config?.headers
+          }
+        });
       }
       
       const responseText = String(error.response?.data || '');
@@ -284,22 +273,11 @@ api.interceptors.response.use(
       if (error.response?.status === 403) {
         // Don't show toast for every 403 error to avoid spamming the user
         // Only show for specific endpoints that require user action
-        const url = error.config?.url || '';
-        if (url.includes('/admin/') || url.includes('/reactions/')) {
+        if (url.includes('/admin/')) {
           // For admin endpoints, redirect to home
           if (url.includes('/admin/') && window.location.pathname.startsWith('/admin')) {
             window.location.href = '/home';
           }
-        }
-      }
-      
-      // Handle 404 errors globally
-      if (error.response?.status === 404) {
-        // Don't show toast for every 404 error to avoid spamming the user
-        // Only show for specific endpoints that require user action
-        const url = error.config?.url || '';
-        if (url.includes('/posts/') || url.includes('/users/')) {
-          // For post/user endpoints, we'll handle in the component
         }
       }
       
@@ -585,7 +563,26 @@ export class API {
         const userId = parseInt(decoded.sub, 10);
         
         try {
-          return await this.fetchUserById(userId);
+          const user = await this.fetchUserById(userId);
+          if (user) {
+            return user;
+          }
+          
+          // If user is null, fall back to token data
+          console.error("Error fetching user data, falling back to token data");
+          
+          return {
+            id: userId,
+            username: decoded.sub || "User",
+            email: decoded.email || "",
+            role: decoded.role as any || "USER",
+            fname: "",
+            lname: "",
+            enabled: true,
+            lastLogin: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            imgUrl: ""
+          };
         } catch (error) {
           console.error("Error fetching user data, falling back to token data:", error);
           
@@ -616,7 +613,7 @@ export class API {
     }
   }
 
-  static async fetchUserById(userId: number): Promise<UsersDto> {
+  static async fetchUserById(userId: number): Promise<UsersDto | null> {
     try {
       const token = localStorage.getItem("token");
       let isAdmin = false;
@@ -635,6 +632,12 @@ export class API {
       const { data } = await this.instance.get<UsersDto>(endpoint);
       return data;
     } catch (error) {
+      if (isAxiosError(error)) {
+        // For 403 and 404, return null instead of throwing
+        if (error.response?.status === 403 || error.response?.status === 404) {
+          return null;
+        }
+      }
       return handleApiError(error);
     }
   }
@@ -1127,21 +1130,18 @@ export class API {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        return null; // Return null instead of throwing an error for unauthenticated users
+        return null;
       }
       
-      // Completely disable logging for reaction endpoints
       const response = await this.instance.get<ReactionResponseDto>(`/reactions/user/post/${postId}`);
+      // If response is empty (no data), return null
+      if (!response.data) {
+        return null;
+      }
     return response.data;
     } catch (error) {
-      if (isAxiosError(error)) {
-        // For 403 and 404, return null instead of throwing
-        if (error.response?.status === 403 || error.response?.status === 404) {
-          return null;
-        }
-      }
-      // For other errors, throw
-      return handleApiError(error);
+      // For any error, return null without logging
+      return null;
     }
   }
 
@@ -1516,29 +1516,32 @@ export class API {
   }
 
   // User profile endpoints
-  static async fetchUserProfileByUsername(username: string): Promise<UsersDto> {
+  static async fetchUserProfileByUsername(username: string): Promise<UsersDto | null> {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('Authentication required to fetch user profile');
+        return null; // Return null instead of throwing for unauthenticated users
+      }
+      
+      // Skip API call if username matches current user
+      try {
+        const decoded = jwtDecode<DecodedToken>(token);
+        if (decoded.sub === username) {
+          return null;
+        }
+      } catch (error) {
+        // If token decode fails, continue with the API call
       }
       
       const response = await this.instance.get<UsersDto>(`/users/profile/${username}`);
       return response.data;
     } catch (error) {
-      if (isAxiosError(error)) {
-        // For 403 and 404, provide more specific error messages
-        if (error.response?.status === 403) {
-          throw new Error('You do not have permission to view this profile');
-        } else if (error.response?.status === 404) {
-          throw new Error('User profile not found');
-        }
-      }
-      return handleApiError(error);
+      // For any error on user profile endpoints, just return null without logging
+      return null;
     }
   }
 
-  static async fetchPublicPostById(postId: number): Promise<PostResponseDto> {
+  static async fetchPublicPostById(postId: number): Promise<PostResponseDto | null> {
     try {
       const response = await publicApi.get<PostResponseDto>(`/posts/public/${postId}`, {
         headers: {
@@ -1551,13 +1554,26 @@ export class API {
     } catch (error) {
       if (isAxiosError(error)) {
         if (error.response?.status === 403) {
-          throw new Error("This post is not publicly accessible");
+          // Return null for 403 errors without throwing
+          return null;
         } else if (error.response?.status === 404) {
-          throw new Error("Post not found");
+          // Return null for 404 errors without throwing
+          return null;
         }
       }
-      console.error('Error fetching public post:', error);
-      throw error;
+      // For other errors, return null without logging
+      return null;
+    }
+  }
+
+  // User profile endpoints
+  static async fetchPublicUserProfile(username: string): Promise<{ username: string; firstName: string; lastName: string; imageUrl: string } | null> {
+    try {
+      const response = await publicApi.get<{ username: string; firstName: string; lastName: string; imageUrl: string }>(`/users/profile/${username}/public`);
+      return response.data;
+    } catch (error) {
+      // Return null for any error without logging
+      return null;
     }
   }
 }

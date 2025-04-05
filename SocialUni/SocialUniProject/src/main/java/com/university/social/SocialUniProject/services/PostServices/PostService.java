@@ -148,11 +148,20 @@ public class PostService {
     }
 
     public PostResponseDto getPublicPostById(Long postId) {
-        Post post = findPostById(postId);
-        if (post.getVisibility() != Visibility.PUBLIC) {
-            throw new UnauthorizedActionException("This post is not publicly accessible.");
+        System.out.println("[DEBUG] PostService: Fetching public post with ID: " + postId);
+        try {
+            Post post = findPostById(postId);
+            System.out.println("[DEBUG] PostService: Found post with visibility: " + post.getVisibility());
+            if (post.getVisibility() != Visibility.PUBLIC) {
+                System.out.println("[DEBUG] PostService: Post is not public, returning null");
+                return null;
+            }
+            System.out.println("[DEBUG] PostService: Converting post to DTO");
+            return convertToDto(post);
+        } catch (ResourceNotFoundException e) {
+            System.out.println("[DEBUG] PostService: Post not found, returning null");
+            return null;
         }
-        return convertToDto(post);
     }
 
     public PostResponseDto updatePost(Long postId, CreatePostDto postDto, Long userId) {

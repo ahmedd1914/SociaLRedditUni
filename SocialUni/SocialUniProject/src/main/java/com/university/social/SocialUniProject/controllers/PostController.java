@@ -28,23 +28,27 @@ public class PostController {
     }
 
     @GetMapping("/public")
-    @PreAuthorize("permitAll()")
-    @CrossOrigin(origins = "*")
+    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<List<PostResponseDto>> getPublicPosts() {
         List<PostResponseDto> posts = postService.getAllPublicPosts();
         return ResponseEntity.ok(posts);
     }
 
     @GetMapping("/public/{postId}")
-    @PreAuthorize("permitAll()")
-    @CrossOrigin(origins = "*")
+    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<PostResponseDto> getPublicPostById(@PathVariable Long postId) {
+        System.out.println("[DEBUG] Accessing public post with ID: " + postId);
         PostResponseDto post = postService.getPublicPostById(postId);
+        if (post == null) {
+            System.out.println("[DEBUG] Post not found or not public, returning no content");
+            return ResponseEntity.noContent().build();
+        }
+        System.out.println("[DEBUG] Successfully retrieved public post: " + post.getId());
         return ResponseEntity.ok(post);
     }
 
     @GetMapping("/trending")
-    @PreAuthorize("permitAll()")
+    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<List<PostResponseDto>> getTrendingPosts(
             @RequestParam(required = false) String timeFilter,
             @RequestParam(required = false) String category,

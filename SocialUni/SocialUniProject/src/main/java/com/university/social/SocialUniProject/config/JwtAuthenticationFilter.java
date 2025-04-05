@@ -40,11 +40,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/auth/login")
+        String method = request.getMethod();
+
+        System.out.println("[DEBUG] JwtAuthenticationFilter: Checking if should filter path: " + path + ", method: " + method);
+
+        // Skip filter for public endpoints
+        if (method.equals("GET") && (
+            path.matches("/posts/public(/.*)?") ||  // Match /posts/public and any subpath
+            path.startsWith("/posts/trending") ||
+            path.startsWith("/admin/posts/trending") ||
+            path.matches("/users/profile/.*/public")
+        )) {
+            System.out.println("[DEBUG] JwtAuthenticationFilter: Skipping authentication for public endpoint");
+            return true;
+        }
+
+        // Skip filter for auth endpoints
+        boolean skipAuth = path.startsWith("/auth/login")
                 || path.startsWith("/auth/signup")
                 || path.startsWith("/auth/verify")
                 || path.startsWith("/auth/resend")
-                || path.startsWith("/auth/logout");
+                || path.startsWith("/auth/logout")
+                || path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-resources")
+                || path.startsWith("/configuration/ui")
+                || path.startsWith("/configuration/security")
+                || path.startsWith("/webjars");
+
+        System.out.println("[DEBUG] JwtAuthenticationFilter: Will " + (skipAuth ? "skip" : "apply") + " authentication");
+        return skipAuth;
     }
 
     @Override

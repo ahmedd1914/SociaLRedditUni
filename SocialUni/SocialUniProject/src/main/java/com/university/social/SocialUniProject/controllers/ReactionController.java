@@ -71,7 +71,7 @@ public class ReactionController {
         if (reaction.isPresent()) {
             return ResponseEntity.ok(reactionService.convertToDto(reaction.get()));
         }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/user/post/{postId}")
