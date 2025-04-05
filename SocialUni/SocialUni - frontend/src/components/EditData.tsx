@@ -61,16 +61,31 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const cleanSlug = slug.replace("admin/", "");
-  const validSlugs = ["users", "posts", "groups", "comments", "events"];
+  
+  // Fix: Don't remove "admin/" prefix for admin routes
+  const cleanSlug = slug.includes("admin/") ? slug : slug.replace("admin/", "");
+  const validSlugs = ["users", "admin/users", "posts", "admin/posts", "groups", "admin/groups", "comments", "admin/comments", "events", "admin/events"];
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
-      toast.error("You need admin privileges to access this page");
-      navigate('/');
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
     }
-  }, [user, navigate]);
+
+    // Check if this is an admin route
+    const isAdminRoute = slug.includes("admin/");
+    if (isAdminRoute) {
+      const role = String(user.role || '').trim().toUpperCase();
+      const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+      
+      if (!isAdmin) {
+        toast.error("You need admin privileges to access this page");
+        navigate('/home');
+      }
+    }
+  }, [user, navigate, slug]);
 
   // Form states
   const [userForm, setUserForm] = useState<UpdateUserDto>({
@@ -126,22 +141,44 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
     queryKey: [cleanSlug, id],
     queryFn: async () => {
       if (!id) throw new Error("No ID provided");
-      if (!user || user.role !== 'ADMIN') {
-        throw new Error("Unauthorized: Admin privileges required");
+      if (!user) {
+        throw new Error("Authentication required");
       }
+      
+      // Check if this is an admin route
+      const isAdminRoute = slug.startsWith("admin/");
+      if (isAdminRoute) {
+        const role = String(user.role || '').trim().toUpperCase();
+        const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+        
+        if (!isAdmin) {
+          throw new Error("Unauthorized: Admin privileges required");
+        }
+      }
+      
       console.log(`Fetching ${cleanSlug} with ID:`, id);
 
       try {
+        // Use the appropriate API endpoint based on whether it's an admin route
         switch (cleanSlug) {
           case "users":
+          case "admin/users":
             return await API.fetchUserById(Number(id));
           case "posts":
+          case "admin/posts":
+            // For admin routes, use the admin endpoint
+            if (isAdminRoute) {
+              return await API.fetchPostById(Number(id));
+            }
             return await API.fetchPostById(Number(id));
           case "groups":
+          case "admin/groups":
             return await API.fetchGroupById(Number(id));
           case "comments":
+          case "admin/comments":
             return await API.fetchCommentById(Number(id));
           case "events":
+          case "admin/events":
             return await API.fetchEventById(Number(id));
           default:
             throw new Error(`Invalid entity type: ${cleanSlug}`);
@@ -151,7 +188,7 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
         throw err;
       }
     },
-    enabled: Boolean(id) && validSlugs.includes(cleanSlug) && !!user && user.role === 'ADMIN',
+    enabled: Boolean(id) && validSlugs.includes(cleanSlug) && !!user,
   });
 
   // Update form when data is loaded
@@ -160,7 +197,10 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
     console.log(`Setting ${cleanSlug} form data:`, data);
 
     try {
-      switch (cleanSlug) {
+      // Handle both admin and non-admin routes
+      const entityType = cleanSlug.replace("admin/", "");
+      
+      switch (entityType) {
         case "users":
           if (isUserResponse(data)) {
             setUserForm({
@@ -183,6 +223,10 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
               category: data.category,
               visibility: data.visibility,
               groupId: data.groupId,
+              mediaUrl: data.mediaUrl || "",
+              tags: data.tags || [],
+              allowComments: data.allowComments ?? true,
+              isPinned: data.isPinned ?? false
             });
           }
           break;
@@ -232,39 +276,39 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
 
   // Update mutation
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (formData: any) => {
       if (!id) throw new Error("No ID provided");
 
       const isAdminRoute = slug.startsWith("admin/");
-      switch (cleanSlug) {
+      switch (cleanSlug.replace("admin/", "")) {
         case "users":
-          return await API.updateUserProfile(Number(id), userForm);
+          return await API.updateUserProfile(Number(id), formData);
         case "posts":
-          return await API.updatePost(Number(id), postForm);
+          return await API.updatePost(Number(id), formData);
         case "groups":
           // Convert GroupResponseDto to CreateGroupDto
           const groupDto: CreateGroupDto = {
-            name: groupForm.name,
-            description: groupForm.description,
-            visibility: groupForm.visibility,
-            category: groupForm.category
+            name: formData.name,
+            description: formData.description,
+            visibility: formData.visibility,
+            category: formData.category
           };
           return await API.updateGroup(Number(id), groupDto);
         case "comments":
-          console.log("Updating comment with data:", commentForm);
-          return await API.updateComment(Number(id), commentForm);
+          console.log("Updating comment with data:", formData);
+          return await API.updateComment(Number(id), formData);
         case "events":
-          return await API.updateEvent(Number(id), eventForm);
+          return await API.updateEvent(Number(id), formData);
         default:
-          throw new Error(`Invalid entity type: ${cleanSlug}`);
+          throw new Error(`Invalid entity type: ${cleanSlug.replace("admin/", "")}`);
       }
     },
     onSuccess: () => {
-      toast.success(`${cleanSlug} updated successfully!`);
+      toast.success(`${cleanSlug.replace("admin/", "")} updated successfully!`);
       
       // Invalidate all relevant queries
       queryClient.invalidateQueries({ queryKey: [cleanSlug, id] });
-      queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
+      queryClient.invalidateQueries({ queryKey: [`all${cleanSlug.replace("admin/", "")}`] });
       queryClient.invalidateQueries({ queryKey: ["allevents"] });
       queryClient.invalidateQueries({ queryKey: ["allposts"] });
       queryClient.invalidateQueries({ queryKey: ["comments"] });
@@ -274,19 +318,42 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
         onClose();
       } else {
         const isAdminRoute = slug.startsWith("admin/");
-        const basePath = isAdminRoute ? `/admin/${cleanSlug}` : `/${cleanSlug}`;
+        const basePath = isAdminRoute ? `/admin/${cleanSlug.replace("admin/", "")}` : `/${cleanSlug.replace("admin/", "")}`;
         navigate(basePath);
       }
     },
     onError: (error: Error) => {
-      console.error(`Error updating ${cleanSlug}:`, error);
+      console.error(`Error updating ${cleanSlug.replace("admin/", "")}:`, error);
       toast.error(`Failed to update: ${error.message}`);
     },
   });
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    mutation.mutate();
+    let formData;
+    
+    switch (cleanSlug.replace("admin/", "")) {
+      case "users":
+        formData = userForm;
+        break;
+      case "posts":
+        formData = postForm;
+        break;
+      case "groups":
+        formData = groupForm;
+        break;
+      case "comments":
+        formData = commentForm;
+        break;
+      case "events":
+        formData = eventForm;
+        break;
+      default:
+        toast.error("Invalid form type");
+        return;
+    }
+    
+    mutation.mutate(formData);
   };
 
   // Loading state
@@ -322,10 +389,10 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
 
   const renderForm = () => {
     // Remove admin/ prefix from slug for form rendering
-    const cleanSlug = slug.replace("admin/", "");
-    console.log("Rendering form for:", { originalSlug: slug, cleanSlug });
+    const entityType = cleanSlug.replace("admin/", "");
+    console.log("Rendering form for:", { originalSlug: slug, cleanSlug, entityType });
 
-    switch (cleanSlug) {
+    switch (entityType) {
       case "users":
         return (
           <form
@@ -452,45 +519,136 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
               />
             </div>
 
-            <div className="form-control w-full">
-              <label className="label">
-                <span className="label-text">Category</span>
-              </label>
-              <select
-                value={postForm.category}
-                onChange={(e) =>
-                  setPostForm({
-                    ...postForm,
-                    category: e.target.value as Category,
-                  })
-                }
-                className="select select-bordered w-full"
-              >
-                {Object.values(Category).map((category, index) => (
-                  <option key={index} value={index + 1}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text">Category</span>
+                </label>
+                <select
+                  value={postForm.category}
+                  onChange={(e) =>
+                    setPostForm({
+                      ...postForm,
+                      category: e.target.value as Category,
+                    })
+                  }
+                  className="select select-bordered w-full"
+                >
+                  {Object.values(Category).map((category, index) => (
+                    <option key={index} value={index + 1}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-control w-full">
+                <label className="label">
+                  <span className="label-text">Visibility</span>
+                </label>
+                <select
+                  value={postForm.visibility}
+                  onChange={(e) =>
+                    setPostForm({
+                      ...postForm,
+                      visibility: e.target.value as Visibility,
+                    })
+                  }
+                  className="select select-bordered w-full"
+                >
+                  <option value={Visibility.PUBLIC}>Public</option>
+                  <option value={Visibility.PRIVATE}>Private</option>
+                  <option value={Visibility.FRIENDS_ONLY}>Friends Only</option>
+                </select>
+              </div>
             </div>
 
             <div className="form-control w-full">
               <label className="label">
-                <span className="label-text">Visibility</span>
+                <span className="label-text">Media URL</span>
+                <span className="label-text-alt">Optional - Add an image or video URL</span>
               </label>
-              <select
-                value={postForm.visibility}
+              <input
+                type="url"
+                placeholder="https://example.com/media.jpg"
+                value={postForm.mediaUrl || ""}
+                onChange={(e) =>
+                  setPostForm({ ...postForm, mediaUrl: e.target.value })
+                }
+                className="input input-bordered w-full"
+              />
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Tags</span>
+                <span className="label-text-alt">Optional - Separate tags with commas</span>
+              </label>
+              <input
+                type="text"
+                placeholder="university, social, education"
+                value={postForm.tags?.join(", ") || ""}
                 onChange={(e) =>
                   setPostForm({
                     ...postForm,
-                    visibility: e.target.value as Visibility,
+                    tags: e.target.value.split(",").map((tag) => tag.trim()),
                   })
                 }
-                className="select select-bordered w-full"
-              >
-                <option value={Visibility.PUBLIC}>Public</option>
-                <option value={Visibility.PRIVATE}>Private</option>
-              </select>
+                className="input input-bordered w-full"
+              />
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label">
+                <span className="label-text">Group</span>
+                <span className="label-text-alt">Optional - Associate with a group</span>
+              </label>
+              <input
+                type="number"
+                placeholder="Group ID"
+                value={postForm.groupId || ""}
+                onChange={(e) =>
+                  setPostForm({
+                    ...postForm,
+                    groupId: e.target.value ? Number(e.target.value) : undefined,
+                  })
+                }
+                className="input input-bordered w-full"
+              />
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label cursor-pointer">
+                <span className="label-text">Allow Comments</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={postForm.allowComments}
+                  onChange={(e) =>
+                    setPostForm({
+                      ...postForm,
+                      allowComments: e.target.checked,
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="form-control w-full">
+              <label className="label cursor-pointer">
+                <span className="label-text">Pin to Profile</span>
+                <input
+                  type="checkbox"
+                  className="toggle toggle-primary"
+                  checked={postForm.isPinned}
+                  onChange={(e) =>
+                    setPostForm({
+                      ...postForm,
+                      isPinned: e.target.checked,
+                    })
+                  }
+                />
+              </label>
             </div>
 
             <button
@@ -813,19 +971,48 @@ const EditData: React.FC<EditDataProps> = ({ slug, onClose, id: propId }) => {
         <h2 className="text-2xl font-bold capitalize">
           Edit {cleanSlug.slice(0, -1)}
         </h2>
-        <button
-          onClick={() => {
-            const isAdminRoute = slug.startsWith("admin/");
-            const basePath = isAdminRoute
-              ? `/admin/${cleanSlug}`
-              : `/${cleanSlug}`;
-            navigate(basePath);
-          }}
-          className="btn btn-ghost btn-circle"
-          title="Close"
-        >
-          <HiOutlineXMark className="text-xl" />
-        </button>
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            onClick={() => {
+              const isAdminRoute = slug.startsWith("admin/");
+              const basePath = isAdminRoute ? `/admin/${cleanSlug.replace("admin/", "")}` : `/${cleanSlug}`;
+              navigate(basePath);
+            }}
+            className="btn btn-ghost"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              let formData;
+              switch (cleanSlug.replace("admin/", "")) {
+                case "users":
+                  formData = userForm;
+                  break;
+                case "posts":
+                  formData = postForm;
+                  break;
+                case "groups":
+                  formData = groupForm;
+                  break;
+                case "comments":
+                  formData = commentForm;
+                  break;
+                case "events":
+                  formData = eventForm;
+                  break;
+                default:
+                  toast.error("Invalid form type");
+                  return;
+              }
+              mutation.mutate(formData);
+            }}
+            className="btn btn-primary"
+            disabled={mutation.status === 'pending'}
+          >
+            {mutation.status === 'pending' ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
       <div className="card bg-base-200">
         <div className="card-body">{renderForm()}</div>

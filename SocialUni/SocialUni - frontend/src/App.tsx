@@ -32,6 +32,7 @@ const Events = lazy(() => import("./pages/admin/AdminEvents"));
 const Notifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const GroupRequests = lazy(() => import("./pages/admin/AdminGroupRequests"));
 const GroupPage = lazy(() => import("./pages/GroupPage"));
+const PostPage = lazy(() => import("./pages/PostPage"));
 // New admin components
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
 const AdminReactions = lazy(() => import("./pages/admin/AdminReactions"));
@@ -233,6 +234,11 @@ function App() {
             <Route index element={<Events />} />
             <Route path=":id/edit" element={<EditData slug="events" />} />
           </Route>
+        </Route>
+        
+        {/* Public routes - accessible to everyone */}
+        <Route element={<SimpleLayout />}>
+          <Route path="posts/:id" element={<PostPage />} />
         </Route>
         
         {/* Admin routes - restricted to admins only */}

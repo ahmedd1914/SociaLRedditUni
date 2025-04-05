@@ -17,6 +17,7 @@ import com.university.social.SocialUniProject.responses.PostMetricsDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
 import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,19 +35,23 @@ public class PostService {
     private final CommentRepository commentRepository;
     private final NotificationService notificationService;
     private final GroupRepository groupRepository;
+    private final EntityManager entityManager;
 
     @Autowired
     public PostService(PostRepository postRepository,
                        UserRepository userRepository,
                        ReactionRepository reactionRepository,
                        CommentRepository commentRepository,
-                       NotificationService notificationService, GroupRepository groupRepository) {
+                       NotificationService notificationService,
+                       GroupRepository groupRepository,
+                       EntityManager entityManager) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.reactionRepository = reactionRepository;
         this.commentRepository = commentRepository;
         this.notificationService = notificationService;
         this.groupRepository = groupRepository;
+        this.entityManager = entityManager;
     }
 
     // ---------- Helper Methods ----------
@@ -114,11 +119,7 @@ public class PostService {
         post.setUser(user);
         post.setVisibility(postDto.getVisibility());
         post.setCreatedAt(LocalDateTime.now());
-
-        // Category is a single enum
         post.setCategories(postDto.getCategory());
-
-        // Set the group on the post
         post.setGroup(group);
 
         Post savedPost = postRepository.save(post);
@@ -126,9 +127,9 @@ public class PostService {
             throw new ResourceNotFoundException("Failed to save post");
         }
 
-        // Notify user that their post was created (if you have such logic)
+        // Notify user that their post was created
         notificationService.createNotification(new CreateNotificationDto(
-                null, // Use default message
+                null,
                 NotificationType.POST_CREATED,
                 userId,
                 savedPost.getId(),
@@ -146,6 +147,14 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
+    public PostResponseDto getPublicPostById(Long postId) {
+        Post post = findPostById(postId);
+        if (post.getVisibility() != Visibility.PUBLIC) {
+            throw new UnauthorizedActionException("This post is not publicly accessible.");
+        }
+        return convertToDto(post);
+    }
+
     public PostResponseDto updatePost(Long postId, CreatePostDto postDto, Long userId) {
         Post post = findPostById(postId);
         if (!post.getUser().getId().equals(userId)) {
@@ -160,7 +169,7 @@ public class PostService {
 
         // Notify user that their post was updated
         notificationService.createNotification(new CreateNotificationDto(
-                null, // Use default message
+                null,
                 NotificationType.POST_CREATED,
                 userId,
                 updatedPost.getId(),
@@ -209,9 +218,9 @@ public class PostService {
 
         Post updatedPost = postRepository.save(post);
 
-        // Optionally notify the post owner that an admin updated their post
+        // Notify the post owner that an admin updated their post
         notificationService.createNotification(new CreateNotificationDto(
-                null, // Use default message
+                null,
                 NotificationType.POST_CREATED,
                 updatedPost.getUser().getId(),
                 updatedPost.getId(),
@@ -221,27 +230,60 @@ public class PostService {
         return convertToDto(updatedPost);
     }
 
+    @Transactional
     public void deletePostByAdmin(Long postId) {
         System.out.println("[DEBUG] Starting admin deletion process for post ID: " + postId);
         
         Post post = findPostById(postId);
         System.out.println("[DEBUG] Found post to delete: " + post.getId());
-        System.out.println("[DEBUG] Number of comments to be deleted: " + post.getComments().size());
-        System.out.println("[DEBUG] Number of reactions to be deleted: " + post.getReactions().size());
         
-        // Delete the post (this will cascade delete comments and reactions)
-        postRepository.delete(post);
-        System.out.println("[DEBUG] Post and all associated data deleted successfully");
+        // Get the user ID for notification before deleting the post
+        Long userId = post.getUser().getId();
         
-        // Notify the post owner that an admin deleted their post
-        notificationService.createNotification(new CreateNotificationDto(
-                null, // Use default message
-                NotificationType.POST_DELETED_BY_ADMIN,
-                post.getUser().getId(),
-                postId,
-                null
-        ));
-        System.out.println("[DEBUG] Notification sent to post owner");
+        try {
+            // First, delete all reactions associated with comments on this post
+            entityManager.createNativeQuery("DELETE r FROM reactions r INNER JOIN comments c ON r.comment_id = c.id WHERE c.post_id = ?")
+                    .setParameter(1, postId)
+                    .executeUpdate();
+            
+            // Then delete all reactions associated with the post directly
+            entityManager.createNativeQuery("DELETE FROM reactions WHERE post_id = ?")
+                    .setParameter(1, postId)
+                    .executeUpdate();
+            
+            // First, find all comments that reference comments from this post as parents
+            entityManager.createNativeQuery(
+                "UPDATE comments c1 " +
+                "INNER JOIN comments c2 ON c1.parent_comment_id = c2.id " +
+                "SET c1.parent_comment_id = NULL " +
+                "WHERE c2.post_id = ?")
+                .setParameter(1, postId)
+                .executeUpdate();
+            
+            // Now we can safely delete all comments for this post
+            entityManager.createNativeQuery("DELETE FROM comments WHERE post_id = ?")
+                    .setParameter(1, postId)
+                    .executeUpdate();
+            
+            // Finally delete the post
+            postRepository.delete(post);
+            
+            System.out.println("[DEBUG] Post and all associated data deleted successfully");
+            
+            // Notify the post owner that an admin deleted their post
+            notificationService.createNotification(new CreateNotificationDto(
+                    null,
+                    NotificationType.POST_DELETED_BY_ADMIN,
+                    userId,
+                    postId,
+                    null
+            ));
+            System.out.println("[DEBUG] Notification sent to post owner");
+            
+        } catch (Exception e) {
+            System.out.println("[DEBUG] Error during deletion of post " + postId + ": " + e.getMessage());
+            throw e;
+        }
     }
 
     public List<PostResponseDto> filterPostsByCategory(Category category) {
@@ -262,8 +304,8 @@ public class PostService {
     public List<PostResponseDto> getTrendingPosts() {
         LocalDateTime now = LocalDateTime.now();
         
-        // Get all posts
-        List<Post> allPosts = postRepository.findAll();
+        // Get all public posts
+        List<Post> allPosts = postRepository.findByVisibility(Visibility.PUBLIC);
         
         // Calculate trending scores for each post using the Post model methods
         List<Post> postsWithScores = allPosts.stream()
@@ -284,7 +326,7 @@ public class PostService {
                     return new PostScore(post, totalScore);
                 })
                 .sorted((a, b) -> Double.compare(b.score, a.score))
-                .limit(10)
+                .limit(5)
                 .map(obj -> obj.post)
                 .collect(Collectors.toList());
         
@@ -362,18 +404,19 @@ public class PostService {
         // Determine groupId (null if no group is assigned)
         Long groupId = (post.getGroup() != null) ? post.getGroup().getId() : null;
 
-        // Create and return the DTO with the groupId included
+        // Create and return the DTO with all fields
         return new PostResponseDto(
                 post.getId(),
                 post.getTitle(),
                 post.getContent(),
                 post.getCategories(),
+                post.getVisibility(),
                 post.getUser().getUsername(),
                 post.getCreatedAt(),
                 totalReactions,
                 reactionTypes,
                 comments,
-                groupId   // This field will be null if no group is assigned
+                groupId
         );
     }
 

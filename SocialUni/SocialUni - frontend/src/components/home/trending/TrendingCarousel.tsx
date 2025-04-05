@@ -25,7 +25,8 @@ export const TrendingCarousel: React.FC<TrendingCarouselProps> = ({
     enabled: !initialPosts && !initialLoading && !initialError,
   });
 
-  const posts = initialPosts || fetchedPosts || [];
+  // Ensure we only show a maximum of 5 posts
+  const posts = (initialPosts || fetchedPosts || []).slice(0, 5);
   const loading = initialLoading || isLoading;
   const error = initialError || isError;
 

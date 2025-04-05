@@ -31,4 +31,6 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
 
     long countByReactedAtAfter(LocalDateTime date);
 
+    void deleteByPostId(Long postId);
+
 }

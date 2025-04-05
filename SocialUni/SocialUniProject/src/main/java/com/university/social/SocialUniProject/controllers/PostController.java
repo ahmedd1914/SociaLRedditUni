@@ -29,9 +29,18 @@ public class PostController {
 
     @GetMapping("/public")
     @PreAuthorize("permitAll()")
+    @CrossOrigin(origins = "*")
     public ResponseEntity<List<PostResponseDto>> getPublicPosts() {
         List<PostResponseDto> posts = postService.getAllPublicPosts();
         return ResponseEntity.ok(posts);
+    }
+
+    @GetMapping("/public/{postId}")
+    @PreAuthorize("permitAll()")
+    @CrossOrigin(origins = "*")
+    public ResponseEntity<PostResponseDto> getPublicPostById(@PathVariable Long postId) {
+        PostResponseDto post = postService.getPublicPostById(postId);
+        return ResponseEntity.ok(post);
     }
 
     @GetMapping("/trending")

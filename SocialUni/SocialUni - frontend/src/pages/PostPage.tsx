@@ -1,57 +1,122 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import API from '../api/api';
-import { PostResponseDto } from '../api/interfaces';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import API from '../api/api';
+import { PostResponseDto, UsersDto, ReactionResponseDto } from '../api/interfaces';
+import { toast } from 'react-hot-toast';
+import LeftSidebar from '../components/home/sidebar/LeftSidebar';
+import MainPostComponent from '../components/home/post/MainPostComponent';
+import PostComments from '../components/home/post/PostComments';
 
 const PostPage: React.FC = () => {
-  const { postId } = useParams<{ postId: string }>();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [post, setPost] = useState<PostResponseDto | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const { isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UsersDto | null>(null);
+  const [userReaction, setUserReaction] = useState<ReactionResponseDto | null>(null);
+  const [reactionCount, setReactionCount] = useState(0);
 
   useEffect(() => {
     const fetchPost = async () => {
-      if (!postId) return;
+      if (!id) return;
       
       try {
         setLoading(true);
-        const postData = await API.fetchPostById(parseInt(postId));
+        const postData = isAuthenticated 
+          ? await API.fetchPostById(parseInt(id))
+          : await API.fetchPublicPostById(parseInt(id));
+        
         setPost(postData);
-      } catch (err) {
-        console.error('Error fetching post:', err);
-        setError('Failed to load post. Please try again later.');
+        setReactionCount(postData.reactionCount || 0);
+        
+        if (isAuthenticated) {
+          try {
+            const user = await API.fetchUserProfileByUsername(postData.username);
+            setUserProfile(user);
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+          }
+          
+          try {
+            const reaction = await API.getUserReaction(parseInt(id));
+            setUserReaction(reaction);
+          } catch (error) {
+            console.error('Error fetching user reaction:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching post:', error);
+        let errorMessage = 'Failed to load post.';
+        
+        if (error instanceof Error) {
+          if (error.message.includes('not publicly accessible')) {
+            errorMessage = 'This post is private. Please log in to view it.';
+          } else if (error.message.includes('not found')) {
+            errorMessage = 'This post does not exist or has been deleted.';
+          }
+        }
+        
+        toast.error(errorMessage);
+        navigate('/home');
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchPost();
-  }, [postId]);
+  }, [id, isAuthenticated, navigate]);
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="loading loading-spinner loading-lg"></div>
+      <div className="flex min-h-screen bg-base-200">
+        <div className="w-64 hidden lg:block p-4 bg-base-100">
+          <LeftSidebar />
+        </div>
+        <div className="flex-1 flex justify-center items-center">
+          <div className="loading loading-spinner loading-lg"></div>
+        </div>
       </div>
     );
   }
 
-  if (error || !post) {
+  if (!post) {
     return (
-      <div className="alert alert-error">
-        <span>{error || 'Post not found'}</span>
+      <div className="flex min-h-screen bg-base-200">
+        <div className="w-64 hidden lg:block p-4 bg-base-100">
+          <LeftSidebar />
+        </div>
+        <div className="flex-1 flex justify-center items-center">
+          <div className="alert alert-error">
+            <span>Post not found</span>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="bg-base-100 rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
-        <div className="prose max-w-none">
-          <p>{post.content}</p>
+    <div className="flex min-h-screen bg-base-200">
+      <div className="w-64 hidden lg:block p-4 bg-base-100">
+        <LeftSidebar />
+      </div>
+      <div className="flex-1 container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <MainPostComponent
+            post={post}
+            userProfile={userProfile}
+            userReaction={userReaction}
+            reactionCount={reactionCount}
+            setUserReaction={setUserReaction}
+            setReactionCount={setReactionCount}
+            isAuthenticated={isAuthenticated}
+          />
+          <PostComments
+            postId={post.id}
+            isAuthenticated={isAuthenticated}
+            comments={post.comments || []}
+          />
         </div>
       </div>
     </div>

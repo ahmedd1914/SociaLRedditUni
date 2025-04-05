@@ -2,6 +2,7 @@
 export enum Visibility {
     PUBLIC = 'PUBLIC',
     PRIVATE = 'PRIVATE',
+    FRIENDS_ONLY = 'FRIENDS_ONLY',
 }
 
 // Category (for events, groups, posts, etc.)
@@ -318,11 +319,14 @@ export interface PostResponseDto {
     visibility: Visibility;
     username: string;
     createdAt: string;
-    image: string;
     reactionCount: number;
     reactionTypes: Record<string, number>;
     comments: CommentResponseDto[];
     groupId?: number;
+    mediaUrl?: string;
+    tags?: string[];
+    allowComments?: boolean;
+    isPinned?: boolean;
 }
 
 /** ReactionResponseDto.java */
@@ -363,6 +367,10 @@ export interface UpdatePostDto {
     category?: Category;
     visibility?: Visibility;
     groupId?: number;
+    mediaUrl?: string;
+    tags?: string[];
+    allowComments?: boolean;
+    isPinned?: boolean;
 }
 
 export interface ChatMessageDto {

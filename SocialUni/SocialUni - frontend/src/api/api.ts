@@ -54,6 +54,9 @@ import { NotificationFilterParams } from '../types/notification';
 // Get API URL from environment variables with fallback
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+// Add a global flag to control logging
+const ENABLE_LOGGING = import.meta.env.DEV && !import.meta.env.VITE_DISABLE_LOGGING;
+
 // Define type for AxiosError
 interface AxiosError {
   response?: {
@@ -138,6 +141,48 @@ api.interceptors.request.use(
   }
 );
 
+// Create a public axios instance without authentication
+const publicApi = axios.create({
+  baseURL: API_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  withCredentials: false,
+  paramsSerializer: function(params: Record<string, any>) {
+    const cleanParams: Record<string, string | number | boolean | Array<string | number | boolean>> = {};
+    
+    for (const key in params) {
+      const value = params[key];
+      
+      if (value === null || value === undefined) continue;
+      
+      if (Array.isArray(value)) {
+        const primitiveArray = value.filter(item => 
+          typeof item === 'string' || 
+          typeof item === 'number' || 
+          typeof item === 'boolean'
+        );
+        if (primitiveArray.length > 0) {
+          cleanParams[key] = primitiveArray;
+        }
+        continue;
+      }
+      
+      if (
+        typeof value === 'string' || 
+        typeof value === 'number' || 
+        typeof value === 'boolean'
+      ) {
+        cleanParams[key] = value;
+      }
+    }
+    
+    return new URLSearchParams(cleanParams as Record<string, string>).toString();
+  }
+});
+
 // Custom error handler
 export class ApiError extends Error {
   status: number;
@@ -162,6 +207,17 @@ const handleApiError = (error: unknown): never => {
       localStorage.removeItem("token");
     }
     
+    // Only log errors that aren't from reaction endpoints
+    const url = error.config?.url || '';
+    if (ENABLE_LOGGING && !url.includes('/reactions/')) {
+      console.error('API Error:', {
+        status,
+        message,
+        url,
+        data
+      });
+    }
+    
     throw new ApiError(message, status, data);
   }
   
@@ -173,27 +229,42 @@ const handleApiError = (error: unknown): never => {
 // Response interceptor for global error handling
 api.interceptors.response.use(
   (response) => {
-    // Log the response details
-    console.log('Response:', {
-      url: response.config.url,
-      status: response.status,
-      data: response.data
-    });
+    // Only log responses for non-reaction endpoints and non-GET requests
+    // This will significantly reduce console noise for reaction operations
+    const url = response.config.url || '';
+    const method = response.config.method || '';
+    
+    // Skip logging for reaction endpoints and GET requests
+    if (ENABLE_LOGGING && !url.includes('/reactions/') && method !== 'GET') {
+      console.log('Response:', {
+        url: response.config.url,
+        status: response.status,
+        data: response.data
+      });
+    }
+    
     return response;
   },
   (error) => {
     if (isAxiosError(error)) {
-      console.error('Response error:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message,
-        headers: error.response?.headers,
-        config: {
-          url: error.config?.url,
-          method: error.config?.method,
-          headers: error.config?.headers
+      // Only log errors that aren't 403 or 404 to reduce console noise
+      if (ENABLE_LOGGING && error.response?.status !== 403 && error.response?.status !== 404) {
+        // Skip logging for reaction endpoints
+        const url = error.config?.url || '';
+        if (!url.includes('/reactions/')) {
+          console.error('Response error:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+            headers: error.response?.headers,
+            config: {
+              url: error.config?.url,
+              method: error.config?.method,
+              headers: error.config?.headers
+            }
+          });
         }
-      });
+      }
       
       const responseText = String(error.response?.data || '');
       const isJwtExpired = responseText.includes("JWT expired") || 
@@ -209,8 +280,33 @@ api.interceptors.response.use(
         return Promise.reject(new Error("Session expired. Please log in again."));
       }
       
+      // Handle 403 errors globally
+      if (error.response?.status === 403) {
+        // Don't show toast for every 403 error to avoid spamming the user
+        // Only show for specific endpoints that require user action
+        const url = error.config?.url || '';
+        if (url.includes('/admin/') || url.includes('/reactions/')) {
+          // For admin endpoints, redirect to home
+          if (url.includes('/admin/') && window.location.pathname.startsWith('/admin')) {
+            window.location.href = '/home';
+          }
+        }
+      }
+      
+      // Handle 404 errors globally
+      if (error.response?.status === 404) {
+        // Don't show toast for every 404 error to avoid spamming the user
+        // Only show for specific endpoints that require user action
+        const url = error.config?.url || '';
+        if (url.includes('/posts/') || url.includes('/users/')) {
+          // For post/user endpoints, we'll handle in the component
+        }
+      }
+      
       if (error.response?.status === 405) {
+        if (ENABLE_LOGGING) {
         console.error("API Method Not Supported:", error.config?.method, error.config?.url);
+        }
         return Promise.reject(new Error("An operation failed due to unsupported method. Please try again later."));
       }
       
@@ -720,36 +816,52 @@ export class API {
         }
       }
       
-      const endpoint = isAdmin ? "/admin/posts" : "/posts/public";
-      console.log("Fetching posts from endpoint:", endpoint);
-      const { data } = await API.instance.get<PostResponseDto[]>(endpoint);
-      return data;
+      // If authenticated, use the appropriate endpoint
+      if (token) {
+        const endpoint = isAdmin ? "/admin/posts" : "/posts/public";
+        console.log("Fetching posts from endpoint:", endpoint);
+        const { data } = await API.instance.get<PostResponseDto[]>(endpoint);
+        return data;
+      } else {
+        // If not authenticated, use the public API
+        console.log("Fetching posts from public endpoint");
+        const { data } = await publicApi.get<PostResponseDto[]>("/posts/public");
+        return data;
+      }
     } catch (error) {
       console.error("Error fetching posts:", error);
       return handleApiError(error);
     }
   }
 
-  static async fetchPostById(postId: number): Promise<PostResponseDto> {
+  static async fetchPostById(id: number): Promise<PostResponseDto> {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    // Decode the JWT token to check user role
+    const decodedToken = jwtDecode(token) as { role?: string };
+    const role = String(decodedToken.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+
+    // If user is admin, use the admin endpoint
+    if (isAdmin) {
+      const response = await this.instance.get<PostResponseDto>(`/admin/posts/${id}`);
+    return response.data;
+  }
+
+    // For non-admin users, try authenticated endpoint first
     try {
-      const token = localStorage.getItem("token");
-      let isAdmin = false;
-      
-      if (token) {
-        try {
-          const decoded = jwtDecode(token);
-          const role = String((decoded as any)?.role || "").trim();
-          isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
-        } catch (error) {
-          console.error("Error decoding token in fetchPostById:", error);
-        }
-      }
-      
-      const endpoint = isAdmin ? `/admin/posts/${postId}` : `/posts/${postId}`;
-      const { data } = await this.instance.get<PostResponseDto>(endpoint);
-      return data;
+      const response = await this.instance.get<PostResponseDto>(`/posts/${id}`);
+      return response.data;
     } catch (error) {
-      return handleApiError(error);
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        // If 403, try public endpoint
+        const response = await publicApi.get<PostResponseDto>(`/posts/${id}/public`);
+    return response.data;
+      }
+      throw error;
     }
   }
 
@@ -941,9 +1053,7 @@ export class API {
         ? { commentId, type }
         : { postId, type };
 
-      console.log('Making request to:', endpoint);
-      console.log('With payload:', payload);
-
+      // Completely disable logging for reaction endpoints
       const { data } = await this.instance.post<string>(
         endpoint, 
         payload,
@@ -957,7 +1067,6 @@ export class API {
       return data;
     } catch (error) {
       if (isAxiosError(error)) {
-        console.error('Error response:', error.response);
         if (error.response?.status === 401) {
           throw new Error("Please log in to react");
         } else if (error.response?.status === 404) {
@@ -977,9 +1086,7 @@ export class API {
         throw new Error("Authentication required");
       }
 
-      console.log('Removing reaction for post:', postId);
-      console.log('Using token:', token.substring(0, 10) + '...');
-
+      // Completely disable logging for reaction endpoints
       const { data } = await this.instance.delete<GenericDeleteResponse>(
         `/reactions/user/post/${postId}`,
         {
@@ -992,11 +1099,6 @@ export class API {
       return data;
     } catch (error) {
       if (isAxiosError(error)) {
-        console.error('Error removing reaction:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          message: error.message
-        });
         if (error.response?.status === 401) {
           throw new Error("Please log in to remove reactions");
         } else if (error.response?.status === 403) {
@@ -1023,16 +1125,22 @@ export class API {
 
   static async getUserReaction(postId: number): Promise<ReactionResponseDto | null> {
     try {
-      const { data } = await this.instance.get<ReactionResponseDto>(`/reactions/user/post/${postId}`);
-      return data;
+      const token = localStorage.getItem('token');
+      if (!token) {
+        return null; // Return null instead of throwing an error for unauthenticated users
+      }
+      
+      // Completely disable logging for reaction endpoints
+      const response = await this.instance.get<ReactionResponseDto>(`/reactions/user/post/${postId}`);
+    return response.data;
     } catch (error) {
       if (isAxiosError(error)) {
-        if (error.response?.status === 404) {
+        // For 403 and 404, return null instead of throwing
+        if (error.response?.status === 403 || error.response?.status === 404) {
           return null;
-        } else if (error.response?.status === 401) {
-          throw new Error("Please log in to view your reactions");
         }
       }
+      // For other errors, throw
       return handleApiError(error);
     }
   }
@@ -1405,6 +1513,52 @@ export class API {
   static async fetchReactionStats(): Promise<ReactionStatsDto> {
     const response = await this.instance.get<ReactionStatsDto>('/api/admin/reactions/stats');
     return response.data;
+  }
+
+  // User profile endpoints
+  static async fetchUserProfileByUsername(username: string): Promise<UsersDto> {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required to fetch user profile');
+      }
+      
+      const response = await this.instance.get<UsersDto>(`/users/profile/${username}`);
+      return response.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        // For 403 and 404, provide more specific error messages
+        if (error.response?.status === 403) {
+          throw new Error('You do not have permission to view this profile');
+        } else if (error.response?.status === 404) {
+          throw new Error('User profile not found');
+        }
+      }
+      return handleApiError(error);
+    }
+  }
+
+  static async fetchPublicPostById(postId: number): Promise<PostResponseDto> {
+    try {
+      const response = await publicApi.get<PostResponseDto>(`/posts/public/${postId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        withCredentials: false
+      });
+      return response.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          throw new Error("This post is not publicly accessible");
+        } else if (error.response?.status === 404) {
+          throw new Error("Post not found");
+        }
+      }
+      console.error('Error fetching public post:', error);
+      throw error;
+    }
   }
 }
 

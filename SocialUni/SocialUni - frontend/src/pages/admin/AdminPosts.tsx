@@ -7,6 +7,10 @@ import {
   HiOutlineGlobeAmericas,
   HiOutlineLockClosed,
   HiPlus,
+  HiOutlineUserGroup,
+  HiOutlineChatBubbleLeftRight,
+  HiOutlineHeart,
+  HiOutlineCalendar,
 } from "react-icons/hi2";
 import AddData from "../../components/AddData";
 import { useAuth } from "../../contexts/AuthContext";
@@ -128,42 +132,94 @@ const Posts = () => {
       headerName: "Visibility",
       minWidth: 120,
       flex: 1,
-      renderCell: (params) =>
-        params.row.visibility === "PUBLIC" ? (
-          <div className="flex gap-1 items-center">
-            <HiOutlineGlobeAmericas className="text-lg" />
-            <span>{params.row.visibility}</span>
+      renderCell: (params) => {
+        const visibility = params.row.visibility;
+        const getVisibilityConfig = (type: string) => {
+          switch (type) {
+            case "PUBLIC":
+              return {
+                icon: <HiOutlineGlobeAmericas className="text-lg" />,
+                color: "text-green-500",
+                bgColor: "bg-green-100",
+                label: "Public"
+              };
+            case "PRIVATE":
+              return {
+                icon: <HiOutlineLockClosed className="text-lg" />,
+                color: "text-red-500",
+                bgColor: "bg-red-100",
+                label: "Private"
+              };
+            case "FRIENDS_ONLY":
+              return {
+                icon: <HiOutlineUserGroup className="text-lg" />,
+                color: "text-blue-500",
+                bgColor: "bg-blue-100",
+                label: "Friends Only"
+              };
+            default:
+              return {
+                icon: <HiOutlineGlobeAmericas className="text-lg" />,
+                color: "text-gray-500",
+                bgColor: "bg-gray-100",
+                label: visibility
+              };
+          }
+        };
+
+        const config = getVisibilityConfig(visibility);
+        return (
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${config.bgColor} ${config.color}`}>
+            {config.icon}
+            <span className="font-medium">{config.label}</span>
           </div>
-        ) : (
-          <div className="flex gap-1 items-center">
-            <HiOutlineLockClosed className="text-lg" />
-            <span>{params.row.visibility}</span>
-          </div>
-        ),
+        );
+      },
     },
     {
       field: "username",
       headerName: "Author",
       minWidth: 220,
       flex: 1,
+      renderCell: (params) => (
+        <div className="flex items-center gap-2">
+          <HiOutlineUserGroup className="text-lg" />
+          <span>{params.row.username}</span>
+        </div>
+      ),
     },
     {
       field: "createdAt",
       headerName: "Created At",
       minWidth: 120,
+      renderCell: (params) => (
+        <div className="flex items-center gap-2">
+          <HiOutlineCalendar className="text-lg" />
+          <span>{new Date(params.row.createdAt).toLocaleDateString()}</span>
+        </div>
+      ),
     },
     {
       field: "reactionCount",
       headerName: "Reactions",
       minWidth: 80,
       type: "number",
+      renderCell: (params) => (
+        <div className="flex items-center gap-2">
+          <HiOutlineHeart className="text-lg" />
+          <span>{params.row.reactionCount || 0}</span>
+        </div>
+      ),
     },
     {
       field: "comments",
       headerName: "Comments",
       minWidth: 100,
       renderCell: (params) => (
-        <div>{params.row.comments ? params.row.comments.length : 0}</div>
+        <div className="flex items-center gap-2">
+          <HiOutlineChatBubbleLeftRight className="text-lg" />
+          <span>{params.row.comments ? params.row.comments.length : 0}</span>
+        </div>
       ),
     },
     {

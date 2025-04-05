@@ -59,6 +59,7 @@ public class SecurityConfig {
                         
                         // Public endpoints
                         .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts/public/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/posts/trending").permitAll()
                         .requestMatchers(HttpMethod.GET, "/admin/posts/trending").permitAll()
 

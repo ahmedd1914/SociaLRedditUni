@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -19,6 +21,10 @@ public class CreatePostDto {
     @NotNull(message = "Group ID is required. Posts can only be created within groups.")
     private Long groupId;
 
+    private String mediaUrl;
+    private List<String> tags;
+    private boolean allowComments = true; // Default to true
+    private boolean isPinned = false; // Default to false
 
     public CreatePostDto(String title, String content, Category category, Visibility visibility, Long groupId) {
         this.title = title;
@@ -26,6 +32,21 @@ public class CreatePostDto {
         this.category = category;
         this.visibility = visibility;
         this.groupId = groupId;
+        this.allowComments = true;
+        this.isPinned = false;
+    }
+
+    public CreatePostDto(String title, String content, Category category, Visibility visibility, Long groupId,
+                        String mediaUrl, List<String> tags, boolean allowComments, boolean isPinned) {
+        this.title = title;
+        this.content = content;
+        this.category = category;
+        this.visibility = visibility;
+        this.groupId = groupId;
+        this.mediaUrl = mediaUrl;
+        this.tags = tags;
+        this.allowComments = allowComments;
+        this.isPinned = isPinned;
     }
 
 //    public String getTitle() {
