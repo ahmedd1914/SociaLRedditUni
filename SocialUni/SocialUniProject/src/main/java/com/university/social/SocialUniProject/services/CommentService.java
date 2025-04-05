@@ -16,6 +16,8 @@ import com.university.social.SocialUniProject.responses.CommentResponseDto;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -24,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class CommentService {
+    private static final Logger logger = LoggerFactory.getLogger(CommentService.class);
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -39,6 +42,7 @@ public class CommentService {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.reactionRepository = reactionRepository;
+
     }
 
     // Helper method to fetch a User by ID
@@ -59,12 +63,23 @@ public class CommentService {
     }
 
     public CommentResponseDto createComment(Long userId, CreateCommentDto commentDto) {
+        logger.debug("[CommentService] Creating new comment - User ID: {}, Post ID: {}, Parent Comment ID: {}", 
+            userId, commentDto.getPostId(), commentDto.getParentCommentId());
+        
         User user = getUserById(userId);
         Post post = getPostById(commentDto.getPostId());
         Comment parentComment = null;
+        
         if (commentDto.getParentCommentId() != null) {
+            logger.debug("[CommentService] Fetching parent comment with ID: {}", commentDto.getParentCommentId());
             parentComment = commentRepository.findById(commentDto.getParentCommentId())
                     .orElse(null);
+            if (parentComment == null) {
+                logger.warn("[CommentService] Parent comment not found with ID: {}", commentDto.getParentCommentId());
+            } else {
+                logger.debug("[CommentService] Found parent comment - ID: {}, Author: {}", 
+                    parentComment.getId(), parentComment.getUser().getUsername());
+            }
         }
 
         Comment comment = new Comment();
@@ -77,6 +92,9 @@ public class CommentService {
         comment.setCreatedAt(LocalDateTime.now());
 
         comment = commentRepository.save(comment);
+        logger.info("[CommentService] Comment created successfully - ID: {}, Author: {}, Content length: {}", 
+            comment.getId(), comment.getUser().getUsername(), comment.getContent().length());
+
         return convertToDto(comment);
     }
 
@@ -93,13 +111,47 @@ public class CommentService {
 
     @Transactional
     public void deleteComment(Long userId, Long commentId, boolean isAdmin) {
+        logger.debug("[CommentService] Deleting comment - User ID: {}, Comment ID: {}, Is Admin: {}", 
+            userId, commentId, isAdmin);
+        
         Comment comment = getCommentById(commentId);
+        logger.debug("[CommentService] Found comment to delete - ID: {}, Author: {}, Content length: {}", 
+            comment.getId(), comment.getUser().getUsername(), comment.getContent().length());
+        
         if (!isAdmin && !comment.getUser().getId().equals(userId)) {
+            logger.warn("[CommentService] Unauthorized deletion attempt - User ID: {}, Comment Author ID: {}", 
+                userId, comment.getUser().getId());
             throw new UnauthorizedActionException("You can only delete your own comments");
         }
+        
         // Set isDeleted to true instead of removing
         comment.setDeleted(true);
         commentRepository.save(comment);
+        logger.info("[CommentService] Comment marked as deleted - ID: {}", commentId);
+    }
+
+    @Transactional
+    public void permanentlyDeleteComment(Long commentId) {
+        logger.debug("[CommentService] Starting permanent deletion of comment - ID: {}", commentId);
+        
+        Comment comment = getCommentById(commentId);
+        logger.debug("[CommentService] Found comment to permanently delete - ID: {}, Author: {}, Content length: {}", 
+            comment.getId(), comment.getUser().getUsername(), comment.getContent().length());
+        
+        // First, delete all child comments (replies)
+        List<Comment> replies = commentRepository.findByParentCommentId(commentId);
+        logger.debug("[CommentService] Found {} replies to delete", replies.size());
+        
+        for (Comment reply : replies) {
+            logger.debug("[CommentService] Recursively deleting reply - ID: {}, Author: {}", 
+                reply.getId(), reply.getUser().getUsername());
+            // Recursively delete replies
+            permanentlyDeleteComment(reply.getId());
+        }
+        
+        // Then delete the comment itself
+        commentRepository.delete(comment);
+        logger.info("[CommentService] Comment permanently deleted - ID: {}", commentId);
     }
 
     public List<CommentResponseDto> getCommentsForPost(Long postId) {
@@ -179,3 +231,4 @@ public class CommentService {
         );
     }
 }
+

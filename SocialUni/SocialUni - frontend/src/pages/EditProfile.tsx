@@ -2,7 +2,7 @@ import React, { ChangeEvent, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { HiOutlinePencil, HiOutlineTrash } from "react-icons/hi2";
 import { useNavigate, useLocation } from "react-router-dom";
-import { fetchUserById, updateUserProfile } from "../api/api";
+import { API } from "../api/api";
 import { jwtDecode } from "jwt-decode";
 import { Role, UpdateUserDto, UsersDto } from "../api/interfaces";
 
@@ -75,7 +75,7 @@ const EditProfile = () => {
     const userId = Number(decoded.sub);
 
     try {
-      const user: UsersDto = await fetchUserById(userId);
+      const user: UsersDto = await API.fetchUserById(userId);
       setOriginalUser(user);
 
       setProfile({
@@ -153,7 +153,7 @@ const EditProfile = () => {
         updatedProfile.imgUrl = profile.imgUrl;
       }
 
-      await updateUserProfile(userId, updatedProfile);
+      await API.updateUserProfile(userId, updatedProfile);
       toast.success("Profile updated successfully!");
       
       navigate(getProfilePath());

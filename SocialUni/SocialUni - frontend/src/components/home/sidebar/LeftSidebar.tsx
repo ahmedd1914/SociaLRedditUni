@@ -1,13 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { API } from "../../api/api";
-import { useAuth } from "../../contexts/AuthContext";
-import { Link } from 'react-router-dom';
-
-// Icons
-import { HiOutlineHome, HiOutlineTrendingUp, HiOutlineUsers, HiOutlineUserGroup } from "react-icons/hi";
-import { BsCalendar3, BsNewspaper, BsBookmarkFill } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../contexts/AuthContext";
+import { HiOutlineHome, HiOutlineTrendingUp, HiOutlineUsers, HiOutlineFilter } from "react-icons/hi";
+import { BsCalendar3, BsNewspaper, BsBookmarkFill, BsChevronDown, BsChevronUp } from "react-icons/bs";
 import { CiUser, CiBellOn } from "react-icons/ci";
 import { IoBookOutline, IoCreateOutline } from "react-icons/io5";
 import { TbMessages } from "react-icons/tb";
@@ -36,82 +31,118 @@ const SORT_OPTIONS = [
   { label: "Top", value: "top", icon: <BsBookmarkFill /> },
 ];
 
-const UserSidebar = () => {
+const LeftSidebar = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [showAllCategories, setShowAllCategories] = useState(false);
   
-  // Fetch user groups
-  const groupsQuery = useQuery({
-    queryKey: ["sidebar-groups"],
-    queryFn: API.fetchAllGroups,
-  });
-
   // If not logged in, show the guest sidebar
   if (!isAuthenticated) {
     return (
       <div className="pt-2 h-full">
-        <div className="border-b border-base-300 dark:border-slate-700 pb-4 mb-4">
-          <h2 className="font-bold text-xl mb-4">Welcome, Guest!</h2>
-          <div className="flex flex-col gap-3">
-            <Link to="/login" className="btn btn-primary">
-              Sign In
-            </Link>
-            <Link to="/register" className="btn btn-outline btn-primary">
-              Create Account
-            </Link>
-          </div>
-        </div>
-        
-        <div className="border-b border-base-300 dark:border-slate-700 pb-4 mb-4">
-          <h3 className="font-bold text-lg mb-3">Feeds</h3>
-          <ul className="space-y-1">
-            <li>
-              <Link to="/home" className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 font-medium">
-                <GoHomeFill className="w-5 h-5 mr-2" />
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link to="/home?sort=popular" className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300">
-                <HiOutlineTrendingUp className="w-5 h-5 mr-2" />
-                Popular
-              </Link>
-            </li>
-          </ul>
-        </div>
-        
+        {/* Categories Section */}
         <div className="border-b border-base-300 dark:border-slate-700 pb-4 mb-4">
           <h3 className="font-bold text-lg mb-3">Categories</h3>
           <div className="space-y-1">
-            {CATEGORIES.slice(0, 5).map((category) => (
-              <Link 
+            {CATEGORIES.slice(0, showAllCategories ? CATEGORIES.length : 5).map((category) => (
+              <button 
                 key={category}
-                to={`/home?category=${category}`}
                 className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-base-content"
+                onClick={() => navigate(`/home?category=${category}`)}
               >
                 <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
                   {category.charAt(0)}
                 </span>
                 {category}
-              </Link>
+              </button>
             ))}
-            <Link
-              to="/categories"
-              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-primary"
-            >
-              <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
-                <FiPlus className="text-primary" />
-              </span>
-              See More Categories
-            </Link>
+            {!showAllCategories && (
+              <button
+                className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-primary"
+                onClick={() => setShowAllCategories(true)}
+              >
+                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
+                  <BsChevronDown className="text-primary" />
+                </span>
+                Show More Categories
+              </button>
+            )}
+            {showAllCategories && (
+              <button
+                className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-primary"
+                onClick={() => setShowAllCategories(false)}
+              >
+                <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
+                  <BsChevronUp className="text-primary" />
+                </span>
+                Show Less
+              </button>
+            )}
           </div>
         </div>
         
+        {/* Resources Section */}
+        <div className="border-b border-base-300 dark:border-slate-700 pb-4 mb-4">
+          <h3 className="font-bold text-lg mb-3">Resources</h3>
+          <div className="space-y-1">
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/resources")}
+            >
+              <IoBookOutline className="w-5 h-5 mr-2" />
+              Study Materials
+            </button>
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/resources/tutorials")}
+            >
+              <MdExplore className="w-5 h-5 mr-2" />
+              Tutorials
+            </button>
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/resources/events")}
+            >
+              <BsCalendar3 className="w-5 h-5 mr-2" />
+              Events
+            </button>
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/resources/news")}
+            >
+              <BsNewspaper className="w-5 h-5 mr-2" />
+              News
+            </button>
+          </div>
+        </div>
+        
+        {/* About & Group Menu Section */}
         <div className="mb-4">
           <h3 className="font-bold text-lg mb-3">About</h3>
-          <p className="text-sm">
+          <p className="text-sm mb-4">
             Social Uni is a platform for university students to connect, share, and collaborate.
             Create an account to access all features.
           </p>
+          
+          <div className="border-t border-base-300 dark:border-slate-700 pt-4">
+            <h3 className="font-bold text-lg mb-3">Join Our Community</h3>
+            <div className="space-y-1">
+              <button 
+                className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+                onClick={() => navigate("/groups")}
+              >
+                <MdGroup className="w-5 h-5 mr-2" />
+                Browse Groups
+              </button>
+              <button 
+                className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+                onClick={() => navigate("/categories")}
+              >
+                <HiOutlineFilter className="w-5 h-5 mr-2" />
+                Categories
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -133,20 +164,26 @@ const UserSidebar = () => {
             <span className="badge badge-ghost">{user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN' ? 'Admin' : 'User'}</span>
           </div>
         </div>
-        <Link to="/profile" className="btn btn-sm btn-outline w-full mb-2 justify-start">
+        <button 
+          className="btn btn-sm btn-outline w-full mb-2 justify-start"
+          onClick={() => navigate("/profile")}
+        >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
           </svg>
           My Profile
-        </Link>
+        </button>
         {(user?.role === 'ADMIN' || user?.role === 'ROLE_ADMIN') && (
-          <Link to="/admin/home" className="btn btn-sm btn-outline btn-secondary w-full justify-start">
+          <button 
+            className="btn btn-sm btn-outline btn-secondary w-full justify-start"
+            onClick={() => navigate("/admin/home")}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Admin Dashboard
-          </Link>
+          </button>
         )}
       </div>
       
@@ -155,23 +192,32 @@ const UserSidebar = () => {
         <h3 className="font-bold text-lg mb-3">Feeds</h3>
         <ul className="space-y-1">
           <li>
-            <Link to="/home" className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 font-medium">
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 font-medium"
+              onClick={() => navigate("/home")}
+            >
               <GoHomeFill className="w-5 h-5 mr-2" />
               Home
-            </Link>
+            </button>
           </li>
           <li>
-            <Link to="/home?sort=popular" className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300">
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/home?sort=popular")}
+            >
               <HiOutlineTrendingUp className="w-5 h-5 mr-2" />
               Popular
-            </Link>
+            </button>
           </li>
           <li>
-            <Link to="/notifications" className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300">
+            <button 
+              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
+              onClick={() => navigate("/notifications")}
+            >
               <CiBellOn className="w-5 h-5 mr-2" />
               Notifications
               <span className="ml-auto badge badge-xs badge-primary"></span>
-            </Link>
+            </button>
           </li>
         </ul>
       </div>
@@ -181,14 +227,14 @@ const UserSidebar = () => {
         <h3 className="font-bold text-lg mb-3">Sort By</h3>
         <div className="flex flex-wrap gap-2">
           {SORT_OPTIONS.map((option) => (
-            <Link 
+            <button 
               key={option.value}
-              to={`/home?sort=${option.value}`}
               className="btn btn-sm btn-outline"
+              onClick={() => navigate(`/home?sort=${option.value}`)}
             >
               {React.cloneElement(option.icon, { className: "h-4 w-4 mr-1" })}
               {option.label}
-            </Link>
+            </button>
           ))}
         </div>
       </div>
@@ -198,16 +244,16 @@ const UserSidebar = () => {
         <h3 className="font-bold text-lg mb-3">Categories</h3>
         <div className="space-y-1">
           {CATEGORIES.map((category) => (
-            <Link 
+            <button 
               key={category}
-              to={`/home?category=${category}`}
               className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-base-content"
+              onClick={() => navigate(`/home?category=${category}`)}
             >
               <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
                 {category.charAt(0)}
               </span>
               {category}
-            </Link>
+            </button>
           ))}
         </div>
       </div>
@@ -216,27 +262,19 @@ const UserSidebar = () => {
       <div className="border-b border-base-300 dark:border-slate-700 pb-4 mb-4">
         <h3 className="font-bold text-lg mb-3">My Communities</h3>
         <div className="space-y-1">
-          {!groupsQuery.isLoading && groupsQuery.data && groupsQuery.data.slice(0, 5).map((group: any) => (
-            <Link 
-              key={group.id}
-              to={`/groups/${group.id}`}
-              className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300"
-            >
-              <span className="w-5 h-5 rounded-full bg-secondary/10 flex items-center justify-center mr-2 text-xs">
-                <HiOutlineUserGroup className="w-3 h-3" />
-              </span>
-              {group.name}
-            </Link>
-          ))}
-          <Link
-            to="/groups"
+          {/* Placeholder for user's communities */}
+          <div className="text-center py-3 text-gray-500">
+            <p>Your communities will appear here</p>
+          </div>
+          <button
             className="flex items-center px-2 py-1.5 w-full text-left rounded-lg hover:bg-base-300 text-primary"
+            onClick={() => navigate("/groups")}
           >
             <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-xs">
               <FiPlus className="text-primary" />
             </span>
             View All Communities
-          </Link>
+          </button>
         </div>
       </div>
       
@@ -244,28 +282,37 @@ const UserSidebar = () => {
       <div className="mb-4">
         <h3 className="font-bold text-lg mb-3">Create</h3>
         <div className="flex flex-col gap-2">
-          <Link to="/posts/create" className="btn btn-sm btn-outline">
+          <button 
+            className="btn btn-sm btn-outline"
+            onClick={() => navigate("/posts/create")}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             New Post
-          </Link>
-          <Link to="/groups/create" className="btn btn-sm btn-outline">
+          </button>
+          <button 
+            className="btn btn-sm btn-outline"
+            onClick={() => navigate("/groups/create")}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             New Community
-          </Link>
-          <Link to="/events/create" className="btn btn-sm btn-outline">
+          </button>
+          <button 
+            className="btn btn-sm btn-outline"
+            onClick={() => navigate("/events/create")}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
             New Event
-          </Link>
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default UserSidebar; 
+export default LeftSidebar; 

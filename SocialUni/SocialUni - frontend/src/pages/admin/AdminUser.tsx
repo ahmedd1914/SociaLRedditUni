@@ -23,22 +23,31 @@ const User: React.FC = () => {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
       toast.error("You need admin privileges to access this page");
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
   const { isLoading, isError, data, isSuccess } = useQuery({
     queryKey: ["user", id],
     queryFn: async () => {
-      if (!user || user.role !== 'ADMIN') {
+      if (!user || user.role !== 'ROLE_ADMIN') {
         throw new Error("Unauthorized: Admin privileges required");
       }
       const userData = await API.fetchUserById(Number(id));
       return userData;
     },
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: !!user && user.role === 'ROLE_ADMIN',
   });
 
   // Reset image error state when user changes
@@ -50,12 +59,12 @@ const User: React.FC = () => {
   const { data: activities } = useQuery<UserActivity[]>({
     queryKey: ["userActivities", id],
     queryFn: async (): Promise<UserActivity[]> => {
-      if (!user || user.role !== 'ADMIN') {
+      if (!user || user.role !== 'ROLE_ADMIN') {
         throw new Error("Unauthorized: Admin privileges required");
       }
       return await API.fetchUserActivities(Number(id));
     },
-    enabled: !!data && !!user && user.role === 'ADMIN', // Only fetch activities after user data is loaded and user is admin
+    enabled: !!data && !!user && user.role === 'ROLE_ADMIN', // Only fetch activities after user data is loaded and user is admin
   });
 
   const handleImageError = () => {

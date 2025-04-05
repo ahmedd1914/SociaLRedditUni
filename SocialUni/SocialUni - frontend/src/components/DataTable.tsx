@@ -126,10 +126,7 @@ const DataTable: React.FC<DataTableProps> = ({
 
   const handleDelete = async (id: number) => {
     const entityName = cleanSlug.charAt(0).toUpperCase() + cleanSlug.slice(1);
-    const confirmed = window.confirm(
-      `Are you sure you want to delete this ${cleanSlug}?`
-    );
-    if (!confirmed) return;
+    
     try {
       if (onDelete) {
         await onDelete(id);
@@ -142,7 +139,29 @@ const DataTable: React.FC<DataTableProps> = ({
             await API.deletePost(id);
             break;
           case "comments":
-            await API.deleteComment(id);
+            // Get comment details first
+            const comment = await API.fetchCommentById(id);
+            if (comment.isDeleted) {
+              const confirmed = window.confirm(
+                "This comment is already inactive. Do you want to permanently delete it from the database? This action cannot be undone."
+              );
+              if (confirmed) {
+                await API.permanentlyDeleteComment(id);
+                toast.success("Comment permanently deleted from database!");
+              } else {
+                toast.success("Permanent deletion cancelled");
+              }
+            } else {
+              const confirmed = window.confirm(
+                "Are you sure you want to delete this comment? It will be marked as inactive."
+              );
+              if (confirmed) {
+                await API.deleteComment(id);
+                toast.success("Comment marked as inactive!");
+              } else {
+                toast.success("Deletion cancelled");
+              }
+            }
             break;
           case "groups":
             await API.deleteGroup(id);
@@ -153,7 +172,6 @@ const DataTable: React.FC<DataTableProps> = ({
           default:
             throw new Error("Invalid entity type");
         }
-        toast.success(`${entityName} deleted successfully!`);
         queryClient.invalidateQueries({ queryKey: [`all${cleanSlug}`] });
       }
     } catch (error) {

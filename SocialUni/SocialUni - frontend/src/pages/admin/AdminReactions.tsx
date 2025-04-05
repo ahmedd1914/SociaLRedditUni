@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdThumbUp, MdDelete, MdVisibility, MdThumbDown, MdOutlineBarChart, MdAdd, MdEdit, MdClose } from 'react-icons/md';
 import { FaHeart, FaLaugh, FaSadTear, FaAngry, FaSurprise } from 'react-icons/fa';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { API } from '../../api/api';
 import { ReactionResponseDto, ReactionStatsDto, PostResponseDto, CommentResponseDto } from '../../api/interfaces';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminReactions = () => {
   const [selectedReaction, setSelectedReaction] = useState<ReactionResponseDto | null>(null);
@@ -26,6 +28,8 @@ const AdminReactions = () => {
   const [isLoadingPost, setIsLoadingPost] = useState(false);
   const [isLoadingComment, setIsLoadingComment] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Fetch all reactions from backend
   const { 
@@ -77,7 +81,7 @@ const AdminReactions = () => {
 
   // Delete reaction mutation
   const deleteReactionMutation = useMutation({
-    mutationFn: (reactionId: number) => API.removeReaction(0, reactionId),
+    mutationFn: (reactionId: number) => API.removeReaction(reactionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminReactions'] });
       queryClient.invalidateQueries({ queryKey: ['reactionStats'] });
@@ -87,32 +91,40 @@ const AdminReactions = () => {
     },
     onError: (error) => {
       console.error('Error deleting reaction:', error);
-      toast.error('Failed to delete reaction');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete reaction');
     }
   });
 
   // Add reaction mutation
-  const addReactionMutation = useMutation({
-    mutationFn: (reactionData: { postId?: number; commentId?: number; type: string }) => 
-      API.addReaction(reactionData.postId || 0, reactionData.type as any),
-    onSuccess: () => {
+  const addReactionMutation = useMutation<string, Error, { postId?: number; commentId?: number; type: string }>({
+    mutationFn: (reactionData) => 
+      API.addReaction(
+        reactionData.postId || 0, 
+        reactionData.type as any,
+        reactionData.commentId
+      ),
+    onSuccess: (message) => {
       queryClient.invalidateQueries({ queryKey: ['adminReactions'] });
       queryClient.invalidateQueries({ queryKey: ['reactionStats'] });
-      toast.success('Reaction added successfully');
+      toast.success(typeof message === 'string' ? message : 'Reaction added successfully');
       setShowAddForm(false);
       setNewReaction({ postId: '', commentId: '', type: 'LIKE' });
     },
     onError: (error) => {
       console.error('Error adding reaction:', error);
-      toast.error('Failed to add reaction');
+      toast.error(error instanceof Error ? error.message : 'Failed to add reaction');
     }
   });
 
   // Edit reaction mutation
   const editReactionMutation = useMutation({
     mutationFn: (reactionData: { id: number; type: string }) => 
-      API.removeReaction(0, reactionData.id).then(() => 
-        API.addReaction(0, reactionData.type as any)
+      API.removeReaction(reactionData.id).then(() => 
+        API.addReaction(
+          editingReaction?.postId || 0, 
+          reactionData.type as any,
+          editingReaction?.commentId
+        )
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminReactions'] });
@@ -123,7 +135,7 @@ const AdminReactions = () => {
     },
     onError: (error) => {
       console.error('Error updating reaction:', error);
-      toast.error('Failed to update reaction');
+      toast.error(error instanceof Error ? error.message : 'Failed to update reaction');
     }
   });
 
@@ -226,6 +238,23 @@ const AdminReactions = () => {
       setIsLoadingComment(false);
     }
   };
+
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
+      toast.error("You need admin privileges to access this page");
+      navigate('/home');
+    }
+  }, [user, navigate]);
 
   return (
     <div className="container mx-auto px-4 py-6">

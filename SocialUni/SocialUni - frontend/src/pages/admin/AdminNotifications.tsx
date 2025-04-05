@@ -1,16 +1,20 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient, UseQueryOptions } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import API from '../../api/api';
 import { DecodedToken, NotificationResponseDto, NotificationType, NotificationStatsDto } from "../../api/interfaces";
 import { HiOutlineBell, HiOutlineTrash, HiOutlineCheckCircle, HiOutlineExclamationCircle, HiOutlineFunnel } from "react-icons/hi2";
 import { FaComment, FaHeart, FaUserPlus, FaAt, FaChartBar, FaCalendar, FaCog, FaShieldAlt, FaUsers } from "react-icons/fa";
 import { NotificationFilterParams, NotificationCategory } from '../../types/notification';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Notifications = () => {
   const queryClient = useQueryClient();
   const [selectedNotifications, setSelectedNotifications] = useState<number[]>([]);
   const [showStats, setShowStats] = useState(false);
+  const navigate = useNavigate();
+  const { user } = useAuth();
   
   const [filterParams, setFilterParams] = useState<NotificationFilterParams>({
     type: 'ALL',
@@ -23,11 +27,59 @@ const Notifications = () => {
     size: 10
   });
 
-  const { data: notifications = [], isLoading, error } = useQuery<NotificationResponseDto[], Error>({
+  const notificationsQueryOptions: UseQueryOptions<NotificationResponseDto[], Error> = {
     queryKey: ['notifications', filterParams],
     queryFn: () => API.fetchFilteredNotifications(filterParams),
     staleTime: 30000,
-  });
+    retry: false
+  };
+
+  const statsQueryOptions: UseQueryOptions<NotificationStatsDto, Error> = {
+    queryKey: ["notificationStats"],
+    queryFn: () => API.fetchNotificationStats(),
+    retry: false
+  };
+
+  const { data: notifications = [], isLoading, error } = useQuery(notificationsQueryOptions);
+  const { data: notificationStats, isLoading: statsLoading, error: statsError } = useQuery(statsQueryOptions);
+
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
+      toast.error("You need admin privileges to access this page");
+      navigate('/home');
+    }
+  }, [user, navigate]);
+
+  // Handle errors
+  if (error) {
+    if (error.message.includes("Access denied")) {
+      toast.error("You don't have permission to view notifications. Admin access required.");
+    } else if (error.message.includes("Authentication required")) {
+      toast.error("Please log in to view notifications.");
+    } else {
+      toast.error("Failed to load notifications. Please try again later.");
+    }
+  }
+
+  if (statsError) {
+    if (statsError.message.includes("Access denied")) {
+      toast.error("You don't have permission to view notification stats. Admin access required.");
+    } else if (statsError.message.includes("Authentication required")) {
+      toast.error("Please log in to view notification stats.");
+    } else {
+      toast.error("Failed to load notification stats. Please try again later.");
+    }
+  }
 
   const handleFilterChange = (key: keyof NotificationFilterParams, value: any) => {
     setFilterParams((prev: NotificationFilterParams) => ({
@@ -41,20 +93,17 @@ const Notifications = () => {
   const categories: Array<{ value: NotificationCategory, label: string }> = [
     { value: 'ALL', label: 'All Categories' },
     { value: 'POST', label: 'Posts' },
-    { value: 'USER', label: 'Users' },
-    { value: 'GROUP', label: 'Groups' },
-    { value: 'EVENT', label: 'Events' },
     { value: 'COMMENT', label: 'Comments' },
-    { value: 'SYSTEM', label: 'System' },
-    { value: 'ADMIN', label: 'Admin' }
+    { value: 'GROUP', label: 'Groups' },
+    { value: 'EVENT', label: 'Events' }
   ];
 
   // Handle selection of all notifications
   const handleSelectAll = () => {
-    if (selectedNotifications.length === notifications.length) {
+    if (selectedNotifications.length === (notifications?.length || 0)) {
       setSelectedNotifications([]);
     } else {
-      setSelectedNotifications(notifications.map(n => n.id));
+      setSelectedNotifications(notifications?.map(n => n.id) || []);
     }
   };
 
@@ -66,15 +115,6 @@ const Notifications = () => {
       setSelectedNotifications([...selectedNotifications, id]);
     }
   };
-
-  // Fetch notification stats
-  const { 
-    data: notificationStats, 
-    isLoading: statsLoading 
-  } = useQuery<NotificationStatsDto>({
-    queryKey: ["notificationStats"],
-    queryFn: () => API.fetchNotificationStats(),
-  });
 
   // Mark notification as read mutation
   const markAsReadMutation = useMutation({
@@ -107,93 +147,59 @@ const Notifications = () => {
   // Get icon based on notification type
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
-      // User-related icons
-      case NotificationType.USER_REGISTERED:
-      case NotificationType.USER_UPDATED:
-      case NotificationType.USER_DELETED:
-      case NotificationType.USER_BLOCKED:
-      case NotificationType.USER_UNBLOCKED:
-      case NotificationType.USER_REPORTED:
-      case NotificationType.USER_VERIFIED:
-      case NotificationType.USER_ROLE_CHANGED:
-        return <FaUserPlus className="text-green-500" />;
-
-      // Post-related icons
+      // Post notifications
       case NotificationType.POST_CREATED:
-      case NotificationType.POST_UPDATED:
-      case NotificationType.POST_DELETED:
-      case NotificationType.POST_UPDATED_BY_ADMIN:
+        return <FaHeart className="text-red-500" />;
+      case NotificationType.POST_COMMENTED:
+        return <FaHeart className="text-red-500" />;
+      case NotificationType.POST_REACTED:
+        return <FaHeart className="text-red-500" />;
       case NotificationType.POST_DELETED_BY_ADMIN:
-      case NotificationType.POST_REPORTED:
-      case NotificationType.POST_APPROVED:
-      case NotificationType.POST_REJECTED:
-      case NotificationType.POST_ARCHIVED:
-      case NotificationType.POST_UNARCHIVED:
-      case NotificationType.POST_PINNED:
-      case NotificationType.POST_UNPINNED:
+      case NotificationType.POST_UPDATED_BY_ADMIN:
         return <FaHeart className="text-red-500" />;
 
-      // Comment-related icons
-      case NotificationType.COMMENT_CREATED:
-      case NotificationType.COMMENT_UPDATED:
-      case NotificationType.COMMENT_DELETED:
-      case NotificationType.COMMENT_REPORTED:
-      case NotificationType.COMMENT_APPROVED:
-      case NotificationType.COMMENT_REJECTED:
-      case NotificationType.COMMENT_HIDDEN:
-      case NotificationType.COMMENT_UNHIDDEN:
-      case NotificationType.COMMENT_LIKED:
+      // Comment notifications
       case NotificationType.COMMENT_REPLIED:
         return <FaComment className="text-blue-500" />;
+      case NotificationType.COMMENT_REACTED:
+        return <FaHeart className="text-pink-500" />;
+      case NotificationType.COMMENT_DELETED_BY_ADMIN:
+      case NotificationType.COMMENT_UPDATED_BY_ADMIN:
+        return <FaComment className="text-red-500" />;
 
-      // Event-related icons
-      case NotificationType.EVENT_CREATED:
-      case NotificationType.EVENT_UPDATED:
-      case NotificationType.EVENT_DELETED:
-      case NotificationType.EVENT_RSVP:
-      case NotificationType.EVENT_INVITATION:
-      case NotificationType.EVENT_CANCELLED:
-      case NotificationType.EVENT_POSTPONED:
-      case NotificationType.EVENT_REPORTED:
-      case NotificationType.EVENT_APPROVED:
-      case NotificationType.EVENT_REJECTED:
-      case NotificationType.EVENT_STARTING_SOON:
-      case NotificationType.EVENT_COMPLETED:
-        return <FaCalendar className="text-purple-500" />;
-
-      // Group-related icons
+      // Group notifications
       case NotificationType.GROUP_CREATED:
-      case NotificationType.GROUP_UPDATED:
-      case NotificationType.GROUP_DELETED:
+        return <FaUsers className="text-green-500" />;
       case NotificationType.GROUP_JOIN_REQUEST:
+        return <FaUsers className="text-green-500" />;
       case NotificationType.GROUP_JOIN_APPROVED:
-      case NotificationType.GROUP_JOIN_REJECTED:
-      case NotificationType.GROUP_LEFT:
-      case NotificationType.GROUP_REMOVED:
-      case NotificationType.GROUP_ROLE_CHANGED:
-      case NotificationType.GROUP_SETTINGS_UPDATED:
-      case NotificationType.GROUP_REPORTED:
-      case NotificationType.GROUP_ARCHIVED:
-      case NotificationType.GROUP_UNARCHIVED:
-        return <FaUsers className="text-orange-500" />;
+        return <FaUsers className="text-green-500" />;
+      case NotificationType.GROUP_MEMBER_JOINED:
+        return <FaUsers className="text-green-500" />;
+      case NotificationType.GROUP_DELETED:
+      case NotificationType.GROUP_DELETED_BY_ADMIN:
+        return <FaUsers className="text-green-500" />;
 
-      // System notifications
-      case NotificationType.SYSTEM_ANNOUNCEMENT:
-      case NotificationType.SYSTEM_UPDATE:
-      case NotificationType.SYSTEM_MAINTENANCE:
-      case NotificationType.SYSTEM_ERROR:
-      case NotificationType.SYSTEM_WARNING:
-      case NotificationType.SYSTEM_INFO:
-        return <FaCog className="text-gray-500" />;
+      // Event notifications
+      case NotificationType.EVENT_CREATED:
+        return <FaCalendar className="text-blue-500" />;
+      case NotificationType.EVENT_INVITATION:
+        return <FaCalendar className="text-blue-500" />;
+      case NotificationType.EVENT_CANCELLED:
+        return <FaCalendar className="text-blue-500" />;
+      case NotificationType.EVENT_REMINDER:
+        return <FaCalendar className="text-blue-500" />;
+      case NotificationType.EVENT_DELETED:
+      case NotificationType.EVENT_DELETED_BY_ADMIN:
+        return <FaCalendar className="text-blue-500" />;
+      case NotificationType.EVENT_UPDATED:
+        return <FaCalendar className="text-blue-500" />;
 
-      // Admin notifications
-      case NotificationType.ADMIN_ACTION_REQUIRED:
-      case NotificationType.ADMIN_REPORT_RECEIVED:
-      case NotificationType.ADMIN_USER_REPORTED:
-      case NotificationType.ADMIN_CONTENT_REPORTED:
-      case NotificationType.ADMIN_ACTION_COMPLETED:
-      case NotificationType.ADMIN_ACTION_FAILED:
-        return <FaShieldAlt className="text-yellow-500" />;
+      // User notifications
+      case NotificationType.USER_REGISTERED:
+        return <FaUserPlus className="text-orange-500" />;
+      case NotificationType.USER_BANNED_BY_ADMIN:
+        return <FaUserPlus className="text-orange-500" />;
 
       default:
         return <HiOutlineBell className="text-gray-500" />;
@@ -225,7 +231,7 @@ const Notifications = () => {
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <HiOutlineBell className="text-primary" /> Notifications
             </h1>
-            {!statsLoading && notificationStats && (
+            {!statsLoading && !statsError && notificationStats && (
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {notificationStats.totalNotifications} total • {notificationStats.unreadNotifications} unread
               </p>
@@ -266,7 +272,7 @@ const Notifications = () => {
         </div>
 
         {/* Statistics Panel */}
-        {showStats && notificationStats && (
+        {showStats && !statsError && notificationStats && (
           <div className="card bg-base-200">
             <div className="card-body">
               <h2 className="card-title">Notification Statistics</h2>

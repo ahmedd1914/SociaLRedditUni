@@ -11,10 +11,12 @@ import com.university.social.SocialUniProject.enums.NotificationType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,8 +38,10 @@ public class NotificationService {
     // Create and save a new notification with optional metadata
     public NotificationResponseDto createNotification(CreateNotificationDto dto) {
         User recipient = getUserById(dto.getRecipientId());
+        String message = dto.getMessage() != null ? dto.getMessage() : dto.getNotificationType().getDefaultMessage();
+        
         Notification notification = new Notification(
-                dto.getMessage(),
+                message,
                 dto.getNotificationType(),
                 recipient,
                 dto.getRelatedPostId(),
@@ -198,36 +202,34 @@ public class NotificationService {
             String search,
             Long recipientId,
             Boolean isRead,
-            String type,
             String category,
             int page,
             int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        NotificationType notificationType = type != null ? NotificationType.valueOf(type) : null;
         
-        if (recipientId != null) {
-            User recipient = getUserById(recipientId);
-            return notificationRepository.findFilteredNotifications(
-                    recipient,
-                    notificationType,
-                    isRead,
-                    null,
-                    null,
-                    search,
-                    category,
-                    pageable
-            ).getContent().stream()
-            .map(this::mapToDto)
-            .collect(Collectors.toList());
+        User recipient = recipientId != null ? getUserById(recipientId) : null;
+        Pageable pageable = PageRequest.of(page, size);
+        
+        // Convert category to list of notification types
+        List<NotificationType> categoryTypes = null;
+        if (category != null && !category.equals("ALL")) {
+            categoryTypes = Arrays.asList(NotificationType.values()).stream()
+                    .filter(type -> type.name().startsWith(category))
+                    .collect(Collectors.toList());
         }
         
-        // If no recipient specified, return all notifications
-        return notificationRepository.findAll(pageable).getContent().stream()
-                .filter(n -> notificationType == null || n.getNotificationType() == notificationType)
-                .filter(n -> isRead == null || n.isRead() == isRead)
-                .filter(n -> search == null || n.getMessage().toLowerCase().contains(search.toLowerCase()))
-                .filter(n -> category == null || category.equals("ALL") || 
-                           n.getNotificationType().name().startsWith(category))
+        Page<Notification> notifications = notificationRepository.findFilteredNotifications(
+                recipient,
+                null, // type
+                isRead,
+                null, // startDate
+                null, // endDate
+                search,
+                category,
+                categoryTypes,
+                pageable
+        );
+        
+        return notifications.getContent().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }

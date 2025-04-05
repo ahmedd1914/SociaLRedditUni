@@ -74,7 +74,7 @@ public class EventService {
 
         // Trigger notification for event creation
         notificationService.createNotification(new CreateNotificationDto(
-                "Your event '" + savedEvent.getName() + "' has been created.",
+                null, // Use default message
                 com.university.social.SocialUniProject.enums.NotificationType.EVENT_CREATED,
                 organizer.getId(),
                 savedEvent.getId(),
@@ -106,8 +106,8 @@ public class EventService {
 
         // Trigger notification to organizer (and redactors) about update
         notificationService.createNotification(new CreateNotificationDto(
-                "Your event '" + updatedEvent.getName() + "' has been updated.",
-                com.university.social.SocialUniProject.enums.NotificationType.EVENT_UPDATED,
+                null, // Use default message
+                com.university.social.SocialUniProject.enums.NotificationType.EVENT_CREATED,
                 event.getOrganizer().getId(),
                 updatedEvent.getId(),
                 null
@@ -127,8 +127,8 @@ public class EventService {
 
         // Notify organizer about deletion (could notify invited users too)
         notificationService.createNotification(new CreateNotificationDto(
-                "Your event '" + event.getName() + "' has been deleted.",
-                com.university.social.SocialUniProject.enums.NotificationType.EVENT_DELETED,
+                null, // Use default message
+                com.university.social.SocialUniProject.enums.NotificationType.EVENT_CREATED,
                 event.getOrganizer().getId(),
                 event.getId(),
                 null
@@ -144,8 +144,8 @@ public class EventService {
             event.setUpdatedAt(now);
             eventRepository.save(event);
             notificationService.createNotification(new CreateNotificationDto(
-                    "Your event '" + event.getName() + "' has been marked as completed.",
-                    com.university.social.SocialUniProject.enums.NotificationType.EVENT_UPDATED,
+                    null, // Use default message
+                    com.university.social.SocialUniProject.enums.NotificationType.EVENT_CREATED,
                     event.getOrganizer().getId(),
                     event.getId(),
                     null
@@ -174,8 +174,8 @@ public class EventService {
 
         // Notify organizer of RSVP change
         notificationService.createNotification(new CreateNotificationDto(
-                user.getUsername() + " has updated their RSVP for your event '" + event.getName() + "'.",
-                com.university.social.SocialUniProject.enums.NotificationType.EVENT_RSVP,
+                null, // Use default message
+                com.university.social.SocialUniProject.enums.NotificationType.EVENT_CREATED,
                 event.getOrganizer().getId(),
                 event.getId(),
                 null
@@ -193,7 +193,7 @@ public class EventService {
         User invitee = findUserById(inviteeId);
         // For simplicity, we assume invitation is done by sending a notification.
         notificationService.createNotification(new CreateNotificationDto(
-                "You are invited to the event '" + event.getName() + "'.",
+                null, // Use default message
                 com.university.social.SocialUniProject.enums.NotificationType.EVENT_INVITATION,
                 invitee.getId(),
                 event.getId(),

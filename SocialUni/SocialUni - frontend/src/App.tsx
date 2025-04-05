@@ -8,7 +8,7 @@ import {
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AdminMenu from "./components/menu/AdminMenu";
-import UserSidebar from "./components/sidebar/UserSidebar";
+import LeftSidebar from "./components/home/sidebar/LeftSidebar";
 import Error from "./pages/Error";
 import ToasterProvider from "./components/ToasterProvider";
 import { useAuth } from "./contexts/AuthContext";
@@ -31,7 +31,6 @@ const Home = lazy(() => import("./pages/Home"));
 const Events = lazy(() => import("./pages/admin/AdminEvents"));
 const Notifications = lazy(() => import("./pages/admin/AdminNotifications"));
 const GroupRequests = lazy(() => import("./pages/admin/AdminGroupRequests"));
-const PostDetail = lazy(() => import("./pages/PostDetail"));
 const GroupPage = lazy(() => import("./pages/GroupPage"));
 // New admin components
 const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
@@ -128,7 +127,7 @@ function App() {
           <div className="w-full flex gap-0 pt-20 xl:pt-[96px] 2xl:pt-[112px] mb-auto">
             {/* User Sidebar - Reddit Style */}
             <div className="hidden xl:block xl:w-[250px] 2xl:w-[280px] 3xl:w-[350px] border-r-2 border-base-300 dark:border-slate-700 px-3 xl:px-4 xl:py-1">
-              <UserSidebar />
+              <LeftSidebar />
             </div>
             {/* Main Content */}
             <div className="w-full px-4 xl:px-6 2xl:px-8 xl:py-2 overflow-clip">
@@ -220,7 +219,6 @@ function App() {
         }>
           <Route path="posts" element={<Posts />} />
           <Route path="posts/:id/edit" element={<EditData slug="posts" />} />
-          <Route path="posts/:postId" element={<PostDetail />} />
           <Route path="groups" element={<Groups />} />
           <Route path="groups/:id/edit" element={<EditData slug="groups" />} />
           <Route path="groups/:groupId" element={<GroupPage />} />

@@ -32,7 +32,7 @@ public class Notification {
     private String message;  // e.g. "User X commented on your post"
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private NotificationType notificationType; // e.g. COMMENT, NEW_POST
 
     @ManyToOne(fetch = FetchType.LAZY)

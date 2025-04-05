@@ -29,13 +29,14 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     List<Notification> findByCreatedAtBeforeAndIsReadTrue(LocalDateTime date);
 
-    @Query("SELECT n FROM Notification n WHERE n.recipient = :recipient AND " +
+    @Query("SELECT n FROM Notification n WHERE " +
+           "(:recipient IS NULL OR n.recipient = :recipient) AND " +
            "(:type IS NULL OR n.notificationType = :type) AND " +
            "(:isRead IS NULL OR n.isRead = :isRead) AND " +
            "(:startDate IS NULL OR n.createdAt >= :startDate) AND " +
            "(:endDate IS NULL OR n.createdAt <= :endDate) AND " +
            "(:searchTerm IS NULL OR LOWER(n.message) LIKE LOWER(CONCAT('%', :searchTerm, '%'))) AND " +
-           "(:category IS NULL OR :category = 'ALL' OR CAST(n.notificationType AS string) LIKE CONCAT(:category, '%'))")
+           "(:category IS NULL OR :category = 'ALL' OR n.notificationType IN :categoryTypes)")
     Page<Notification> findFilteredNotifications(
             @Param("recipient") User recipient,
             @Param("type") NotificationType type,
@@ -44,5 +45,6 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             @Param("endDate") LocalDateTime endDate,
             @Param("searchTerm") String searchTerm,
             @Param("category") String category,
+            @Param("categoryTypes") List<NotificationType> categoryTypes,
             Pageable pageable);
 }

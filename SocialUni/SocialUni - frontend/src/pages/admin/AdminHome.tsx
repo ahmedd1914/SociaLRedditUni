@@ -41,16 +41,19 @@ const AdminHome = () => {
         exp: decoded.exp
       });
       
-      const isAdmin = decoded.role === "ROLE_ADMIN" || decoded.role === "ADMIN";
-      console.log('Is admin:', isAdmin);
+      const role = String(decoded.role || '').trim().toUpperCase();
+      const isAdmin = role === "ROLE_ADMIN" || role === "ADMIN";
+      console.log('Is admin:', isAdmin);        
 
       if (!isAdmin) {
-        console.log("AdminHome - Non-admin user detected, redirecting to error page");
-        navigate("/error");
+        console.log("AdminHome - Non-admin user detected, redirecting to home page");
+        toast.error("You need admin privileges to access this page");
+        navigate("/home");
       }
     } catch (err) {
       console.error("Failed to decode token:", err);
-      navigate("/error");
+      toast.error("Authentication error");
+      navigate("/login");
     }
   }, [navigate]);
 

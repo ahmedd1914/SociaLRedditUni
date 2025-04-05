@@ -1,95 +1,47 @@
 package com.university.social.SocialUniProject.enums;
 
 public enum NotificationType {
-    // User-related
-    USER_REGISTERED,
-    USER_UPDATED,
-    USER_DELETED,
-    USER_BLOCKED,
-    USER_UNBLOCKED,
-    USER_REPORTED,
-    USER_VERIFIED,
-    USER_ROLE_CHANGED,
-
     // Post-related
-    POST_CREATED,
-    POST_UPDATED,
-    POST_DELETED,
-    POST_UPDATED_BY_ADMIN,
-    POST_DELETED_BY_ADMIN,
-    POST_REPORTED,
-    POST_APPROVED,
-    POST_REJECTED,
-    POST_ARCHIVED,
-    POST_UNARCHIVED,
-    POST_PINNED,
-    POST_UNPINNED,
-    POST_REACTION,
+    POST_CREATED("Someone created a post"),
+    POST_COMMENTED("Someone commented on your post"),
+    POST_REACTED("Someone reacted to your post"),
+    POST_DELETED_BY_ADMIN("Your post was deleted by an administrator"),
+    POST_UPDATED_BY_ADMIN("Your post was updated by an administrator"),
 
     // Comment-related
-    COMMENT_CREATED,
-    COMMENT_UPDATED,
-    COMMENT_DELETED,
-    COMMENT_REPORTED,
-    COMMENT_APPROVED,
-    COMMENT_REJECTED,
-    COMMENT_HIDDEN,
-    COMMENT_UNHIDDEN,
-    COMMENT_LIKED,
-    COMMENT_REPLIED,
-    COMMENT_REACTION,
-
-    // Event-related
-    EVENT_CREATED,
-    EVENT_UPDATED,
-    EVENT_DELETED,
-    EVENT_RSVP,
-    EVENT_INVITATION,
-    EVENT_CANCELLED,
-    EVENT_POSTPONED,
-    EVENT_REPORTED,
-    EVENT_APPROVED,
-    EVENT_REJECTED,
-    EVENT_STARTING_SOON,
-    EVENT_COMPLETED,
-    EVENT_REMINDER,
+    COMMENT_REACTED("Someone reacted to your comment"),
+    COMMENT_REPLIED("Someone replied to your comment"),
+    COMMENT_DELETED("Your comment was deleted"),
+    COMMENT_UPDATED("Your comment was updated"),
 
     // Group-related
-    GROUP_CREATED,
-    GROUP_UPDATED,
-    GROUP_DELETED,
-    GROUP_JOIN_REQUEST,
-    GROUP_JOIN_APPROVED,
-    GROUP_JOIN_REJECTED,
-    GROUP_LEFT,
-    GROUP_REMOVED,
-    GROUP_ROLE_CHANGED,
-    GROUP_SETTINGS_UPDATED,
-    GROUP_REPORTED,
-    GROUP_ARCHIVED,
-    GROUP_UNARCHIVED,
-    GROUP_MEMBER_LEFT,
-    GROUP_MEMBER_REMOVED,
-    GROUP_OWNERSHIP_TRANSFERRED,
-    GROUP_MEMBER_ADDED,
+    GROUP_CREATED("Someone created a group"),
+    GROUP_JOIN_REQUEST("Someone requested to join your group"),
+    GROUP_JOIN_APPROVED("Your group join request was approved"),
+    GROUP_MEMBER_JOINED("Someone joined your group"),
+    GROUP_DELETED("Your group was deleted"),
+    GROUP_DELETED_BY_ADMIN("Your group was deleted by an administrator"),
 
-    // System notifications
-    SYSTEM_ANNOUNCEMENT,
-    SYSTEM_UPDATE,
-    SYSTEM_MAINTENANCE,
-    SYSTEM_ERROR,
-    SYSTEM_WARNING,
-    SYSTEM_INFO,
+    // Event-related
+    EVENT_CREATED("Someone created an event"),
+    EVENT_INVITATION("Someone invited you to an event"),
+    EVENT_CANCELLED("An event you're attending was cancelled"),
+    EVENT_REMINDER("Reminder: You have an upcoming event"),
+    EVENT_DELETED("An event you're attending was deleted"),
+    EVENT_DELETED_BY_ADMIN("An event you're attending was deleted by an administrator"),
+    EVENT_UPDATED("An event you're attending was updated"),
 
-    // Admin notifications
-    ADMIN_ACTION_REQUIRED,
-    ADMIN_REPORT_RECEIVED,
-    ADMIN_USER_REPORTED,
-    ADMIN_CONTENT_REPORTED,
-    ADMIN_ACTION_COMPLETED,
-    ADMIN_ACTION_FAILED,
-    ADMIN_SYSTEM_ALERT,
+    // User-related
+    USER_REGISTERED("Welcome to SocialUni! Please verify your email to get started."),
+    USER_BANNED_BY_ADMIN("Your account has been banned by an administrator");
 
-    // General notifications
-    REACTION
+    private final String defaultMessage;
+
+    NotificationType(String defaultMessage) {
+        this.defaultMessage = defaultMessage;
+    }
+
+    public String getDefaultMessage() {
+        return defaultMessage;
+    }
 }

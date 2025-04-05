@@ -4,6 +4,11 @@ import com.university.social.SocialUniProject.enums.ReactionType;
 import com.university.social.SocialUniProject.responses.ReactionResponseDto;
 import com.university.social.SocialUniProject.services.PostServices.ReactionService;
 import com.university.social.SocialUniProject.dto.ReactionDto;
+import com.university.social.SocialUniProject.exceptions.BadRequestException;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
+import com.university.social.SocialUniProject.models.User;
+import com.university.social.SocialUniProject.repositories.UserRepository;
+import com.university.social.SocialUniProject.utils.SecurityUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,9 +22,13 @@ import java.util.Map;
 public class AdminReactionController {
 
     private final ReactionService reactionService;
+    private final UserRepository userRepository;
 
-    public AdminReactionController(ReactionService reactionService) {
+    public AdminReactionController(
+            ReactionService reactionService,
+            UserRepository userRepository) {
         this.reactionService = reactionService;
+        this.userRepository = userRepository;
     }
 
     // 1. Get all reactions
@@ -46,6 +55,23 @@ public class AdminReactionController {
     // 4. Add reaction as admin
     @PostMapping("/add")
     public ResponseEntity<ReactionResponseDto> addReactionAsAdmin(@RequestBody ReactionDto reactionDto) {
+        // Validate input
+        if (reactionDto.getType() == null) {
+            throw new BadRequestException("Reaction type cannot be null.");
+        }
+        if (reactionDto.getPostId() == null && reactionDto.getCommentId() == null) {
+            throw new BadRequestException("Reaction must be associated with a post or a comment.");
+        }
+
+        // Get the user from the provided userId or fallback to authenticated user
+        Long userId = reactionDto.getUserId() != null ? 
+            reactionDto.getUserId() : 
+            SecurityUtils.getAuthenticatedUserId();
+            
+        User reactingUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Process the reaction (notifications are handled in the service)
         ReactionResponseDto reaction = reactionService.addReactionAsAdmin(reactionDto);
         return ResponseEntity.ok(reaction);
     }

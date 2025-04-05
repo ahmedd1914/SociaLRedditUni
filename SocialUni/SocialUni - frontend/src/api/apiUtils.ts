@@ -2,6 +2,8 @@
 
 import axios from 'axios';
 import type { InternalAxiosRequestConfig, AxiosError } from 'axios';
+import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-hot-toast';
 
 // Get API URL from environment variables with fallback
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
@@ -13,6 +15,7 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true
 });
 
 // Custom API error class
@@ -32,9 +35,33 @@ export class ApiError extends Error {
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
-    if (token && config.headers) {
+    const isAdminEndpoint = config.url?.includes('/admin/');
+    
+    // Always add token for admin endpoints or if token exists
+    if (token) {
+      config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
+      
+      // Add extra validation for admin endpoints
+      if (isAdminEndpoint) {
+        try {
+          const decoded = jwtDecode(token);
+          const role = String((decoded as any).role || '').trim().toUpperCase();
+          const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+          
+          if (!isAdmin) {
+            console.error('Non-admin user attempting to access admin endpoint');
+            return Promise.reject(new ApiError('You need admin privileges to access this page', 403));
+          }
+        } catch (error) {
+          console.error('Token decode error:', error);
+          return Promise.reject(new ApiError('Invalid authentication token', 401));
+        }
+      }
+    } else if (isAdminEndpoint) {
+      return Promise.reject(new ApiError('Authentication required for admin access', 401));
     }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -45,17 +72,21 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (axios.isAxiosError(error)) {
+      console.error('API Error:', {
+        status: error.response?.status,
+        message: error.message,
+        url: error.config?.url
+      });
+
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
+        window.location.href = '/login?expired=true';
+      } else if (error.response?.status === 403) {
+        toast.error('You need admin privileges to access this page');
+        if (window.location.pathname.startsWith('/admin')) {
+          window.location.href = '/home';
+        }
       }
-      
-      return Promise.reject(
-        new ApiError(
-          error.response?.data?.message || error.message || 'Unknown error',
-          error.response?.status || 500,
-          error.response?.data
-        )
-      );
     }
     return Promise.reject(error);
   }

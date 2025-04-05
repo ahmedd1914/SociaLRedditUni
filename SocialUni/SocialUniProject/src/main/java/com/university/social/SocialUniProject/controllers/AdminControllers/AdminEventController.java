@@ -7,8 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/admin/events")
 @PreAuthorize("hasAuthority('ADMIN')")
@@ -22,9 +20,9 @@ public class AdminEventController {
 
     // Admin can view all events
     @GetMapping
-    public ResponseEntity<List<EventResponseDto>> getAllEvents() {
+    public ResponseEntity<java.util.List<EventResponseDto>> getAllEvents() {
         // For simplicity, you could combine public and group events
-        List<EventResponseDto> events = eventService.getAllEvents();
+        java.util.List<EventResponseDto> events = eventService.getAllEvents();
         return ResponseEntity.ok(events);
     }
 

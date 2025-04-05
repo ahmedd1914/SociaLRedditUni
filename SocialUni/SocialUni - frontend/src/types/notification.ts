@@ -4,21 +4,17 @@ export type NotificationType =
   | 'POST_DELETED'
   | 'POST_DELETED_BY_ADMIN'
   | 'POST_UPDATED_BY_ADMIN'
+  | 'COMMENT_REPLIED'
+  | 'COMMENT_REACTED'
+  | 'COMMENT_DELETED_BY_ADMIN'
+  | 'COMMENT_UPDATED_BY_ADMIN'
   | 'ALL';
 
-export type NotificationCategory = 
-  | 'ALL'
-  | 'POST'
-  | 'USER'
-  | 'GROUP'
-  | 'EVENT'
-  | 'COMMENT'
-  | 'SYSTEM'
-  | 'ADMIN';
+export type NotificationCategory = 'ALL' | 'POST' | 'COMMENT' | 'GROUP' | 'EVENT';
 
 export interface NotificationFilterParams {
-  type?: NotificationType;
-  category?: NotificationCategory;
+  type: NotificationType | "ALL";
+  category: NotificationCategory;
   isRead?: boolean;
   startDate?: string;
   endDate?: string;

@@ -21,20 +21,29 @@ const Posts = () => {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
       toast.error("You need admin privileges to access this page");
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
   const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["allposts"],
     queryFn: () => API.fetchAllPosts(),
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: !!user && user.role === 'ROLE_ADMIN',
     retry: false,
   });
 
-  // Show error toast if query fails
+  // Show error toast if query fails  
   useEffect(() => {
     if (error) {
       toast.error("Failed to fetch posts");
@@ -45,11 +54,22 @@ const Posts = () => {
   // Function to handle post deletion
   const handleDelete = async (postId: number) => {
     try {
-      await API.deletePost(postId);
-      toast.success("Post deleted successfully!");
-      // Invalidate both admin and regular posts queries to ensure UI is updated
-      queryClient.invalidateQueries({ queryKey: ["allposts"] });
-      queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
+      console.log(`[DEBUG] Starting deletion process for post ID: ${postId}`);
+      const response = await API.deletePost(postId);
+      console.log(`[DEBUG] Delete response:`, response);
+      
+      if (response.success) {
+        console.log(`[DEBUG] Post deletion successful for post ${postId}`);
+        toast.success("Post and all associated data deleted successfully!");
+        // Invalidate all related queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ["allposts"] });
+        queryClient.invalidateQueries({ queryKey: ["adminPosts"] });
+        queryClient.invalidateQueries({ queryKey: ["comments"] });
+        queryClient.invalidateQueries({ queryKey: ["reactions"] });
+      } else {
+        console.error(`[DEBUG] Post deletion failed for post ${postId}:`, response.message);
+        toast.error(response.message || "Failed to delete post");
+      }
     } catch (error) {
       console.error("Error deleting post:", error);
       toast.error("Failed to delete post");

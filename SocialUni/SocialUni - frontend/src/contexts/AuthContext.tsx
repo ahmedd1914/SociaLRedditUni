@@ -41,19 +41,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!token) {
       setUser(null);
       setIsLoading(false);
-      // Don't redirect if on the home page or auth pages
-      const currentPath = location.pathname;
-      if (!['/home', '/login', '/register', '/verify'].includes(currentPath)) {
-        // Redirect to home since we've made it public
-        window.location.href = '/home';
-      }
       return;
     }
     
     try {
       const decoded = jwtDecode<AuthUser>(token);
       
-      // Check if token is expired (add buffer time of 60 seconds)
+      // Check if token is expired or about to expire (within 60 seconds)
       const bufferTime = 60 * 1000; // 60 seconds in milliseconds
       if (decoded.exp * 1000 - bufferTime < Date.now()) {
         // Token expired or about to expire
@@ -63,7 +57,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Only navigate to login if not already on auth pages or home
         const currentPath = location.pathname;
         if (!['/login', '/register', '/verify', '/home'].includes(currentPath)) {
-          // Use window.location instead of navigate for a full page refresh
           window.location.href = '/login?expired=true';
         }
       } else {
@@ -73,40 +66,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // If on the wrong page for role, redirect
         const currentPath = location.pathname;
         const isAdminPath = currentPath.startsWith('/admin');
-        const isAdminUser = decoded.role === 'ROLE_ADMIN' || decoded.role === 'ADMIN';
-        const isUserRole = decoded.role === 'ROLE_USER' || decoded.role === 'USER';
+        const role = String(decoded.role || '').trim().toUpperCase();
+        const isAdminUser = role === 'ROLE_ADMIN' || role === 'ADMIN';
         
         // Regular user trying to access admin area should be redirected to home
         if (!isAdminUser && isAdminPath) {
-          // Use window.location for full page refresh
+          toast.error('You need admin privileges to access this page');
           window.location.href = '/home';
+          return;
         }
         
         // Regular user trying to access login/register/verify after successful auth
-        if (isUserRole && ['/login', '/register'].includes(currentPath) && decoded.isVerified) {
-          // Use window.location for full page refresh
-          window.location.href = '/home';
-        }
-        
-        // Admin trying to access login/register after successful auth
-        if (isAdminUser && ['/login', '/register'].includes(currentPath)) {
-          // Redirect admin to admin home
-          window.location.href = '/admin/home';
+        if (['/login', '/register'].includes(currentPath) && decoded.isVerified) {
+          if (isAdminUser) {
+            window.location.href = '/admin/home';
+          } else {
+            window.location.href = '/home';
+          }
         }
       }
     } catch (error) {
-      console.error('Token decode error:', error);
+      console.error('Token validation error:', error);
       localStorage.removeItem('token');
       setUser(null);
-      
-      // Navigate to login on token error if not already on auth pages
-      const currentPath = location.pathname;
-      if (!['/login', '/register', '/verify', '/home'].includes(currentPath)) {
-        // Use window.location for full page refresh
-        window.location.href = '/login?expired=true';
+      if (location.pathname.startsWith('/admin')) {
+        toast.error('Invalid authentication. Please log in again.');
+        window.location.href = '/login';
       }
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [location.pathname]);
   
   useEffect(() => {

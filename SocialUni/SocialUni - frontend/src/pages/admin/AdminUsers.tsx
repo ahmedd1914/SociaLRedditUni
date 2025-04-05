@@ -8,6 +8,7 @@ import AddData from '../../components/AddData';
 import { UserResponseDto } from '../../api/interfaces';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
 
 const Users = () => {
   const [isOpen, setIsOpen] = React.useState(false);
@@ -17,16 +18,33 @@ const Users = () => {
   
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
-      toast.error("You need admin privileges to access this page");
-      navigate('/');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
     }
-  }, [user, navigate]);
+
+    try {
+      const decoded = jwtDecode(token);
+      const role = String((decoded as any).role || '').trim().toUpperCase();
+      const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+      
+      if (!isAdmin) {
+        toast.error("You need admin privileges to access this page");
+        navigate('/home');
+      }
+    } catch (error) {
+      console.error("Failed to decode token:", error);
+      toast.error("Authentication error");
+      navigate('/login');
+    }
+  }, [navigate]);
 
   const { isLoading, isError, isSuccess, data, error } = useQuery<UserResponseDto[]>({
     queryKey: ['allusers'],
     queryFn: () => API.fetchAllUsers(),
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: true,
     retry: false,
   });
 

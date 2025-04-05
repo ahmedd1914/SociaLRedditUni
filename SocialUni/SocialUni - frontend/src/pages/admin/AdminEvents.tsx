@@ -22,22 +22,31 @@ const Events = () => {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
       toast.error("You need admin privileges to access this page");
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
   const { isLoading, isSuccess, data, error } = useQuery<EventResponseDto[]>({
     queryKey: ["allevents"],
     queryFn: () => API.fetchAllEvents(),
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: !!user && user.role === 'ROLE_ADMIN',
     retry: false,
   });
 
   // Show error toast if query fails
   useEffect(() => {
-    if (error) {
+    if (error) {  
       toast.error("Failed to fetch events");
       console.error("Error fetching events:", error);
     }

@@ -53,7 +53,7 @@ public class JwtService {
      */
     public String generateTokenForUser(User user) {
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("role", user.getRole()); // e.g., "ROLE_ADMIN" / "ROLE_USER"
+        extraClaims.put("role", "ROLE_" + user.getRole().name()); // Add ROLE_ prefix
         return buildToken(extraClaims, String.valueOf(user.getId()), jwtExpiration);
     }
 
@@ -88,7 +88,12 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String extractedUserId = extractUserId(token);
         final String expectedUserId = String.valueOf(((User) userDetails).getId());
-        return (extractedUserId.equals(expectedUserId)) && !isTokenExpired(token);
+        final String extractedRole = extractUserRole(token);
+        final String expectedRole = "ROLE_" + ((User) userDetails).getRole().name();
+        
+        return (extractedUserId.equals(expectedUserId)) && 
+               (extractedRole.equals(expectedRole)) && 
+               !isTokenExpired(token);
     }
 
     /**

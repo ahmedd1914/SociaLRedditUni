@@ -71,7 +71,7 @@ public class GroupService {
 
         // Notify creator about group creation
         notificationService.createNotification(new CreateNotificationDto(
-                "Your group '" + savedGroup.getName() + "' has been created.",
+                null, // Use default message
                 NotificationType.GROUP_CREATED,
                 creator.getId(),
                 null,
@@ -114,8 +114,8 @@ public class GroupService {
         group.getMembers().forEach(member -> {
             if (!member.getId().equals(userId)) {
                 notificationService.createNotification(new CreateNotificationDto(
-                        "Group '" + updatedGroup.getName() + "' details have been updated.",
-                        NotificationType.GROUP_UPDATED, // Ensure this type exists in your NotificationType enum
+                        null, // Use default message
+                        NotificationType.GROUP_CREATED,
                         member.getId(),
                         null,
                         null
@@ -139,8 +139,8 @@ public class GroupService {
             groupRepository.save(group);
             // Notify user that they joined successfully
             notificationService.createNotification(new CreateNotificationDto(
-                    "You have successfully joined the group '" + group.getName() + "'.",
-                    NotificationType.GROUP_MEMBER_ADDED,
+                    null, // Use default message
+                    NotificationType.GROUP_JOIN_REQUEST,
                     user.getId(),
                     null,
                     null
@@ -156,7 +156,7 @@ public class GroupService {
             // Notify admins about the join request
             group.getAdmins().forEach(admin ->
                     notificationService.createNotification(new CreateNotificationDto(
-                            user.getUsername() + " requested to join your group '" + group.getName() + "'.",
+                            null, // Use default message
                             NotificationType.GROUP_JOIN_REQUEST,
                             admin.getId(),
                             null,
@@ -196,7 +196,7 @@ public class GroupService {
 
         // Notify the user that their join request was approved
         notificationService.createNotification(new CreateNotificationDto(
-                "Your request to join the group '" + group.getName() + "' has been approved.",
+                null, // Use default message
                 NotificationType.GROUP_JOIN_APPROVED,
                 user.getId(),
                 null,
@@ -216,13 +216,12 @@ public class GroupService {
         groupRepository.save(group);
 
         // Notify all group admins that the user has left
-        // (assuming getAdminIds() returns a list of admin user IDs)
         GroupResponseDto groupDto = GroupResponseDto.fromEntity(group);
         groupDto.getAdminIds().forEach(adminId -> {
             if (!adminId.equals(userId)) { // Avoid self-notification
                 notificationService.createNotification(new CreateNotificationDto(
-                        user.getUsername() + " left your group " + group.getName(),
-                        NotificationType.GROUP_MEMBER_LEFT,
+                        null, // Use default message
+                        NotificationType.GROUP_JOIN_APPROVED,
                         adminId,
                         null,
                         null
@@ -244,8 +243,8 @@ public class GroupService {
         groupRepository.save(group);
         // Optionally notify the user that their request was rejected
         notificationService.createNotification(new CreateNotificationDto(
-                "Your request to join the group '" + group.getName() + "' has been rejected.",
-                NotificationType.GROUP_JOIN_REJECTED,
+                null, // Use default message
+                NotificationType.GROUP_JOIN_APPROVED,
                 user.getId(),
                 null,
                 null
@@ -262,8 +261,8 @@ public class GroupService {
         // Notify all members that the group has been deleted
         group.getMembers().forEach(member ->
                 notificationService.createNotification(new CreateNotificationDto(
-                        "The group '" + group.getName() + "' has been deleted.",
-                        NotificationType.GROUP_DELETED,
+                        null, // Use default message
+                        NotificationType.GROUP_CREATED,
                         member.getId(),
                         null,
                         null
@@ -325,15 +324,15 @@ public class GroupService {
 
         // Notify the new owner and the previous owner
         notificationService.createNotification(new CreateNotificationDto(
-                "You are now the owner of group '" + group.getName() + "'.",
-                NotificationType.GROUP_OWNERSHIP_TRANSFERRED,
+                null, // Use default message
+                NotificationType.GROUP_CREATED,
                 newOwner.getId(),
                 null,
                 null
         ));
         notificationService.createNotification(new CreateNotificationDto(
-                "Ownership of group '" + group.getName() + "' has been transferred to " + newOwner.getUsername() + ".",
-                NotificationType.GROUP_OWNERSHIP_TRANSFERRED,
+                null, // Use default message
+                NotificationType.GROUP_CREATED,
                 previousOwner.getId(),
                 null,
                 null
@@ -359,8 +358,8 @@ public class GroupService {
         groupRepository.save(group);
         // Notify the user about their removal
         notificationService.createNotification(new CreateNotificationDto(
-                "You have been removed from group '" + group.getName() + "'.",
-                NotificationType.GROUP_MEMBER_REMOVED,
+                null, // Use default message
+                NotificationType.GROUP_JOIN_APPROVED,
                 user.getId(),
                 null,
                 null
@@ -379,8 +378,8 @@ public class GroupService {
         groupRepository.save(group);
         // Notify the user about being added to the group
         notificationService.createNotification(new CreateNotificationDto(
-                "You have been added to group '" + group.getName() + "'.",
-                NotificationType.GROUP_MEMBER_ADDED,
+                null, // Use default message
+                NotificationType.GROUP_JOIN_APPROVED,
                 user.getId(),
                 null,
                 null

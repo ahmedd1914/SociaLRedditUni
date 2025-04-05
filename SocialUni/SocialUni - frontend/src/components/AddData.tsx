@@ -2,6 +2,7 @@ import React, { ChangeEvent, FormEvent, useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { HiOutlineXMark } from "react-icons/hi2";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "../contexts/AuthContext";
 import {
   CreatePostDto,
   CreateGroupDto,
@@ -26,6 +27,7 @@ interface AddDataProps {
 
 const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess }) => {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [showModal, setShowModal] = useState(isOpen);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -77,6 +79,14 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
     visibility: Visibility.PUBLIC,
   });
 
+  // Check if user is admin
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') {
+      setIsOpen(false);
+      toast.error("You need admin privileges to perform this action");
+    }
+  }, [user, setIsOpen]);
+
   // Function to handle file input changes (if needed)
   const loadImage = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -88,39 +98,68 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Submitting new data for slug:", slug);
+    
+    // Check for admin privileges
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("You need admin privileges to perform this action");
+      setIsOpen(false);
+      return;
+    }
+
+    const toastId = toast.loading("Creating new " + slug + "...");
+    
     try {
       switch (slug) {
         case "user":
-          console.log("User Form:", userForm);
+          // Validate user form data
+          if (!userForm.username || !userForm.email || !userForm.password) {
+            throw new Error("Username, email, and password are required");
+          }
+
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(userForm.email)) {
+            throw new Error("Invalid email format");
+          }
+
+          // Validate password strength
+          if (userForm.password.length < 6) {
+            throw new Error("Password must be at least 6 characters long");
+          }
+
+          console.log("Creating new user:", {
+            ...userForm,
+            password: "[REDACTED]"
+          });
+          
           await API.createUser(userForm);
-          toast.success("User created successfully!");
+          toast.success("User created successfully!", { id: toastId });
           queryClient.invalidateQueries({ queryKey: ["allusers"] });
           break;
         case "post":
-          console.log("Post Form:", postForm);
+          console.log("Creating new post:", postForm);
           await API.createPost(postForm);
-          toast.success("Post created successfully!");
+          toast.success("Post created successfully!", { id: toastId });
           queryClient.invalidateQueries({ queryKey: ["allposts"] });
           break;
         case "group":
-          console.log("Group Form:", groupForm);
+          console.log("Creating new group:", groupForm);
           await API.createGroup(groupForm);
-          toast.success("Group created successfully!");
+          toast.success("Group created successfully!", { id: toastId });
           queryClient.invalidateQueries({ queryKey: ["allgroups"] });
           break;
         case "event":
         case "events":
-          console.log("Event Form:", eventForm);
+          console.log("Creating new event:", eventForm);
           await API.createEvent(eventForm);
-          toast.success("Event created successfully!");
+          toast.success("Event created successfully!", { id: toastId });
           queryClient.invalidateQueries({ queryKey: ["allevents"] });
           queryClient.invalidateQueries({ queryKey: ["allposts"] });
           break;
         case "comment":
-          console.log("Comment Form:", commentForm);
+          console.log("Creating new comment:", commentForm);
           await API.createComment(commentForm);
-          toast.success("Comment created successfully!");
+          toast.success("Comment created successfully!", { id: toastId });
           queryClient.invalidateQueries({ queryKey: ["allcomments"] });
           break;
         default:
@@ -132,7 +171,13 @@ const AddData: React.FC<AddDataProps> = ({ slug, isOpen, setIsOpen, onSuccess })
       }
     } catch (error) {
       console.error("Error while creating data:", error);
-      toast.error("Failed to create data");
+      const errorMessage = error instanceof Error ? error.message : "Failed to create data";
+      toast.error(errorMessage, { id: toastId });
+      
+      // Handle specific error cases
+      if (errorMessage.includes("Access denied") || errorMessage.includes("admin privileges")) {
+        setIsOpen(false);
+      }
     }
   };
 

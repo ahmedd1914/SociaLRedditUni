@@ -21,16 +21,25 @@ const Groups = () => {
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
       toast.error("You need admin privileges to access this page");
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
   const { isLoading, isSuccess, data, error } = useQuery({
     queryKey: ["allgroups"],
     queryFn: () => API.fetchAllGroups(),
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: !!user && user.role === 'ROLE_ADMIN',
     retry: false,
   });
 

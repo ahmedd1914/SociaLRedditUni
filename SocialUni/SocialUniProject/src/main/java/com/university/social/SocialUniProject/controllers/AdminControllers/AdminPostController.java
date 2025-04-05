@@ -4,8 +4,10 @@ import com.university.social.SocialUniProject.dto.CreatePostDto;
 import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.responses.PostMetricsDto;
 import com.university.social.SocialUniProject.responses.PostResponseDto;
+import com.university.social.SocialUniProject.responses.GenericDeleteResponse;
 import com.university.social.SocialUniProject.services.PostServices.PostService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/admin/posts")
 @PreAuthorize("hasAuthority('ADMIN')")
+@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class AdminPostController {
 
     private final PostService postService;
@@ -49,9 +52,21 @@ public class AdminPostController {
 
     // 4. Delete a post as admin
     @DeleteMapping("/{postId}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long postId) {
-        postService.deletePostByAdmin(postId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<GenericDeleteResponse> deletePost(@PathVariable Long postId) {
+        try {
+            System.out.println("[DEBUG] Starting deletion process for post ID: " + postId);
+            
+            // Delete the post and all associated data
+            postService.deletePostByAdmin(postId);
+            System.out.println("[DEBUG] Post and associated data deleted successfully");
+            
+            return ResponseEntity.ok(new GenericDeleteResponse(true, "Post and all associated data deleted successfully."));
+        } catch (Exception e) {
+            System.err.println("[DEBUG] Error during deletion of post " + postId + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new GenericDeleteResponse(false, "Failed to delete post: " + e.getMessage()));
+        }
     }
 
     // 6. Filter posts by category

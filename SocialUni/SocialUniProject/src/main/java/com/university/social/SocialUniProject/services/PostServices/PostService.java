@@ -19,6 +19,7 @@ import com.university.social.SocialUniProject.services.NotificationService;
 import com.university.social.SocialUniProject.dto.CreateNotificationDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -77,12 +78,34 @@ public class PostService {
         return convertToDto(post);
     }
 
+    @Transactional
     public PostResponseDto createPost(CreatePostDto postDto, Long userId) {
         User user = findUserById(userId);
 
         // Validate category
         if (postDto.getCategory() == null) {
             throw new ResourceNotFoundException("Invalid category: null");
+        }
+
+        // Validate group ID is provided
+        if (postDto.getGroupId() == null) {
+            throw new ResourceNotFoundException("Group ID is required. Posts can only be created within groups.");
+        }
+
+        // Fetch the group with members eagerly loaded
+        Group group = groupRepository.findById(postDto.getGroupId())
+                .map(g -> {
+                    // Initialize the collections
+                    g.getMembers().size();
+                    g.getAdmins().size();
+                    return g;
+                })
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Group not found with ID: " + postDto.getGroupId()));
+        
+        // Verify user is a member of the group
+        if (!group.getMembers().contains(user) && !group.getAdmins().contains(user) && !group.getOwner().getId().equals(userId)) {
+            throw new UnauthorizedActionException("You must be a member of the group to create posts.");
         }
 
         Post post = new Post();
@@ -95,15 +118,8 @@ public class PostService {
         // Category is a single enum
         post.setCategories(postDto.getCategory());
 
-        // 1) Check if groupId was provided
-        if (postDto.getGroupId() != null) {
-            // 2) Fetch the group
-            Group group = groupRepository.findById(postDto.getGroupId())
-                    .orElseThrow(() -> new ResourceNotFoundException(
-                            "Group not found with ID: " + postDto.getGroupId()));
-            // 3) Set the group on the post
-            post.setGroup(group);
-        }
+        // Set the group on the post
+        post.setGroup(group);
 
         Post savedPost = postRepository.save(post);
         if (savedPost.getId() == null) {
@@ -112,7 +128,7 @@ public class PostService {
 
         // Notify user that their post was created (if you have such logic)
         notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + savedPost.getTitle() + "' has been created.",
+                null, // Use default message
                 NotificationType.POST_CREATED,
                 userId,
                 savedPost.getId(),
@@ -144,8 +160,8 @@ public class PostService {
 
         // Notify user that their post was updated
         notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + updatedPost.getTitle() + "' has been updated.",
-                NotificationType.POST_UPDATED,
+                null, // Use default message
+                NotificationType.POST_CREATED,
                 userId,
                 updatedPost.getId(),
                 null
@@ -163,8 +179,8 @@ public class PostService {
 
         // Notify user that their post was deleted
         notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + post.getTitle() + "' has been deleted.",
-                NotificationType.POST_DELETED,
+                null, // Use default message
+                NotificationType.POST_CREATED,
                 userId,
                 postId,
                 null
@@ -195,8 +211,8 @@ public class PostService {
 
         // Optionally notify the post owner that an admin updated their post
         notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + updatedPost.getTitle() + "' was updated by an admin.",
-                NotificationType.POST_UPDATED_BY_ADMIN,
+                null, // Use default message
+                NotificationType.POST_CREATED,
                 updatedPost.getUser().getId(),
                 updatedPost.getId(),
                 null
@@ -206,17 +222,26 @@ public class PostService {
     }
 
     public void deletePostByAdmin(Long postId) {
+        System.out.println("[DEBUG] Starting admin deletion process for post ID: " + postId);
+        
         Post post = findPostById(postId);
+        System.out.println("[DEBUG] Found post to delete: " + post.getId());
+        System.out.println("[DEBUG] Number of comments to be deleted: " + post.getComments().size());
+        System.out.println("[DEBUG] Number of reactions to be deleted: " + post.getReactions().size());
+        
+        // Delete the post (this will cascade delete comments and reactions)
         postRepository.delete(post);
-
-        // Optionally notify the post owner that an admin deleted their post
+        System.out.println("[DEBUG] Post and all associated data deleted successfully");
+        
+        // Notify the post owner that an admin deleted their post
         notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + post.getTitle() + "' was deleted by an admin.",
+                null, // Use default message
                 NotificationType.POST_DELETED_BY_ADMIN,
                 post.getUser().getId(),
                 postId,
                 null
         ));
+        System.out.println("[DEBUG] Notification sent to post owner");
     }
 
     public List<PostResponseDto> filterPostsByCategory(Category category) {
@@ -227,15 +252,44 @@ public class PostService {
     }
 
 
+    /**
+     * Get trending posts based on multiple factors similar to Reddit's algorithm:
+     * 1. Post Velocity - How quickly a post is gaining engagement
+     * 2. Engagement Surge - Sudden spikes in reactions and comments
+     * 3. Search Trends - Posts that match popular search terms
+     * 4. Time Decay - Older posts gradually lose trending status
+     */
     public List<PostResponseDto> getTrendingPosts() {
-        return postRepository.findAll()
-                .stream()
-                .sorted((p1, p2) -> {
-                    int score1 = p1.getReactions().size() + p1.getComments().size();
-                    int score2 = p2.getReactions().size() + p2.getComments().size();
-                    return Integer.compare(score2, score1);
+        LocalDateTime now = LocalDateTime.now();
+        
+        // Get all posts
+        List<Post> allPosts = postRepository.findAll();
+        
+        // Calculate trending scores for each post using the Post model methods
+        List<Post> postsWithScores = allPosts.stream()
+                .map(post -> {
+                    double totalScore = post.calculateTrendingScore(now);
+                    
+                    // Create a wrapper class for post and score
+                    class PostScore {
+                        final Post post;
+                        final double score;
+                        
+                        PostScore(Post post, double score) {
+                            this.post = post;
+                            this.score = score;
+                        }
+                    }
+                    
+                    return new PostScore(post, totalScore);
                 })
-                .limit(5)
+                .sorted((a, b) -> Double.compare(b.score, a.score))
+                .limit(10)
+                .map(obj -> obj.post)
+                .collect(Collectors.toList());
+        
+        // Convert to DTOs
+        return postsWithScores.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -246,8 +300,8 @@ public class PostService {
 
         // Optionally notify owners of each deleted post
         posts.forEach(post -> notificationService.createNotification(new CreateNotificationDto(
-                "Your post '" + post.getTitle() + "' was deleted in a bulk operation by an admin.",
-                NotificationType.POST_DELETED_BY_ADMIN,
+                null, // Use default message
+                NotificationType.POST_CREATED,
                 post.getUser().getId(),
                 post.getId(),
                 null

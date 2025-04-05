@@ -15,6 +15,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { format } from "date-fns";
+import { Chip } from "@mui/material";
 
 interface CommentsProps {
   showActiveOnly?: boolean;
@@ -33,9 +34,18 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
 
   // Redirect if not authenticated or not admin
   useEffect(() => {
-    if (!user || user.role !== 'ADMIN') {
+    if (!user) {
+      toast.error("Authentication required");
+      navigate('/login');
+      return;
+    }
+
+    const role = String(user.role || '').trim().toUpperCase();
+    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
+    
+    if (!isAdmin) {
       toast.error("You need admin privileges to access this page");
-      navigate('/');
+      navigate('/home');
     }
   }, [user, navigate]);
 
@@ -56,7 +66,7 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
       }));
       return transformedData;
     },
-    enabled: !!user && user.role === 'ADMIN',
+    enabled: !!user && user.role === 'ROLE_ADMIN',
     retry: false,
   });
 
@@ -71,13 +81,75 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
   // Function to handle comment deletion
   const handleDelete = async (commentId: number) => {
     try {
-      await API.deleteComment(commentId);
-      toast.success("Comment deleted successfully!");
-      // Invalidate both comments and posts queries to ensure UI is updated
-      queryClient.invalidateQueries({ queryKey: ["comments"] });
-      queryClient.invalidateQueries({ queryKey: ["allposts"] });
+      console.log(`[DEBUG] Starting deletion process for comment ID: ${commentId}`);
+      
+      // Get the comment details first
+      const comment = await API.fetchCommentDetails(commentId);
+      console.log(`[DEBUG] Fetched comment details:`, comment);
+      console.log(`[DEBUG] Comment isDeleted status:`, comment.isDeleted);
+      console.log(`[DEBUG] Comment deleted status:`, comment.deleted);
+      console.log(`[DEBUG] Full comment object:`, JSON.stringify(comment, null, 2));
+      
+      // Check if the comment is already deleted/inactive
+      const isInactive = comment.isDeleted || comment.deleted;
+      console.log(`[DEBUG] Is comment inactive? ${isInactive}`);
+      
+      if (isInactive) {
+        console.log(`[DEBUG] Comment ${commentId} is already deleted/inactive`);
+        // Show confirmation dialog for permanent deletion
+        const confirmed = window.confirm(
+          "This comment is already inactive. Do you want to permanently delete it from the database? This action cannot be undone."
+        );
+        
+        if (confirmed) {
+          console.log(`[DEBUG] User confirmed permanent deletion for comment ${commentId}`);
+          // If confirmed, perform permanent deletion
+          const response = await API.permanentlyDeleteComment(commentId);
+          console.log(`[DEBUG] Permanent deletion response:`, response);
+          
+          if (response.success) {
+            console.log(`[DEBUG] Permanent deletion successful for comment ${commentId}`);
+            toast.success("Comment permanently deleted from database!");
+            // Invalidate queries to refresh the UI
+            queryClient.invalidateQueries({ queryKey: ["comments"] });
+            queryClient.invalidateQueries({ queryKey: ["allposts"] });
+          } else {
+            console.error(`[DEBUG] Permanent deletion failed for comment ${commentId}:`, response.message);
+            toast.error(response.message || "Failed to permanently delete comment");
+          }
+        } else {
+          console.log(`[DEBUG] User cancelled permanent deletion for comment ${commentId}`);
+          toast.success("Permanent deletion cancelled");
+        }
+      } else {
+        console.log(`[DEBUG] Comment ${commentId} is active, proceeding with soft deletion`);
+        // If comment is active, perform soft deletion
+        const confirmed = window.confirm(
+          "Are you sure you want to delete this comment? It will be marked as inactive."
+        );
+        
+        if (confirmed) {
+          console.log(`[DEBUG] User confirmed soft deletion for comment ${commentId}`);
+          const response = await API.deleteComment(commentId);
+          console.log(`[DEBUG] Soft deletion response:`, response);
+          
+          if (response.success) {
+            console.log(`[DEBUG] Soft deletion successful for comment ${commentId}`);
+            toast.success("Comment marked as inactive!");
+            // Invalidate queries to refresh the UI
+            queryClient.invalidateQueries({ queryKey: ["comments"] });
+            queryClient.invalidateQueries({ queryKey: ["allposts"] });
+          } else {
+            console.error(`[DEBUG] Soft deletion failed for comment ${commentId}:`, response.message);
+            toast.error(response.message || "Failed to delete comment");
+          }
+        } else {
+          console.log(`[DEBUG] User cancelled soft deletion for comment ${commentId}`);
+          toast.success("Deletion cancelled");
+        }
+      }
     } catch (error) {
-      console.error("Error deleting comment:", error);
+      console.error(`[DEBUG] Error in handleDelete for comment ${commentId}:`, error);
       toast.error("Failed to delete comment");
     }
   };
@@ -154,20 +226,15 @@ const Comments: React.FC<CommentsProps> = ({ showActiveOnly: initialActiveOnly =
     {
       field: "isDeleted",
       headerName: "Status",
-      minWidth: 120,
-      flex: 1,
+      width: 130,
       renderCell: (params) => {
-        // Check for both 'isDeleted' and 'deleted' fields
         const isDeleted = params.row.isDeleted || params.row.deleted;
-        
         return (
-          <div className={`px-2 py-1 rounded-full text-sm ${
-            isDeleted
-              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-              : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-          }`}>
-            {isDeleted ? "NOT ACTIVE" : "Active"}
-          </div>
+          <Chip
+            label={isDeleted ? "NOT ACTIVE" : "Active"}
+            color={isDeleted ? "error" : "success"}
+            variant="outlined"
+          />
         );
       },
     },

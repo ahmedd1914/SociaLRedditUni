@@ -64,23 +64,33 @@ public class ReactionService {
         if (existingReaction.isPresent()) {
             Reaction reaction = existingReaction.get();
             if (reaction.getType().equals(reactionDto.getType())) {
+                // Remove reaction without notification
                 reactionRepository.delete(reaction);
                 logger.info("Removed reaction {} from post {} by user {}", reaction.getType(), post.getId(), user.getId());
                 return "Reaction removed";
             } else {
+                // Update reaction without notification
                 reaction.setType(reactionDto.getType());
                 reactionRepository.save(reaction);
                 logger.info("Updated reaction on post {} by user {} to {}", post.getId(), user.getId(), reaction.getType());
-                // Notify the post owner if necessary
-                triggerNotificationIfNeeded(post.getUser(), user, post.getId(), null);
                 return "Reaction updated";
             }
         } else {
+            // Add new reaction and notify
             Reaction newReaction = new Reaction(reactionDto.getType(), user, post);
             reactionRepository.save(newReaction);
             logger.info("Added reaction {} on post {} by user {}", newReaction.getType(), post.getId(), user.getId());
-            // Notify post owner if the reacting user is not the owner
-            triggerNotificationIfNeeded(post.getUser(), user, post.getId(), null);
+            
+            // Only notify for new reactions
+            if (!post.getUser().getId().equals(user.getId())) {
+                notificationService.createNotification(new CreateNotificationDto(
+                    String.format("%s reacted to your post", user.getUsername()),
+                    NotificationType.POST_REACTED,
+                    post.getUser().getId(),
+                    post.getId(),
+                    null
+                ));
+            }
             return "Reaction added";
         }
     }
@@ -93,38 +103,38 @@ public class ReactionService {
         if (existingReaction.isPresent()) {
             Reaction reaction = existingReaction.get();
             if (reaction.getType().equals(reactionDto.getType())) {
+                // Remove reaction without notification
                 reactionRepository.delete(reaction);
                 logger.info("Removed reaction {} from comment {} by user {}", reaction.getType(), comment.getId(), user.getId());
                 return "Reaction removed";
             } else {
+                // Update reaction without notification
                 reaction.setType(reactionDto.getType());
                 reactionRepository.save(reaction);
                 logger.info("Updated reaction on comment {} by user {} to {}", comment.getId(), user.getId(), reaction.getType());
-                triggerNotificationIfNeeded(comment.getUser(), user, null, comment.getId());
                 return "Reaction updated";
             }
         } else {
+            // Add new reaction and notify
             Reaction newReaction = new Reaction(reactionDto.getType(), user, comment);
             reactionRepository.save(newReaction);
             logger.info("Added reaction {} on comment {} by user {}", newReaction.getType(), comment.getId(), user.getId());
-            triggerNotificationIfNeeded(comment.getUser(), user, null, comment.getId());
+            
+            // Only notify for new reactions
+            if (!comment.getUser().getId().equals(user.getId())) {
+                String commentPreview = comment.getContent().length() > 50 ? 
+                    comment.getContent().substring(0, 47) + "..." : 
+                    comment.getContent();
+                
+                notificationService.createNotification(new CreateNotificationDto(
+                    String.format("%s reacted to your comment: %s", user.getUsername(), commentPreview),
+                    NotificationType.COMMENT_REACTED,
+                    comment.getUser().getId(),
+                    comment.getPost().getId(),
+                    comment.getId()
+                ));
+            }
             return "Reaction added";
-        }
-    }
-
-    /**
-     * Triggers a notification if the target owner is not the same as the reacting user.
-     * For post reactions, commentId is null; for comment reactions, postId is null.
-     */
-    private void triggerNotificationIfNeeded(User targetOwner, User reactingUser, Long postId, Long commentId) {
-        if (!targetOwner.getId().equals(reactingUser.getId())) {
-            notificationService.createNotification(new CreateNotificationDto(
-                    "Your " + (postId != null ? "post" : "comment") + " received a reaction.",
-                    NotificationType.REACTION,
-                    targetOwner.getId(),
-                    postId,
-                    commentId
-            ));
         }
     }
 
@@ -191,19 +201,32 @@ public class ReactionService {
             existingReaction = reactionRepository.findByUserAndPost(user, post);
             
             if (existingReaction.isPresent()) {
-                // Update existing reaction
+                // Update existing reaction without notification
                 Reaction reaction = existingReaction.get();
                 reaction.setType(reactionDto.getType());
                 reaction.setReactedAt(LocalDateTime.now());
                 return convertToDto(reactionRepository.save(reaction));
             } else {
-                // Create new reaction
+                // Create new reaction and notify
                 Reaction newReaction = new Reaction();
                 newReaction.setType(reactionDto.getType());
                 newReaction.setUser(user);
                 newReaction.setPost(post);
                 newReaction.setReactedAt(LocalDateTime.now());
-                return convertToDto(reactionRepository.save(newReaction));
+                Reaction savedReaction = reactionRepository.save(newReaction);
+
+                // Only notify for new reactions
+                if (!post.getUser().getId().equals(userId)) {
+                    notificationService.createNotification(new CreateNotificationDto(
+                        String.format("%s reacted to your post", user.getUsername()),
+                        NotificationType.POST_REACTED,
+                        post.getUser().getId(),
+                        post.getId(),
+                        null
+                    ));
+                }
+
+                return convertToDto(savedReaction);
             }
         } else if (reactionDto.getCommentId() != null) {
             Comment comment = commentRepository.findById(reactionDto.getCommentId())
@@ -211,19 +234,36 @@ public class ReactionService {
             existingReaction = reactionRepository.findByUserAndComment(user, comment);
             
             if (existingReaction.isPresent()) {
-                // Update existing reaction
+                // Update existing reaction without notification
                 Reaction reaction = existingReaction.get();
                 reaction.setType(reactionDto.getType());
                 reaction.setReactedAt(LocalDateTime.now());
                 return convertToDto(reactionRepository.save(reaction));
             } else {
-                // Create new reaction
+                // Create new reaction and notify
                 Reaction newReaction = new Reaction();
                 newReaction.setType(reactionDto.getType());
                 newReaction.setUser(user);
                 newReaction.setComment(comment);
                 newReaction.setReactedAt(LocalDateTime.now());
-                return convertToDto(reactionRepository.save(newReaction));
+                Reaction savedReaction = reactionRepository.save(newReaction);
+
+                // Only notify for new reactions
+                if (!comment.getUser().getId().equals(userId)) {
+                    String commentPreview = comment.getContent().length() > 50 ? 
+                        comment.getContent().substring(0, 47) + "..." : 
+                        comment.getContent();
+                    
+                    notificationService.createNotification(new CreateNotificationDto(
+                        String.format("%s reacted to your comment: %s", user.getUsername(), commentPreview),
+                        NotificationType.COMMENT_REACTED,
+                        comment.getUser().getId(),
+                        comment.getPost().getId(),
+                        comment.getId()
+                    ));
+                }
+
+                return convertToDto(savedReaction);
             }
         } else {
             throw new IllegalArgumentException("Either postId or commentId must be provided");

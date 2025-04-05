@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 4. Configure route access
-                .authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(auth -> auth
                         // Auth endpoints - explicitly allow access without authentication
                         .requestMatchers("/auth/login").permitAll()
                         .requestMatchers("/auth/signup").permitAll()
@@ -57,9 +57,18 @@ public class SecurityConfig {
                         .requestMatchers("/auth/resend").permitAll()
                         .requestMatchers("/auth/logout").permitAll()
                         
-                        // Admin endpoints require ADMIN role
-                        .requestMatchers("/admin/**").hasAuthority("ADMIN")
+                        // Public endpoints
                         .requestMatchers(HttpMethod.GET, "/posts/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/posts/trending").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/admin/posts/trending").permitAll()
+
+                        // Reaction endpoints
+                        .requestMatchers(HttpMethod.POST, "/reactions/react").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/reactions/user/post/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/reactions/user/post/**").authenticated()
+
+                        // Admin endpoints require ADMIN role
+                        .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
                         // User endpoints
                         .requestMatchers(HttpMethod.GET, "/users/me").authenticated()

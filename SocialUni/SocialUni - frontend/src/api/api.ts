@@ -124,6 +124,20 @@ const api = axios.create({
   }
 });
 
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Custom error handler
 export class ApiError extends Error {
   status: number;
@@ -155,49 +169,6 @@ const handleApiError = (error: unknown): never => {
     ? error 
     : new Error("Unknown error occurred");
 };
-
-// Request interceptor for authentication
-api.interceptors.request.use(
-  (config) => {
-    const publicEndpoints = [
-      '/posts/public',
-      '/groups/public',
-      '/posts/trending',
-      '/posts/filter',
-      '/posts/date-range'
-    ];
-    
-    const isPublicEndpoint = publicEndpoints.some(endpoint => 
-      config.url?.includes(endpoint) || 
-      (config.url?.match(/\/posts\/\d+\/public/))
-    );
-    
-    if (!isPublicEndpoint) {
-      const token = localStorage.getItem("token");
-      console.log('Request URL:', config.url);
-      console.log('Token exists:', !!token);
-      if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
-        console.log('Authorization header set:', config.headers.Authorization);
-      }
-    }
-    
-    // Log the request details
-    console.log('Request:', {
-      url: config.url,
-      method: config.method,
-      headers: config.headers,
-      data: config.data
-    });
-    
-    return config;
-  },
-  (error) => {
-    console.error('Request error:', error);
-    return Promise.reject(error);
-  }
-);
 
 // Response interceptor for global error handling
 api.interceptors.response.use(
@@ -453,6 +424,15 @@ export class API {
   static async deleteComment(commentId: number): Promise<GenericDeleteResponse> {
     try {
       const { data } = await this.instance.delete<GenericDeleteResponse>(`/admin/comments/${commentId}`);
+      return data;
+    } catch (error) {
+      return handleApiError(error);
+    }
+  }
+
+  static async permanentlyDeleteComment(commentId: number): Promise<GenericDeleteResponse> {
+    try {
+      const { data } = await this.instance.delete<GenericDeleteResponse>(`/admin/comments/${commentId}/permanent`);
       return data;
     } catch (error) {
       return handleApiError(error);
@@ -725,7 +705,7 @@ export class API {
   }
 
   /* =================== POST API =================== */
-  static async fetchAllPosts(): Promise<PostResponseDto[]> {
+  static fetchAllPosts = async (): Promise<PostResponseDto[]> => {
     try {
       const token = localStorage.getItem("token");
       let isAdmin = false;
@@ -741,9 +721,11 @@ export class API {
       }
       
       const endpoint = isAdmin ? "/admin/posts" : "/posts/public";
-      const { data } = await this.instance.get<PostResponseDto[]>(endpoint);
+      console.log("Fetching posts from endpoint:", endpoint);
+      const { data } = await API.instance.get<PostResponseDto[]>(endpoint);
       return data;
     } catch (error) {
+      console.error("Error fetching posts:", error);
       return handleApiError(error);
     }
   }
@@ -789,11 +771,24 @@ export class API {
     }
   }
 
-  static async deletePost(postId: number): Promise<{ success: boolean; message: string }> {
+  static async deletePost(postId: number): Promise<GenericDeleteResponse> {
     try {
-      const { data } = await this.instance.delete<{ success: boolean; message: string }>(`/admin/posts/${postId}`);
+      const { data, status } = await this.instance.delete<GenericDeleteResponse>(`/admin/posts/${postId}`);
+      // For 204 No Content responses, return a success response
+      if (status === 204) {
+        return { success: true, message: "Post deleted successfully" };
+      }
       return data;
     } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error("Please log in to delete posts");
+        } else if (error.response?.status === 404) {
+          throw new Error("Post not found or has been deleted");
+        } else if (error.response?.status === 403) {
+          throw new Error("You don't have permission to delete this post");
+        }
+      }
       return handleApiError(error);
     }
   }
@@ -878,7 +873,12 @@ export class API {
     }
   }
 
-  static async fetchTrendingPosts(): Promise<PostResponseDto[]> {
+  /**
+   * Fetches trending posts from the server.
+   * This function is used to get trending posts without applying any filters.
+   * For filtered posts, use the appropriate filter functions.
+   */
+  static fetchTrendingPosts = async (): Promise<PostResponseDto[]> => {
     try {
       const token = localStorage.getItem("token");
       let isAdmin = false;
@@ -893,8 +893,10 @@ export class API {
         }
       }
       
-      const endpoint = isAdmin ? "/admin/posts/trending" : "/posts/public";
-      const { data } = await this.instance.get<PostResponseDto[]>(endpoint);
+      const endpoint = isAdmin ? "/admin/posts/trending" : "/posts/trending";
+      console.log("Fetching trending posts from endpoint:", endpoint);
+      
+      const { data } = await API.instance.get<PostResponseDto[]>(endpoint);
       
       if (!isAdmin) {
         return data
@@ -904,6 +906,7 @@ export class API {
       
       return data;
     } catch (error) {
+      console.error("Error fetching trending posts:", error);
       return handleApiError(error);
     }
   }
@@ -923,35 +926,81 @@ export class API {
   /* =================== REACTION API =================== */
   static async addReaction(
     postId: number,
-    type: 'UPVOTE' | 'DOWNVOTE' | 'LIKE' | 'LOVE' | 'LAUGH' | 'SAD' | 'ANGRY'
-  ): Promise<ReactionResponseDto> {
+    type: 'LIKE' | 'LOVE' | 'HAHA' | 'WOW' | 'SAD' | 'ANGRY',
+    commentId?: number
+  ): Promise<string> {
     try {
-      const { data } = await this.instance.post<ReactionResponseDto>("/reactions/add", { postId, type });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      // Use the regular endpoint for user reactions
+      const endpoint = "/reactions/react";
+      const payload = commentId 
+        ? { commentId, type }
+        : { postId, type };
+
+      console.log('Making request to:', endpoint);
+      console.log('With payload:', payload);
+
+      const { data } = await this.instance.post<string>(
+        endpoint, 
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
       return data;
     } catch (error) {
       if (isAxiosError(error)) {
+        console.error('Error response:', error.response);
         if (error.response?.status === 401) {
-          throw new Error("Please log in to react to posts");
+          throw new Error("Please log in to react");
         } else if (error.response?.status === 404) {
-          throw new Error("Post not found or has been deleted");
+          throw new Error(commentId ? "Comment not found" : "Post not found");
         } else if (error.response?.status === 400) {
-          throw new Error("You've already reacted to this post");
+          throw new Error("You've already reacted to this item");
         }
       }
       return handleApiError(error);
     }
   }
 
-  static async removeReaction(postId: number, reactionId?: number): Promise<GenericDeleteResponse> {
+  static async removeReaction(postId: number): Promise<GenericDeleteResponse> {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      console.log('Removing reaction for post:', postId);
+      console.log('Using token:', token.substring(0, 10) + '...');
+
       const { data } = await this.instance.delete<GenericDeleteResponse>(
-        `/reactions/remove?postId=${postId}${reactionId ? `&reactionId=${reactionId}` : ''}`
+        `/reactions/user/post/${postId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
       return data;
     } catch (error) {
       if (isAxiosError(error)) {
+        console.error('Error removing reaction:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        });
         if (error.response?.status === 401) {
           throw new Error("Please log in to remove reactions");
+        } else if (error.response?.status === 403) {
+          throw new Error("You don't have permission to remove this reaction");
         } else if (error.response?.status === 404) {
           throw new Error("Reaction not found or has been deleted");
         }
@@ -1053,18 +1102,13 @@ export class API {
     }
   }
 
-  static async fetchNotificationStats(): Promise<NotificationStatsDto> {
-    try {
-      const { data } = await this.instance.get<NotificationStatsDto>("/admin/notifications/stats");
-      return data;
-    } catch (error) {
-      return handleApiError(error);
-    }
-  }
-
-  // Fetch filtered notifications
   static async fetchFilteredNotifications(params: NotificationFilterParams): Promise<NotificationResponseDto[]> {
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
       const queryParams = new URLSearchParams();
       
       // Add category filter if it's not ALL
@@ -1096,10 +1140,82 @@ export class API {
       // Add sort parameters
       queryParams.append('sort', 'createdAt,desc');
 
-      const { data } = await this.instance.get<NotificationResponseDto[]>(`/admin/notifications?${queryParams.toString()}`);
-      return data;
+      const { data } = await this.instance.get<NotificationResponseDto[]>(`/admin/notifications?${queryParams.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      // Process and validate notification types
+      return data.map(notification => ({
+        ...notification,
+        notificationType: this.validateNotificationType(notification.notificationType)
+      }));
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      if (isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          throw new Error("Access denied. Admin privileges required.");
+        } else if (error.response?.status === 401) {
+          throw new Error("Authentication required. Please log in again.");
+        }
+      }
+      throw error;
+    }
+  }
+
+  private static validateNotificationType(type: string): NotificationType {
+    const validTypes = [
+      'POST_CREATED',
+      'POST_UPDATED',
+      'POST_DELETED',
+      'POST_DELETED_BY_ADMIN',
+      'POST_UPDATED_BY_ADMIN',
+      'COMMENT_REPLIED',
+      'COMMENT_REACTED',
+      'COMMENT_DELETED_BY_ADMIN',
+      'COMMENT_UPDATED_BY_ADMIN',
+      'GROUP_CREATED',
+      'GROUP_JOIN_REQUEST',
+      'GROUP_JOIN_APPROVED',
+      'GROUP_MEMBER_JOINED',
+      'GROUP_DELETED',
+      'GROUP_DELETED_BY_ADMIN',
+      'EVENT_CREATED',
+      'EVENT_INVITATION',
+      'EVENT_CANCELLED',
+      'EVENT_REMINDER',
+      'EVENT_DELETED',
+      'EVENT_DELETED_BY_ADMIN',
+      'EVENT_UPDATED',
+      'USER_REGISTERED',
+      'USER_BANNED_BY_ADMIN'
+    ] as const;
+
+    return validTypes.includes(type as any) ? type as NotificationType : 'POST_CREATED' as NotificationType;
+  }
+
+  static async fetchNotificationStats(): Promise<NotificationStatsDto> {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      const { data } = await this.instance.get<NotificationStatsDto>("/admin/notifications/stats", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      return data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          throw new Error("Access denied. Admin privileges required.");
+        } else if (error.response?.status === 401) {
+          throw new Error("Authentication required. Please log in again.");
+        }
+      }
       throw error;
     }
   }
@@ -1150,9 +1266,36 @@ export class API {
 
   static async createUser(userDto: CreateUserDto): Promise<UserResponseDto> {
     try {
-      const { data } = await this.instance.post<UserResponseDto>("/users/create", userDto);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication required");
+      }
+
+      // Log the request details for debugging
+      console.log('Creating user with token:', token.substring(0, 10) + '...');
+      console.log('User data:', userDto);
+
+      const { data } = await this.instance.post<UserResponseDto>("/admin/create", userDto, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Log successful response
+      console.log('User created successfully:', data);
       return data;
     } catch (error) {
+      console.error('Error creating user:', error);
+      if (isAxiosError(error)) {
+        if (error.response?.status === 403) {
+          throw new Error("Access denied. Admin privileges required.");
+        } else if (error.response?.status === 401) {
+          throw new Error("Authentication required. Please log in again.");
+        } else if (error.response?.status === 400) {
+          throw new Error(error.response.data?.message || "Invalid user data provided.");
+        }
+      }
       return handleApiError(error);
     }
   }
@@ -1257,6 +1400,11 @@ export class API {
     } catch (error) {
       return handleApiError(error);
     }
+  }
+
+  static async fetchReactionStats(): Promise<ReactionStatsDto> {
+    const response = await this.instance.get<ReactionStatsDto>('/api/admin/reactions/stats');
+    return response.data;
   }
 }
 

@@ -2,12 +2,12 @@ import * as React from 'react';
 import toast from 'react-hot-toast';
 import { useQuery } from '@tanstack/react-query';
 import { API } from '../../api/api';
-import { PostResponseDto } from '../../api/interfaces'; // adjust path as needed
+import { PostResponseDto } from '../../api/interfaces';
 
 const TopDealsBox: React.FC = () => {
-    const { isLoading, isError, data, error } = useQuery<PostResponseDto[]>({
+    const { isLoading, isError, data, error } = useQuery<PostResponseDto[], Error>({
         queryKey: ['trendingPosts'],
-        queryFn: API.fetchTrendingPosts,
+        queryFn: () => API.fetchTrendingPosts(),
     });
 
     if (isLoading) {
@@ -23,7 +23,7 @@ const TopDealsBox: React.FC = () => {
     }
 
     if (isError) {
-        return <div>Error: {(error as Error).message}</div>;
+        return <div>Error: {error.message}</div>;
     }
 
     if (!data || data.length === 0) {
@@ -34,7 +34,7 @@ const TopDealsBox: React.FC = () => {
         <div className="w-full p-4 flex flex-col gap-4">
             <span className="text-2xl font-bold">Trending Posts</span>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {data.map((post) => (
+                {data.map((post: PostResponseDto) => (
                     <button
                         key={post.id}
                         onClick={() => toast(`Post: ${post.title}`, { icon: 'ℹ️' })}

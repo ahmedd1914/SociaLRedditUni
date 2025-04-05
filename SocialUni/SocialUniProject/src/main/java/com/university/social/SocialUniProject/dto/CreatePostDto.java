@@ -2,6 +2,7 @@ package com.university.social.SocialUniProject.dto;
 
 import com.university.social.SocialUniProject.enums.Category;
 import com.university.social.SocialUniProject.enums.Visibility;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,6 +15,8 @@ public class CreatePostDto {
     private String content;
     private Category category;
     private Visibility visibility;
+    
+    @NotNull(message = "Group ID is required. Posts can only be created within groups.")
     private Long groupId;
 
 
