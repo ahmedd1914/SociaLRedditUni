@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { CommentResponseDto } from '../../../api/interfaces';
 import { toast } from 'react-hot-toast';
 import { HiOutlineSearch } from 'react-icons/hi';
-import CommentComponent from './CommentComponent';
+import { FaChevronDown, FaChevronUp, FaReply } from 'react-icons/fa';
+import CommentReactionButton from './CommentReactionButton';
+import SortControls from './SortControls';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 
 interface PostCommentsProps {
   postId: number;
@@ -22,36 +25,72 @@ const PostComments: React.FC<PostCommentsProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddComment, setShowAddComment] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [expandedComments, setExpandedComments] = useState<number[]>([]);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   const handleSort = (option: SortOption) => {
     setSortBy(option);
     let sortedComments = [...comments];
     
     switch (option) {
-      case 'top':
-        sortedComments.sort((a, b) => (b.reactionCount || 0) - (a.reactionCount || 0));
-        break;
       case 'new':
         sortedComments.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         break;
       case 'old':
         sortedComments.sort((a, b) => 
-          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
         );
         break;
       case 'best':
-        // Sort by ratio of positive reactions to total reactions
         sortedComments.sort((a, b) => {
-          const aRatio = a.reactionCount ? a.positiveReactions / a.reactionCount : 0;
-          const bRatio = b.reactionCount ? b.positiveReactions / b.reactionCount : 0;
+          const aRatio = a.reactionCount ? a.reactionCount / (a.reactionCount * 2) : 0;
+          const bRatio = b.reactionCount ? b.reactionCount / (b.reactionCount * 2) : 0;
           return bRatio - aRatio;
         });
+        break;
+      case 'top':
+      default:
+        sortedComments.sort((a, b) => (b.reactionCount || 0) - (a.reactionCount || 0));
         break;
     }
     
     setComments(sortedComments);
+  };
+
+  const toggleReplies = (commentId: number) => {
+    setExpandedComments(prev => 
+      prev.includes(commentId) 
+        ? prev.filter(id => id !== commentId)
+        : [...prev, commentId]
+    );
+  };
+
+  const handleReply = (commentId: number) => {
+    if (!isAuthenticated) {
+      toast.error('Please log in to reply to comments');
+      return;
+    }
+    setReplyingTo(replyingTo === commentId ? null : commentId);
+    setReplyContent('');
+  };
+
+  const submitReply = async (commentId: number) => {
+    if (!replyContent.trim()) {
+      toast.error('Reply cannot be empty');
+      return;
+    }
+    
+    try {
+      // TODO: Implement reply submission
+      toast.success('Reply added successfully');
+      setReplyingTo(null);
+      setReplyContent('');
+    } catch (error) {
+      toast.error('Failed to add reply');
+    }
   };
 
   const filteredComments = comments.filter(comment =>
@@ -65,6 +104,91 @@ const PostComments: React.FC<PostCommentsProps> = ({
     }
     setShowAddComment(true);
   };
+
+  const renderComment = (comment: CommentResponseDto, isReply = false) => (
+    <div key={comment.id} className={`bg-base-200 rounded-lg p-4 ${isReply ? 'ml-8 mt-4' : ''}`}>
+      <div className="flex items-start gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="font-semibold">{comment.username}</span>
+            <span className="text-sm text-base-content/60">•</span>
+            <span className="text-sm text-base-content/60">
+              {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+            </span>
+          </div>
+          <p className="text-base-content/80 mb-4">{comment.content}</p>
+          <div className="flex items-center gap-4">
+            <CommentReactionButton
+              commentId={comment.id}
+              initialReaction={comment.userReaction}
+              reactionCount={comment.reactionCount || 0}
+              isAuthenticated={isAuthenticated}
+              onReactionChange={() => {
+                // Refresh comments if needed
+              }}
+            />
+            <button
+              className="btn btn-ghost btn-sm gap-2 hover:text-primary"
+              onClick={() => handleReply(comment.id)}
+            >
+              <FaReply className="w-4 h-4" />
+              Reply
+            </button>
+            {comment.replies && comment.replies.length > 0 && (
+              <button
+                className="btn btn-ghost btn-sm gap-2"
+                onClick={() => toggleReplies(comment.id)}
+              >
+                {expandedComments.includes(comment.id) ? (
+                  <>
+                    <FaChevronUp className="w-4 h-4" />
+                    Hide Replies
+                  </>
+                ) : (
+                  <>
+                    <FaChevronDown className="w-4 h-4" />
+                    Show Replies ({comment.replies.length})
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+          
+          {replyingTo === comment.id && (
+            <div className="mt-4 pl-8">
+              <textarea
+                className="textarea textarea-bordered w-full h-20"
+                placeholder="Write your reply..."
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setReplyingTo(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary btn-sm"
+                  disabled={!replyContent.trim()}
+                  onClick={() => submitReply(comment.id)}
+                >
+                  Post Reply
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {expandedComments.includes(comment.id) && comment.replies && (
+        <div className="space-y-4 mt-4">
+          {comment.replies.map(reply => renderComment(reply, true))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="bg-base-100 rounded-lg shadow-md p-6">
@@ -112,56 +236,16 @@ const PostComments: React.FC<PostCommentsProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <div className="join">
-            <button
-              className={`join-item btn btn-sm ${sortBy === 'top' ? 'btn-active' : ''}`}
-              onClick={() => handleSort('top')}
-            >
-              Top
-            </button>
-            <button
-              className={`join-item btn btn-sm ${sortBy === 'new' ? 'btn-active' : ''}`}
-              onClick={() => handleSort('new')}
-            >
-              New
-            </button>
-            <button
-              className={`join-item btn btn-sm ${sortBy === 'best' ? 'btn-active' : ''}`}
-              onClick={() => handleSort('best')}
-            >
-              Best
-            </button>
-            <button
-              className={`join-item btn btn-sm ${sortBy === 'old' ? 'btn-active' : ''}`}
-              onClick={() => handleSort('old')}
-            >
-              Old
-            </button>
-          </div>
-        </div>
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search comments..."
-            className="input input-bordered w-full pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <HiOutlineSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-        </div>
-      </div>
+      <SortControls
+        sortBy={sortBy}
+        onSortChange={handleSort}
+        searchTerm={searchTerm}
+        onSearchChange={(term) => setSearchTerm(term)}
+      />
 
       <div className="space-y-4">
         {filteredComments.length > 0 ? (
-          filteredComments.map((comment) => (
-            <CommentComponent
-              key={comment.id}
-              comment={comment}
-              isAuthenticated={isAuthenticated}
-            />
-          ))
+          filteredComments.map(comment => renderComment(comment))
         ) : (
           <div className="text-center py-8 text-gray-500">
             {searchTerm ? 'No comments match your search.' : 'No comments yet.'}

@@ -45,14 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println("[DEBUG] JwtAuthenticationFilter: Checking if should filter path: " + path + ", method: " + method);
 
         // Skip filter for public endpoints
-        if (method.equals("GET") && (
-            path.matches("/posts/public(/.*)?") ||  // Match /posts/public and any subpath
-            path.startsWith("/posts/trending") ||
-            path.startsWith("/admin/posts/trending") ||
-            path.matches("/users/profile/.*/public")
-        )) {
-            System.out.println("[DEBUG] JwtAuthenticationFilter: Skipping authentication for public endpoint");
-            return true;
+        if (method.equals("GET")) {
+            if (path.matches("/posts/public(/.*)?") ||  // Match /posts/public and any subpath
+                path.startsWith("/posts/trending") ||
+                path.startsWith("/admin/posts/trending") ||
+                path.matches("/users/profile/[^/]+/public")) {  // Only skip for /users/profile/{username}/public
+                System.out.println("[DEBUG] JwtAuthenticationFilter: Skipping authentication for public endpoint");
+                return true;
+            }
         }
 
         // Skip filter for auth endpoints

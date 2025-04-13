@@ -7,6 +7,7 @@ import { toast } from 'react-hot-toast';
 import LeftSidebar from '../components/home/sidebar/LeftSidebar';
 import MainPostComponent from '../components/home/post/MainPostComponent';
 import PostComments from '../components/home/post/PostComments';
+import RightSidePostBar from '../components/home/post/RightSidePostBar';
 
 const PostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,10 @@ const PostPage: React.FC = () => {
         const postData = isAuthenticated 
           ? await API.fetchPostById(parseInt(id))
           : await API.fetchPublicPostById(parseInt(id));
+        
+        if (!postData) {
+          throw new Error('Post not found');
+        }
         
         setPost(postData);
         setReactionCount(postData.reactionCount || 0);
@@ -98,25 +103,31 @@ const PostPage: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-base-200">
-      <div className="w-64 hidden lg:block p-4 bg-base-100">
+      <div className="w-100 hidden lg:block p-4 bg-base-100">
         <LeftSidebar />
       </div>
       <div className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <MainPostComponent
-            post={post}
-            userProfile={userProfile}
-            userReaction={userReaction}
-            reactionCount={reactionCount}
-            setUserReaction={setUserReaction}
-            setReactionCount={setReactionCount}
-            isAuthenticated={isAuthenticated}
-          />
-          <PostComments
-            postId={post.id}
-            isAuthenticated={isAuthenticated}
-            comments={post.comments || []}
-          />
+        <div className="max-w-6xl mx-auto flex gap-8">
+          <div className="w-2 hidden lg:block" />
+          <div className="flex-1 max-w-9x2">
+            <MainPostComponent
+              post={post}
+              userProfile={userProfile}
+              userReaction={userReaction}
+              reactionCount={reactionCount}
+              setUserReaction={setUserReaction}
+              setReactionCount={setReactionCount}
+              isAuthenticated={isAuthenticated}
+            />
+            <PostComments
+              postId={post.id}
+              isAuthenticated={isAuthenticated}
+              comments={post.comments || []}
+            />
+          </div>
+          <div className="w-80 hidden lg:block">
+            {post.groupId && <RightSidePostBar groupId={post.groupId} />}
+          </div>
         </div>
       </div>
     </div>

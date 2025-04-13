@@ -115,10 +115,13 @@ public class ReactionService {
                 return "Reaction updated";
             }
         } else {
-            // Add new reaction and notify
-            Reaction newReaction = new Reaction(reactionDto.getType(), user, comment);
+            // Create new reaction
+            Reaction newReaction = new Reaction();
+            newReaction.setUser(user);
+            newReaction.setComment(comment);
+            newReaction.setType(reactionDto.getType());
+            newReaction.setReactedAt(LocalDateTime.now());
             reactionRepository.save(newReaction);
-            logger.info("Added reaction {} on comment {} by user {}", newReaction.getType(), comment.getId(), user.getId());
             
             // Only notify for new reactions
             if (!comment.getUser().getId().equals(user.getId())) {
@@ -134,6 +137,8 @@ public class ReactionService {
                     comment.getId()
                 ));
             }
+            
+            logger.info("Added reaction {} to comment {} by user {}", reactionDto.getType(), comment.getId(), user.getId());
             return "Reaction added";
         }
     }

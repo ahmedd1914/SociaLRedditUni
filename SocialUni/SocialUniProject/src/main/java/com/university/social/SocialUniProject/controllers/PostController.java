@@ -13,10 +13,18 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
+import com.university.social.SocialUniProject.exceptions.ResourceNotFoundException;
 
 @RestController
 @RequestMapping("/posts")
-@CrossOrigin(origins = "*", allowedHeaders = "*")
+@CrossOrigin(origins = {
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8080"
+}, allowCredentials = "true")
 public class PostController {
 
     private final PostService postService;
@@ -28,14 +36,12 @@ public class PostController {
     }
 
     @GetMapping("/public")
-    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<List<PostResponseDto>> getPublicPosts() {
         List<PostResponseDto> posts = postService.getAllPublicPosts();
         return ResponseEntity.ok(posts);
     }
 
     @GetMapping("/public/{postId}")
-    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<PostResponseDto> getPublicPostById(@PathVariable Long postId) {
         System.out.println("[DEBUG] Accessing public post with ID: " + postId);
         PostResponseDto post = postService.getPublicPostById(postId);
@@ -48,7 +54,6 @@ public class PostController {
     }
 
     @GetMapping("/trending")
-    @CrossOrigin(origins = "*", allowedHeaders = "*")
     public ResponseEntity<List<PostResponseDto>> getTrendingPosts(
             @RequestParam(required = false) String timeFilter,
             @RequestParam(required = false) String category,
@@ -128,5 +133,16 @@ public class PostController {
         Long userId = SecurityUtils.getAuthenticatedUserId();
         postService.deletePost(postId, userId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{postId}")
+    public ResponseEntity<PostResponseDto> getPostById(@PathVariable Long postId) {
+        Long userId = SecurityUtils.getAuthenticatedUserId();
+        try {
+            PostResponseDto post = postService.getPostByIdDto(postId);
+            return ResponseEntity.ok(post);
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

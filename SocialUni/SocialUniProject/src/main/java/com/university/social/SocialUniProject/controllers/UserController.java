@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class UserController {
             // Only allow users to access their own profile or if they are admin
             if (!authenticatedUserId.equals(userId) && !SecurityUtils.hasRole("ROLE_ADMIN")) {
                 logger.warn("User {} attempted to access profile of user {}", authenticatedUserId, userId);
-                return ResponseEntity.noContent().build();
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
             
             User user = userService.loadUserById(userId);
@@ -43,7 +44,7 @@ public class UserController {
             return ResponseEntity.ok(UsersDto.fromEntity(user));
         } catch (Exception e) {
             logger.error("Error retrieving user profile for ID: {}", userId, e);
-            return ResponseEntity.noContent().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
@@ -103,6 +104,20 @@ public class UserController {
         } catch (Exception e) {
             logger.error("Error retrieving public profile for user: {}", username, e);
             return ResponseEntity.ok(new HashMap<>()); // Return empty profile instead of error
+        }
+    }
+
+    @GetMapping("/profile/{username}")
+    public ResponseEntity<UsersDto> getUserProfileByUsername(@PathVariable String username) {
+        try {
+            User user = userService.getUserByUsername(username);
+            return ResponseEntity.ok(UsersDto.fromEntity(user));
+        } catch (ResourceNotFoundException e) {
+            logger.warn("User not found: {}", username);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            logger.error("Error retrieving profile for user: {}", username, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

@@ -48,6 +48,7 @@ import {
   ReactionType,
   RequestDto,
   GroupMessageStats,
+  ReactionDto,
 } from "./interfaces";
 import { NotificationFilterParams } from '../types/notification';
 
@@ -839,32 +840,22 @@ export class API {
 
   static async fetchPostById(id: number): Promise<PostResponseDto> {
     const token = localStorage.getItem('token');
+    
+    // If no token, use public endpoint
     if (!token) {
-      throw new Error('No authentication token found');
+      const publicPost = await this.fetchPublicPostById(id);
+      if (!publicPost) {
+        throw new Error("Post not found or not publicly accessible");
+      }
+      return publicPost;
     }
 
-    // Decode the JWT token to check user role
-    const decodedToken = jwtDecode(token) as { role?: string };
-    const role = String(decodedToken.role || '').trim().toUpperCase();
-    const isAdmin = role === 'ROLE_ADMIN' || role === 'ADMIN';
-
-    // If user is admin, use the admin endpoint
-    if (isAdmin) {
-      const response = await this.instance.get<PostResponseDto>(`/admin/posts/${id}`);
-    return response.data;
-  }
-
-    // For non-admin users, try authenticated endpoint first
+    // For authenticated users, use authenticated endpoint
     try {
       const response = await this.instance.get<PostResponseDto>(`/posts/${id}`);
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 403) {
-        // If 403, try public endpoint
-        const response = await publicApi.get<PostResponseDto>(`/posts/${id}/public`);
     return response.data;
-      }
-      throw error;
+    } catch (error) {
+      return handleApiError(error);
     }
   }
 
@@ -970,8 +961,8 @@ export class API {
       
       if (isAdmin) {
         const { data } = await this.instance.get<PostResponseDto[]>("/admin/posts/date-range", {
-          params: { start, end }
-        });
+      params: { start, end }
+    });
         return data;
       } else {
         const { data } = await this.instance.get<PostResponseDto[]>("/posts/public");
@@ -1534,7 +1525,7 @@ export class API {
       }
       
       const response = await this.instance.get<UsersDto>(`/users/profile/${username}`);
-      return response.data;
+    return response.data;
     } catch (error) {
       // For any error on user profile endpoints, just return null without logging
       return null;
@@ -1553,11 +1544,8 @@ export class API {
       return response.data;
     } catch (error) {
       if (isAxiosError(error)) {
-        if (error.response?.status === 403) {
-          // Return null for 403 errors without throwing
-          return null;
-        } else if (error.response?.status === 404) {
-          // Return null for 404 errors without throwing
+        if (error.response?.status === 403 || error.response?.status === 404) {
+          // Return null for 403 and 404 errors without throwing
           return null;
         }
       }
@@ -1570,10 +1558,56 @@ export class API {
   static async fetchPublicUserProfile(username: string): Promise<{ username: string; firstName: string; lastName: string; imageUrl: string } | null> {
     try {
       const response = await publicApi.get<{ username: string; firstName: string; lastName: string; imageUrl: string }>(`/users/profile/${username}/public`);
-      return response.data;
+    return response.data;
     } catch (error) {
       // Return null for any error without logging
       return null;
+    }
+  }
+
+  // Comment Reactions
+  static async addCommentReaction(commentId: number, reactionDto: ReactionDto): Promise<string> {
+    try {
+      const response = await api.post(`/reactions/comment/${commentId}`, reactionDto);
+    return response.data;
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error("Please log in to react to comments");
+        } else if (error.response?.status === 404) {
+          throw new Error("Comment not found");
+        } else if (error.response?.status === 400) {
+          throw new Error("Invalid reaction type");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async removeCommentReaction(commentId: number): Promise<void> {
+    try {
+      await api.delete(`/reactions/comment/${commentId}`);
+    } catch (error) {
+      if (isAxiosError(error)) {
+        if (error.response?.status === 401) {
+          throw new Error("Please log in to remove reactions");
+        } else if (error.response?.status === 404) {
+          throw new Error("Comment not found");
+        }
+      }
+      throw error;
+    }
+  }
+
+  static async getCommentReaction(commentId: number): Promise<ReactionResponseDto | null> {
+    try {
+      const response = await api.get(`/reactions/user/comment/${commentId}`);
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        return null;
+      }
+      throw error;
     }
   }
 }

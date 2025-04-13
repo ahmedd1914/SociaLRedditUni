@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/posts/trending").permitAll()
                 .requestMatchers(HttpMethod.GET, "/admin/posts/trending").permitAll()
                 .requestMatchers(HttpMethod.GET, "/users/profile/*/public").permitAll()
+                .requestMatchers(HttpMethod.GET, "/users/profile/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/users/{id}").authenticated()
 
                 // Swagger endpoints
@@ -73,12 +74,19 @@ public class SecurityConfig {
                 .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
 
                 // User endpoints
-                .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
+                .requestMatchers("/users/me").authenticated()
+                .requestMatchers(HttpMethod.GET, "/users/profile/**").authenticated()
+                .requestMatchers(HttpMethod.PUT, "/users/profile/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/users/profile/**").hasAuthority("ROLE_ADMIN")
 
                 // Reaction endpoints
                 .requestMatchers(HttpMethod.POST, "/reactions/react").authenticated()
                 .requestMatchers(HttpMethod.GET, "/reactions/user/post/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/reactions/user/post/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/reactions/user/comment/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/reactions/user/comment/**").authenticated()
+                .requestMatchers(HttpMethod.POST, "/reactions/comment/**").authenticated()
+                .requestMatchers(HttpMethod.DELETE, "/reactions/comment/**").authenticated()
 
                 // All other requests need authentication
                 .anyRequest().authenticated()
@@ -92,16 +100,47 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        
+        // Allow all origins in development
         configuration.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://localhost:8080",
-                "https://app-backend.com"
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://localhost:8080",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8080"
         ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
+        
+        // Allow all common methods
+        configuration.setAllowedMethods(List.of(
+            "GET", "POST", "PUT", "PATCH", 
+            "DELETE", "OPTIONS", "HEAD"
+        ));
+        
+        // Allow all common headers
+        configuration.setAllowedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Accept-Language",
+            "Origin",
+            "X-Requested-With",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
+        
+        // Expose necessary response headers
+        configuration.setExposedHeaders(List.of(
+            "Authorization",
+            "Content-Type",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials"
+        ));
+        
+        // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
+        
+        // Cache preflight requests for 1 hour
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

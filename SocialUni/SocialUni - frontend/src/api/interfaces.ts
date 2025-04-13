@@ -261,6 +261,7 @@ export interface CommentResponseDto {
     deleted?: boolean;       // Added to match backend response
     replies: CommentResponseDto[];
     postId: number;          // Added postId field
+    userReaction?: ReactionResponseDto | null; // Added userReaction field
 }
 
 /** EventResponseDto.java */

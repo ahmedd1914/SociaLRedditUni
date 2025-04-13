@@ -1,61 +1,32 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { PostResponseDto, UsersDto, ReactionType, ReactionResponseDto } from '../../../api/interfaces';
+import { PostResponseDto, UsersDto, CommentResponseDto } from '../../../api/interfaces';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { HiOutlineChatAlt } from 'react-icons/hi';
 import { BsBookmark } from 'react-icons/bs';
-import { FaRegThumbsUp, FaThumbsUp, FaHeart, FaLaugh, FaSurprise, FaRegSadTear, FaAngry } from 'react-icons/fa';
-import { toast } from 'react-hot-toast';
-import API from '../../../api/api';
+import ReactionButton from './ReactionButton';
 
 interface MainPostComponentProps {
   post: PostResponseDto;
   userProfile: UsersDto | null;
-  userReaction: ReactionResponseDto | null;
+  userReaction: any | null;
   reactionCount: number;
-  setUserReaction: (reaction: ReactionResponseDto | null) => void;
+  setUserReaction: (reaction: any | null) => void;
   setReactionCount: (count: number) => void;
   isAuthenticated: boolean;
 }
 
-const reactionTypes = [
-  { 
-    type: ReactionType.LIKE, 
-    icon: <FaRegThumbsUp className="w-4 h-4 text-blue-500" />, 
-    activeIcon: <FaThumbsUp className="w-4 h-4 text-blue-500" />, 
-    label: "Like" 
-  },
-  { 
-    type: ReactionType.LOVE, 
-    icon: <FaHeart className="w-4 h-4 text-red-500" />, 
-    activeIcon: <FaHeart className="w-4 h-4 text-red-500" />, 
-    label: "Love" 
-  },
-  { 
-    type: ReactionType.HAHA, 
-    icon: <FaLaugh className="w-4 h-4 text-yellow-500" />, 
-    activeIcon: <FaLaugh className="w-4 h-4 text-yellow-500" />, 
-    label: "Haha" 
-  },
-  { 
-    type: ReactionType.WOW, 
-    icon: <FaSurprise className="w-4 h-4 text-yellow-400" />, 
-    activeIcon: <FaSurprise className="w-4 h-4 text-yellow-400" />, 
-    label: "Wow" 
-  },
-  { 
-    type: ReactionType.SAD, 
-    icon: <FaRegSadTear className="w-4 h-4 text-blue-400" />, 
-    activeIcon: <FaRegSadTear className="w-4 h-4 text-blue-400" />, 
-    label: "Sad" 
-  },
-  { 
-    type: ReactionType.ANGRY, 
-    icon: <FaAngry className="w-4 h-4 text-red-600" />, 
-    activeIcon: <FaAngry className="w-4 h-4 text-red-600" />, 
-    label: "Angry" 
-  }
-];
+const countTotalComments = (comments: CommentResponseDto[]): number => {
+  return comments.reduce((total, comment) => {
+    // Count the current comment
+    let count = 1;
+    // Add the count of all replies recursively
+    if (comment.replies && comment.replies.length > 0) {
+      count += countTotalComments(comment.replies);
+    }
+    return total + count;
+  }, 0);
+};
 
 const MainPostComponent: React.FC<MainPostComponentProps> = ({
   post,
@@ -66,85 +37,7 @@ const MainPostComponent: React.FC<MainPostComponentProps> = ({
   setReactionCount,
   isAuthenticated
 }) => {
-  const [showReactionPopup, setShowReactionPopup] = useState(false);
-  const [isHoveringReaction, setIsHoveringReaction] = useState(false);
-  const [isHoveringPopup, setIsHoveringPopup] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  const handleReactionClick = async (type: ReactionType) => {
-    if (!isAuthenticated) {
-      toast.error('Please log in to react to posts');
-      return;
-    }
-    
-    try {
-      if (userReaction) {
-        if (userReaction.type === type) {
-          await API.removeReaction(post.id);
-          setUserReaction(null);
-          setReactionCount(prev => Math.max(0, prev - 1));
-          setShowReactionPopup(false);
-        } else {
-          await API.addReaction(post.id, type);
-          setUserReaction({
-            ...userReaction,
-            type: type,
-            timestamp: new Date().toISOString()
-          });
-          setShowReactionPopup(false);
-        }
-      } else {
-        await API.addReaction(post.id, type);
-        const newReaction: ReactionResponseDto = {
-          id: 0,
-          type,
-          userId: 0, // Will be set by server
-          username: '',
-          timestamp: new Date().toISOString(),
-          postId: post.id
-        };
-        setUserReaction(newReaction);
-        setReactionCount(prev => prev + 1);
-        setShowReactionPopup(false);
-      }
-    } catch (error) {
-      console.error("Error handling reaction:", error);
-      toast.error("Failed to update reaction");
-    }
-  };
-
-  const handleReactionMouseEnter = () => {
-    setIsHoveringReaction(true);
-    setShowReactionPopup(true);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  };
-
-  const handleReactionMouseLeave = () => {
-    setIsHoveringReaction(false);
-    timeoutRef.current = setTimeout(() => {
-      if (!isHoveringPopup) {
-        setShowReactionPopup(false);
-      }
-    }, 150);
-  };
-
-  const handlePopupMouseEnter = () => {
-    setIsHoveringPopup(true);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  };
-
-  const handlePopupMouseLeave = () => {
-    setIsHoveringPopup(false);
-    timeoutRef.current = setTimeout(() => {
-      if (!isHoveringReaction) {
-        setShowReactionPopup(false);
-      }
-    }, 150);
-  };
+  const totalComments = post.comments ? countTotalComments(post.comments) : 0;
 
   return (
     <div className="bg-base-100 rounded-lg shadow-md p-6 mb-4">
@@ -175,11 +68,6 @@ const MainPostComponent: React.FC<MainPostComponentProps> = ({
             </div>
           </div>
         </div>
-        {post.groupId && (
-          <Link to={`/groups/${post.groupId}`} className="badge badge-primary">
-            {post.groupId}
-          </Link>
-        )}
       </div>
 
       {/* Post Content */}
@@ -190,59 +78,20 @@ const MainPostComponent: React.FC<MainPostComponentProps> = ({
 
       {/* Post Actions */}
       <div className="flex items-center gap-4 text-base-content/60 border-t border-base-300 pt-4">
-        <div className="relative">
-          <button
-            className="btn btn-ghost btn-sm gap-1"
-            onMouseEnter={handleReactionMouseEnter}
-            onMouseLeave={handleReactionMouseLeave}
-            onClick={() => {
-              if (!isAuthenticated) {
-                toast.error('Please log in to react to posts');
-                return;
-              }
-              
-              if (userReaction) {
-                handleReactionClick(userReaction.type);
-              } else {
-                handleReactionClick(ReactionType.LIKE);
-              }
-            }}
-          >
-            {userReaction ? (
-              reactionTypes.find(r => r.type === userReaction.type)?.activeIcon
-            ) : (
-              <FaRegThumbsUp className="w-4 h-4 text-blue-500" />
-            )}
-            <span>{reactionCount}</span>
-          </button>
-          
-          {showReactionPopup && (
-            <div 
-              className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-lg p-2 flex gap-2 reaction-popup z-10"
-              onMouseEnter={handlePopupMouseEnter}
-              onMouseLeave={handlePopupMouseLeave}
-            >
-              {reactionTypes.map((reaction) => (
-                <div key={reaction.type} className="flex flex-col items-center">
-                  <button
-                    className={`transition-all duration-200 hover:scale-125 ${
-                      userReaction?.type === reaction.type ? 'scale-110' : ''
-                    }`}
-                    onClick={() => handleReactionClick(reaction.type)}
-                    title={reaction.type}
-                  >
-                    {userReaction?.type === reaction.type ? reaction.activeIcon : reaction.icon}
-                  </button>
-                  <span className="text-xs mt-1 text-gray-500">{reaction.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <ReactionButton
+          postId={post.id}
+          initialReaction={userReaction}
+          reactionCount={reactionCount}
+          isAuthenticated={isAuthenticated}
+          onReactionChange={() => {
+            // This will be called when the reaction changes
+            // The ReactionButton component handles the state updates internally
+          }}
+        />
         
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 hover:text-primary transition-colors duration-200">
           <HiOutlineChatAlt className="w-4 h-4" />
-          <span>{post.comments?.length || 0} Comments</span>
+          <span>{totalComments} {totalComments === 1 ? 'Comment' : 'Comments'}</span>
         </div>
         
         {isAuthenticated && (
